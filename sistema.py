@@ -6,8 +6,7 @@ from datetime import datetime
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
-# Verifica se a imagem do canto existe para evitar quebras visuais no app
+# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA (VIA HTML PURO) ---
 if os.path.exists("logo gdcom1.png"):
     st.markdown(
         """
@@ -84,9 +83,9 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-# --- EXIBIÇÃO DO LOGO SUPERIOR ACIMA DO TÍTULO ---
+# --- EXIBIÇÃO DO LOGO SUPERIOR (VIA HTML PURO - SEM ST.IMAGE) ---
 if os.path.exists("logo.png"):
-    st.image("logo.png", width=200)
+    st.markdown('<img src="app/static/logo.png" style="width:200px; margin-bottom:20px;">', unsafe_allow_html=True)
 
 # ==========================================
 # 1. CADASTRO, EDIÇÃO E EXCLUSÃO
@@ -204,4 +203,3 @@ elif menu == "📅 Planejamento & Checklists":
             with st.form("form_plan"):
                 eq_escolhido = st.selectbox("Escolha o Equipamento:", [e['nome'] for e in st.session_state.equipamentos])
                 periodo_escolhido = st.selectbox("Período/Frequência:", ["Semanal", "Mensal", "Anual"])
-                pecas_necessarias = st.text_area("Peças a serem Trocadas:")
