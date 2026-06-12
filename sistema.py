@@ -187,6 +187,3 @@ elif menu == "📅 Planejamento & Checklists":
                         "periodo": periodo_escolhido, "pecas": pecas_necessarias, "status": "Pendente", "seguranca": regras_seguranca
                     })
                     salvar_dados(ARQUIVO_PLAN, st.session_state.planejamento)
-                    st.success("Manutenção programada e salva!")
-                    st.rerun()
-
