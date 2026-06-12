@@ -30,8 +30,8 @@ menu = st.sidebar.radio("Navegar para:", ["Catálogo de Equipamentos", "Planejam
 if menu == "Catálogo de Equipamentos":
     st.header("📋 Catálogo de Máquinas e Equipamentos")
     
-    with st.expander("➕ Cadastrar Novo Equipamento"):
-        with st.form("form_equipamento"):
+    with St.expander("➕ Cadastrar Novo Equipamento"):
+        with St.form("form_equipamento"):
             col1, col2 = st.columns(2)
             with col1:
                 id_eq = st.text_input("Código/Tag do Equipamento:")
@@ -48,7 +48,7 @@ if menu == "Catálogo de Equipamentos":
                 else:
                     st.error("Preencha o Código e o Nome do equipamento.")
 
-    # Exibição usando tabela nativa do Streamlit (aceita listas de dicionários)
+    # Exibição direta usando a tabela nativa do Streamlit
     st.table(st.session_state.equipamentos)
 
 # --- 2. PLANEJAMENTO (SEMANAL, MENSAL, ANUAL) ---
@@ -77,7 +77,7 @@ elif menu == "Planejamento (Semanal/Mensal/Anual)":
         exibir_tabela_periodo("Anual")
 
     with aba_novo:
-        with st.form("form_planejamento"):
+        with St.form("form_planejamento"):
             eq_escolhido = st.selectbox("Selecione o Equipamento:", [e['nome'] for e in st.session_state.equipamentos])
             periodo_escolhido = st.selectbox("Período/Frequência:", ["Semanal", "Mensal", "Anual"])
             pecas_necessarias = st.text_area("Descrição das Peças a serem Trocadas:")
