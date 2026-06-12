@@ -111,8 +111,8 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.info("Nenhum equipamento cadastrado.")
         else:
             for eq in st.session_state.equipamentos:
-                # CORREÇÃO DA LINHA 104: Passando a proporção exata das 2 colunas
-                col_texto, col_btn = st.columns([5, 1])
+                # CORREÇÃO DA LINHA 104: Definindo explicitamente a proporção de duas colunas [4 partes, 1 parte]
+                col_texto, col_btn = st.columns([4, 1])
                 with col_texto:
                     st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
                 with col_btn:
@@ -207,5 +207,3 @@ elif menu == "📅 Planejamento & Checklists":
 
     with aba_sem: exibir_itens("Semanal", "check_semanal")
     with aba_mes: exibir_itens("Mensal", "check_mensal")
-    with aba_ano: exibir_itens("Anual", "check_anual")
-    with aba_novo:
