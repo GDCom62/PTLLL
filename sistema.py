@@ -147,7 +147,7 @@ elif menu == "Histórico de Trocas":
             </div>
             """, unsafe_allow_html=True)
 
-# 4. PERMISSÃO DE TRABALHO (PT) COM IMPRESSÃO
+# 4. PERMISSÃO DE TRABALHO (PT) COM IMPRESSÃO ELEGANTE E SEGURA
 elif menu == "Emissão de Permissão de Trabalho (PT)":
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
     opcoes_pt = {f"{p['id']} - {p['equipamento']} ({p['periodo']})": p for p in st.session_state.planejamento if p['status'] == "Pendente"}
@@ -161,25 +161,25 @@ elif menu == "Emissão de Permissão de Trabalho (PT)":
         pecas_reais = st.text_area("Confirme as Peças Trocadas (para registrar no histórico):", value=manutencao_selecionada['pecas'])
         
         if colaborador:
-            itens_verificacao = "<br>".join([f"▢ {i}" for i in CHECKLISTS_PADRAO[manutencao_selecionada['periodo']]])
-            id_manutencao = manutencao_selecionada['id']
+            # Montagem estruturada do documento para evitar erros de strings triplas
+            id_doc = str(manutencao_selecionada['id'])
+            data_str = data_atual.strftime('%d/%m/%Y')
+            eq_nome = manutencao_selecionada['equipamento']
+            freq_nome = manutencao_selecionada['periodo']
+            seg_texto = manutencao_selecionada['seguranca']
             
-            documento_html = f"""
-            <div id="print-area" style="border: 2px solid #FF4B4B; padding: 25px; border-radius: 8px; background-color: white; color: black; font-family: Arial, sans-serif;">
-                <h2 style="text-align: center; color: #FF4B4B; margin-top:0; font-size:24px;">⚠️ PERMISSÃO DE TRABALHO (PT) - Nº 00{id_manutencao}</h2>
-                <h4 style="text-align: center; margin:0; color:#555;">Controle de Segurança e Preventiva Industrial</h4>
-                <hr style="border: 1px solid #FF4B4B;">
-                
-                <table style="width:100%; font-size:14px; border-collapse: collapse;">
-                    <tr>
-                        <td style="padding:5px;"><strong>Colaborador Autorizado (Nominal):</strong> {colaborador}</td>
-                        <td style="padding:5px;"><strong>Data de Emissão:</strong> {data_atual.strftime('%d/%m/%Y')}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding:5px;"><strong>Equipamento / Máquina:</strong> {manutencao_selecionada['equipamento']}</td>
-                        <td style="padding:5px;"><strong>Tipo de Preventiva:</strong> {manutencao_selecionada['periodo']}</td>
-                    </tr>
-                </table>
-                
-                <hr style="border: 0.5px dashed #FF4B4B;">
-                <h4 style="color: #0066CC; margin-bottom: 5px;">📋 LISTA PRÉVIA DE VERIFICAÇÃO OBRIGATÓRIA (CHECKLIST):</h4>
+            # Gera a lista de verificação textual
+            itens_verificacao = ""
+            for item in CHECKLISTS_PADRAO[freq_nome]:
+                itens_verificacao += f"▢ {item}<br>"
+            
+            # Blocos HTML injetados de forma limpa
+            st.markdown('<div style="border: 2px solid #FF4B4B; padding: 25px; border-radius: 8px; background-color: white; color: black; font-family: Arial, sans-serif;">', unsafe_allow_html=True)
+            st.markdown('<h2 style="text-align: center; color: #FF4B4B; margin-top:0; font-size:24px;">⚠️ PERMISSÃO DE TRABALHO (PT) - Nº 00' + id_doc + '</h2>', unsafe_allow_html=True)
+            st.markdown('<h4 style="text-align: center; margin:0; color:#555;">Controle de Segurança e Preventiva Industrial</h4><hr style="border: 1px solid #FF4B4B;">', unsafe_allow_html=True)
+            
+            st.write(f"➡️ **Colaborador Autorizado (Nominal):** {colaborador} | **Data de Emissão:** {data_str}")
+            st.write(f"➡️ **Equipamento / Máquina:** {eq_nome} | **Tipo de Preventiva:** {freq_nome}")
+            st.markdown('<hr style="border: 0.5px dashed #FF4B4B;">', unsafe_allow_html=True)
+            
+            st.markdown('<h4 style="color: #0066CC; margin-bottom: 5px;">📋 LISTA PRÉVIA DE VERIFICAÇÃO OBRIGATÓRIA (CHECKLIST):</h4>', unsafe_allow_html=True)
