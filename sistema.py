@@ -6,6 +6,28 @@ from datetime import datetime
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
+# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
+# Verifica se a imagem do canto existe para evitar quebras visuais no app
+if os.path.exists("logo gdcom1.png"):
+    st.markdown(
+        """
+        <style>
+        .marca-fixa {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            z-index: 9999;
+            opacity: 0.7;
+            max-width: 120px;
+            pointer-events: none;
+        }
+        </style>
+        <img src="app/static/logo gdcom1.png" class="marca-fixa">
+        """,
+        unsafe_allow_html=True
+    )
+
+# --- ARQUIVOS DE ARMAZENAMENTO ---
 ARQUIVO_EQ = "dados_equipamentos.json"
 ARQUIVO_PLAN = "dados_planejamento.json"
 ARQUIVO_HIST = "dados_historico.json"
@@ -62,6 +84,10 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
+# --- EXIBIÇÃO DO LOGO SUPERIOR ACIMA DO TÍTULO ---
+if os.path.exists("logo.png"):
+    st.image("logo.png", width=200)
+
 # ==========================================
 # 1. CADASTRO, EDIÇÃO E EXCLUSÃO
 # ==========================================
@@ -75,7 +101,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.info("Nenhum equipamento cadastrado.")
         else:
             for eq in st.session_state.equipamentos:
-                col_texto, col_btn = st.columns([4, 1])
+                col_texto, col_btn = st.columns()
                 with col_texto:
                     st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
                 with col_btn:
@@ -179,11 +205,3 @@ elif menu == "📅 Planejamento & Checklists":
                 eq_escolhido = st.selectbox("Escolha o Equipamento:", [e['nome'] for e in st.session_state.equipamentos])
                 periodo_escolhido = st.selectbox("Período/Frequência:", ["Semanal", "Mensal", "Anual"])
                 pecas_necessarias = st.text_area("Peças a serem Trocadas:")
-                regras_seguranca = st.text_area("Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).")
-                
-                if st.form_submit_button("Salvar no Planejamento"):
-                    st.session_state.planejamento.append({
-                        "id": len(st.session_state.planejamento) + 1, "equipamento": eq_escolhido,
-                        "periodo": periodo_escolhido, "pecas": pecas_necessarias, "status": "Pendente", "seguranca": regras_seguranca
-                    })
-                    salvar_dados(ARQUIVO_PLAN, st.session_state.planejamento)
