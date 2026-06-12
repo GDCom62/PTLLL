@@ -2,9 +2,9 @@ import streamlit as st
 import json
 import os
 
+# --- ARQUIVOS E CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- ARQUIVOS DE ARMAZENAMENTO ---
 ARQUIVO_EQ = "dados_equipamentos.json"
 ARQUIVO_PLAN = "dados_planejamento.json"
 ARQUIVO_HIST = "dados_historico.json"
@@ -12,8 +12,11 @@ ARQUIVO_HIST = "dados_historico.json"
 # --- FUNÇÕES DE CARGA E SALVAMENTO ---
 def carregar_dados(arquivo, dados_padrao):
     if os.path.exists(arquivo):
-        with open(arquivo, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(arquivo, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return dados_padrao
     return dados_padrao
 
 def salvar_dados(arquivo, dados):
@@ -49,7 +52,7 @@ if "historico" not in st.session_state:
 if "planejamento" not in st.session_state:
     st.session_state.planejamento = carregar_dados(ARQUIVO_PLAN, [])
 
-# --- MENU LATERAL DE NAVEGAÇÃO ---
+# --- MENU LATERAL DE NAVEGAÇÃO (NOMES EXATOS CORRIGIDOS) ---
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
     "📋 Cadastro & Edição de Máquinas", 
@@ -72,11 +75,10 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.info("Nenhum equipamento cadastrado.")
         else:
             for eq in st.session_state.equipamentos:
-                col_texto, col_btn = st.columns([5, 1])
+                col_texto, col_btn = st.columns([4, 1])
                 with col_texto:
                     st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
                 with col_btn:
-                    # Botão para retirar/excluir o equipamento do sistema
                     if st.button("🗑️ Remover", key=f"del_{eq['id']}"):
                         st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
                         salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
@@ -99,7 +101,6 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             
             if st.form_submit_button("Salvar Equipamento"):
                 if id_eq and nome_eq:
-                    # Impede IDs duplicados
                     if any(e['id'] == id_eq for e in st.session_state.equipamentos):
                         st.error("Já existe um equipamento cadastrado com este Código/Tag.")
                     else:
@@ -149,7 +150,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
 # ==========================================
 # 2. PLANEJAMENTO TEMPORAL
 # ==========================================
-elif menu == "Planejamento & Checklists":
+elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
@@ -160,7 +161,6 @@ elif menu == "Planejamento & Checklists":
                 st.write(f"⚙️ **{p['equipamento']}** | **Status:** {p['status']}")
                 st.write(f"🔧 Peças Programadas para Troca: {p['pecas']}")
                 
-                # Busca o checklist dinâmico customizado para aquela máquina específica
                 maq = next((e for e in st.session_state.equipamentos if e['nome'] == p['equipamento']), None)
                 if maq and maq.get(chave_check):
                     st.caption("📋 **Itens Específicos que serão verificados nesta máquina:**")
@@ -187,5 +187,7 @@ elif menu == "Planejamento & Checklists":
                 if st.form_submit_button("Salvar no Planejamento"):
                     st.session_state.planejamento.append({
                         "id": len(st.session_state.planejamento) + 1, "equipamento": eq_escolhido,
-                        "periodo": periodo_escolhido, "pecas": pecas_necessarias, "status": "Pendente", "seguranca": regras_seguranca
+                        "periodo": periodo_escolhido, "pecas": pecas_necessarias, "status": "Pendente", "seguranca": rules_seguranca
                     })
+                    salvar_dados(ARQUIVO_PLAN, st.session_state.planejamento)
+                    st.success("Manutenção programada e salva!")
