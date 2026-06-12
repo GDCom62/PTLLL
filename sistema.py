@@ -1,17 +1,27 @@
 import streamlit as st
 import json
 import os
+import base64
 from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA (VIA HTML PURO) ---
-if os.path.exists("logo gdcom1.png"):
+# --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 (EVITA DEPENDÊNCIA DO NUMPY) ---
+def obter_base64_imagem(caminho_imagem):
+    if os.path.exists(caminho_imagem):
+        with open(caminho_imagem, "rb") as f:
+            dados = f.read()
+        return base64.b64encode(dados).decode()
+    return None
+
+# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
+img_marca_b64 = obter_base64_imagem("logo gdcom1.png")
+if img_marca_b64:
     st.markdown(
-        """
+        f"""
         <style>
-        .marca-fixa {
+        .marca-fixa {{
             position: fixed;
             bottom: 15px;
             right: 15px;
@@ -19,9 +29,9 @@ if os.path.exists("logo gdcom1.png"):
             opacity: 0.7;
             max-width: 120px;
             pointer-events: none;
-        }
+        }}
         </style>
-        <img src="app/static/logo gdcom1.png" class="marca-fixa">
+        <img src="data:image/png;base64,{img_marca_b64}" class="marca-fixa">
         """,
         unsafe_allow_html=True
     )
@@ -83,9 +93,10 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-# --- EXIBIÇÃO DO LOGO SUPERIOR (VIA HTML PURO - SEM ST.IMAGE) ---
-if os.path.exists("logo.png"):
-    st.markdown('<img src="app/static/logo.png" style="width:200px; margin-bottom:20px;">', unsafe_allow_html=True)
+# --- EXIBIÇÃO DO LOGO SUPERIOR ---
+img_logo_b64 = obter_base64_imagem("logo.png")
+if img_logo_b64:
+    st.markdown(f'<img src="data:image/png;base64,{img_logo_b64}" style="width:200px; margin-bottom:20px;">', unsafe_allow_html=True)
 
 # ==========================================
 # 1. CADASTRO, EDIÇÃO E EXCLUSÃO
@@ -100,15 +111,13 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.info("Nenhum equipamento cadastrado.")
         else:
             for eq in st.session_state.equipamentos:
-                col_texto, col_btn = st.columns()
-                with col_texto:
-                    st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
-                with col_btn:
-                    if st.button("🗑️ Remover", key=f"del_{eq['id']}"):
-                        st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
-                        salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
-                        st.success(f"Equipamento {eq['id']} removido!")
-                        st.rerun()
+                st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
+                if st.button(f"🗑️ Remover {eq['id']}", key=f"del_{eq['id']}"):
+                    st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
+                    salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
+                    st.success(f"Equipamento {eq['id']} removido com sucesso!")
+                    st.rerun()
+                st.write("---")
                         
     with aba_cadastrar:
         st.subheader("Cadastrar Nova Máquina")
@@ -200,6 +209,3 @@ elif menu == "📅 Planejamento & Checklists":
         if not st.session_state.equipamentos:
             st.warning("Cadastre um equipamento antes de agendar uma manutenção.")
         else:
-            with st.form("form_plan"):
-                eq_escolhido = st.selectbox("Escolha o Equipamento:", [e['nome'] for e in st.session_state.equipamentos])
-                periodo_escolhido = st.selectbox("Período/Frequência:", ["Semanal", "Mensal", "Anual"])
