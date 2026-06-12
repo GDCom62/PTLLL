@@ -36,7 +36,7 @@ if "planejamento" not in st.session_state:
     st.session_state.planejamento = carregar_dados(ARQUIVO_PLAN, [
         {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "pecas": "Filtro de óleo", "status": "Pendente", "seguranca": "Uso obrigatório de óculos de proteção. Desenergizar o equipamento (Lockout/Tagout)."},
         {"id": 2, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "pecas": "Óleo lubrificante", "status": "Pendente", "seguranca": "Aliviar pressão interna do sistema antes de iniciar. Bloquear chave geral elétrica."}
-    ] )
+    ])
 
 # --- DICIONÁRIO FIXO DE CHECKLIST PREVENTIVO ---
 CHECKLISTS_PADRAO = {
@@ -124,7 +124,7 @@ elif menu == "Planejamento & Checklists":
             if st.form_submit_button("Salvar no Planejamento"):
                 st.session_state.planejamento.append({
                     "id": len(st.session_state.planejamento) + 1, "equipamento": eq_escolhido,
-                    "periodo": periodo_escolhido, "pecas": pecas_necessarias, "status": "Pendente", "seguranca": rules_seguranca
+                    "periodo": periodo_escolhido, "pecas": pecas_necessarias, "status": "Pendente", "seguranca": regras_seguranca
                 })
                 salvar_dados(ARQUIVO_PLAN, st.session_state.planejamento)
                 st.success("Agendado e salvo no arquivo!")
@@ -134,7 +134,6 @@ elif menu == "Planejamento & Checklists":
 elif menu == "Histórico de Trocas":
     st.header("📜 Histórico de Manutenções Realizadas e Peças Trocadas")
     
-    # Filtro simples por equipamento
     lista_eq_filtro = ["Todos"] + list(set([e['nome'] for e in st.session_state.equipamentos]))
     eq_filtrar = st.selectbox("Filtrar Histórico por Equipamento:", lista_eq_filtro)
     
@@ -162,13 +161,12 @@ elif menu == "Emissão de Permissão de Trabalho (PT)":
         pecas_reais = st.text_area("Confirme as Peças Trocadas (para registrar no histórico):", value=manutencao_selecionada['pecas'])
         
         if colaborador:
-            # Pega os itens de verificação automáticos daquele período
             itens_verificacao = "<br>".join([f"▢ {i}" for i in CHECKLISTS_PADRAO[manutencao_selecionada['periodo']]])
+            id_manutencao = manutencao_selecionada['id']
             
-            # Código HTML limpo e estruturado pronto para a impressão limpa do navegador (Ctrl+P)
             documento_html = f"""
             <div id="print-area" style="border: 2px solid #FF4B4B; padding: 25px; border-radius: 8px; background-color: white; color: black; font-family: Arial, sans-serif;">
-                <h2 style="text-align: center; color: #FF4B4B; margin-top:0; font-size:24px;">⚠️ PERMISSÃO DE TRABALHO (PT) - Nº 00{manutencao_selecionada['id']}</h2>
+                <h2 style="text-align: center; color: #FF4B4B; margin-top:0; font-size:24px;">⚠️ PERMISSÃO DE TRABALHO (PT) - Nº 00{id_manutencao}</h2>
                 <h4 style="text-align: center; margin:0; color:#555;">Controle de Segurança e Preventiva Industrial</h4>
                 <hr style="border: 1px solid #FF4B4B;">
                 
@@ -184,3 +182,4 @@ elif menu == "Emissão de Permissão de Trabalho (PT)":
                 </table>
                 
                 <hr style="border: 0.5px dashed #FF4B4B;">
+                <h4 style="color: #0066CC; margin-bottom: 5px;">📋 LISTA PRÉVIA DE VERIFICAÇÃO OBRIGATÓRIA (CHECKLIST):</h4>
