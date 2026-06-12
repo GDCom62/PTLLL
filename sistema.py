@@ -23,7 +23,7 @@ if "planejamento" not in st.session_state:
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", ["Catálogo de Equipamentos", "Planejamento (Semanal/Mensal/Anual)", "Histórico de Serviços", "Emissão de Permissão de Trabalho (PT)"])
 
-# 1. CATÁLOGO (Visualização em blocos de cartões dinâmicos)
+# 1. CATÁLOGO (Usa blocos divs estilizados em vez de st.table)
 if menu == "Catálogo de Equipamentos":
     st.header("📋 Catálogo de Máquinas e Equipamentos")
     with st.expander("➕ Cadastrar Novo Equipamento"):
@@ -38,7 +38,7 @@ if menu == "Catálogo de Equipamentos":
                     st.success("Equipamento cadastrado com sucesso!")
                     st.rerun()
     
-    # Renderização visual sem st.table para banir o numpy
+    # Renderização em formato de cards visuais para abolir o uso do numpy
     for eq in st.session_state.equipamentos:
         cor_critica = "#FF4B4B" if eq['criticidade'] == "Alta" else "#FFAA00" if eq['criticidade'] == "Média" else "#00CC66"
         st.markdown(f"""
@@ -94,7 +94,7 @@ elif menu == "Histórico de Serviços":
         <div style="padding:15px; border-radius:8px; background-color:#EAF9EE; margin-bottom:10px; border-left: 6px solid #28A745; color: black;">
             <span style="font-size:12px; color:#555;">📅 Data de Conclusão: {h['data']}</span>
             <h5 style="margin:2px 0; color:#155724;">✅ {h['equipamento']}</h5>
-            <p style="margin:0; font-size:14px;">📝 <b>Serviço:</b> {h['descricao']} | 👷 <b>Executor:</b> {h['executor']}</p>
+            <p style="margin:0; font-size:14px;">📝 <b>Serviço:</b> {h['descricao']} | <b>Executor:</b> {h['executor']}</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -112,7 +112,7 @@ elif menu == "Emissão de Permissão de Trabalho (PT)":
             if colaborador:
                 st.markdown(f"""
                 <div style="border: 2px solid #FF4B4B; padding: 20px; border-radius: 10px; background-color: #FFF5F5; color: black;">
-                    <h2 style="text-align: center; color: #FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO (PT) - Nº 00{manutencao_selecionada['id']}</h2>
+                    <h2 style="text-align: center; color: #FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO (PT) - Nº 00{manutencao_safe := manutencao_selecionada['id']}</h2>
                     <hr style="border: 1px solid #FF4B4B;">
                     <p><strong>Colaborador Autorizado:</strong> {colaborador}</p>
                     <p><strong>Equipamento Alvo:</strong> {manutencao_selecionada['equipamento']}</p>
