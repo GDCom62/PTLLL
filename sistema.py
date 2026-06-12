@@ -23,7 +23,7 @@ if "planejamento" not in st.session_state:
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", ["Catálogo de Equipamentos", "Planejamento (Semanal/Mensal/Anual)", "Histórico de Serviços", "Emissão de Permissão de Trabalho (PT)"])
 
-# 1. CATÁLOGO (Usa blocos divs estilizados em vez de st.table)
+# 1. CATÁLOGO
 if menu == "Catálogo de Equipamentos":
     st.header("📋 Catálogo de Máquinas e Equipamentos")
     with st.expander("➕ Cadastrar Novo Equipamento"):
@@ -35,43 +35,31 @@ if menu == "Catálogo de Equipamentos":
             if st.form_submit_button("Salvar Equipamento"):
                 if id_eq and nome_eq:
                     st.session_state.equipamentos.append({"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq})
-                    st.success("Equipamento cadastrado com sucesso!")
+                    st.success("Equipamento cadastrado!")
                     st.rerun()
     
-    # Renderização em formato de cards visuais para abolir o uso do numpy
+    # Renderização textual limpa (NÃO USA ST.TABLE)
     for eq in st.session_state.equipamentos:
-        cor_critica = "#FF4B4B" if eq['criticidade'] == "Alta" else "#FFAA00" if eq['criticidade'] == "Média" else "#00CC66"
-        st.markdown(f"""
-        <div style="padding:15px; border-radius:8px; background-color:#F0F2F6; margin-bottom:10px; border-left: 6px solid {cor_critica}; color: black;">
-            <span style="font-size:12px; font-weight:bold; color:#555;">TAG: {eq['id']}</span>
-            <h4 style="margin:2px 0; color:#111;">{eq['nome']}</h4>
-            <p style="margin:0; font-size:14px;">📍 <b>Setor:</b> {eq['localizacao']} | 🔥 <b>Criticidade:</b> <span style="color:{cor_critica}; font-weight:bold;">{eq['criticidade']}</span></p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
 
 # 2. PLANEJAMENTO
 elif menu == "Planejamento (Semanal/Mensal/Anual)":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    def exibir_blocos(frequencia):
+    def exibir_itens(frequencia):
         dados = [p for p in st.session_state.planejamento if p['periodo'] == frequencia]
         if dados:
             for p in dados:
-                st.markdown(f"""
-                <div style="padding:15px; border-radius:8px; background-color:#EBF5FF; margin-bottom:10px; border-left: 6px solid #0066CC; color: black;">
-                    <h5 style="margin:0; color:#0066CC;">⚙️ {p['equipamento']}</h5>
-                    <p style="margin:4px 0 0 0; font-size:14px;">🔧 <b>Peças para Troca:</b> {p['pecas']}</p>
-                    <p style="margin:2px 0 0 0; font-size:14px;">🛡️ <b>Segurança:</b> {p['seguranca']}</p>
-                    <p style="margin:2px 0 0 0; font-size:12px; color:#555;">📌 Status: <b>{p['status']}</b></p>
-                </div>
-                """, unsafe_allow_html=True)
+                st.write(f"⚙️ **{p['equipamento']}** | Trocar: {p['pecas']} | Status: {p['status']}")
+                st.caption(f"🛡️ Segurança: {p['seguranca']}")
+                st.write("---")
         else:
-            st.info(f"Nenhuma manutenção cadastrada para o período {frequencia}.")
+            st.info(f"Nenhuma manutenção para o período {frequencia}.")
 
-    with aba_sem: exibir_blocos("Semanal")
-    with aba_mes: exibir_blocos("Mensal")
-    with aba_ano: exibir_blocos("Anual")
+    with aba_sem: exibir_itens("Semanal")
+    with aba_mes: exibir_itens("Mensal")
+    with aba_ano: exibir_itens("Anual")
     with aba_novo:
         with st.form("form_plan"):
             eq_escolhido = st.selectbox("Equipamento:", [e['nome'] for e in st.session_state.equipamentos])
@@ -90,13 +78,7 @@ elif menu == "Planejamento (Semanal/Mensal/Anual)":
 elif menu == "Histórico de Serviços":
     st.header("📜 Histórico de Manutenções Realizadas")
     for h in st.session_state.historico:
-        st.markdown(f"""
-        <div style="padding:15px; border-radius:8px; background-color:#EAF9EE; margin-bottom:10px; border-left: 6px solid #28A745; color: black;">
-            <span style="font-size:12px; color:#555;">📅 Data de Conclusão: {h['data']}</span>
-            <h5 style="margin:2px 0; color:#155724;">✅ {h['equipamento']}</h5>
-            <p style="margin:0; font-size:14px;">📝 <b>Serviço:</b> {h['descricao']} | <b>Executor:</b> {h['executor']}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.write(f"✅ **{h['equipamento']}** ({h['data']}) | {h['descricao']} | Executor: {h['executor']}")
 
 # 4. PERMISSÃO DE TRABALHO
 elif menu == "Emissão de Permissão de Trabalho (PT)":
@@ -112,7 +94,7 @@ elif menu == "Emissão de Permissão de Trabalho (PT)":
             if colaborador:
                 st.markdown(f"""
                 <div style="border: 2px solid #FF4B4B; padding: 20px; border-radius: 10px; background-color: #FFF5F5; color: black;">
-                    <h2 style="text-align: center; color: #FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO (PT) - Nº 00{manutencao_safe := manutencao_selecionada['id']}</h2>
+                    <h2 style="text-align: center; color: #FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO (PT) - Nº 00{manutencao_selecionada['id']}</h2>
                     <hr style="border: 1px solid #FF4B4B;">
                     <p><strong>Colaborador Autorizado:</strong> {colaborador}</p>
                     <p><strong>Equipamento Alvo:</strong> {manutencao_selecionada['equipamento']}</p>
