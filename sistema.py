@@ -111,7 +111,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.info("Nenhum equipamento cadastrado.")
         else:
             for eq in st.session_state.equipamentos:
-                # CORREÇÃO DA LINHA 104: Definindo explicitamente a proporção de duas colunas [4 partes, 1 parte]
+                # CORREÇÃO DA LINHA 104: Passando explicitamente a proporção de duas colunas dentro de uma lista
                 col_texto, col_btn = st.columns([4, 1])
                 with col_texto:
                     st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
