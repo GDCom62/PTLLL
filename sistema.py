@@ -111,7 +111,6 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.info("Nenhum equipamento cadastrado.")
         else:
             for eq in st.session_state.equipamentos:
-                # SOLUÇÃO DEFINITIVA DA LINHA 104: Exibição direta em blocos para banir o erro do st.columns
                 st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
                 if st.button(f"🗑️ Remover {eq['id']}", key=f"del_{eq['id']}"):
                     st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
@@ -208,3 +207,5 @@ elif menu == "📅 Planejamento & Checklists":
     with aba_ano: exibir_itens("Anual", "check_anual")
     with aba_novo:
         if not st.session_state.equipamentos:
+            st.warning("Cadastre um equipamento antes de agendar uma manutenção.")
+        else:
