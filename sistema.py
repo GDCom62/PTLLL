@@ -1,8 +1,9 @@
 import streamlit as st
 import json
 import os
+from datetime import datetime
 
-# --- ARQUIVOS E CONFIGURAÇÃO DA PÁGINA ---
+# --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
 ARQUIVO_EQ = "dados_equipamentos.json"
@@ -23,7 +24,7 @@ def salvar_dados(arquivo, dados):
     with open(arquivo, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-# --- INICIALIZAÇÃO DOS DADOS NO SESSION STATE ---
+# --- INICIALIZAÇÃO DOS DADOS (SESSION STATE) ---
 if "equipamentos" not in st.session_state:
     st.session_state.equipamentos = carregar_dados(ARQUIVO_EQ, [
         {
@@ -52,7 +53,7 @@ if "historico" not in st.session_state:
 if "planejamento" not in st.session_state:
     st.session_state.planejamento = carregar_dados(ARQUIVO_PLAN, [])
 
-# --- MENU LATERAL DE NAVEGAÇÃO (NOMES EXATOS CORRIGIDOS) ---
+# --- MENU LATERAL DE NAVEGAÇÃO ---
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
     "📋 Cadastro & Edição de Máquinas", 
@@ -62,11 +63,10 @@ menu = st.sidebar.radio("Navegar para:", [
 ])
 
 # ==========================================
-# 1. CADASTRO, EDIÇÃO E EXCLUSÃO DE EQUIPAMENTOS
+# 1. CADASTRO, EDIÇÃO E EXCLUSÃO
 # ==========================================
 if menu == "📋 Cadastro & Edição de Máquinas":
     st.header("📋 Gerenciamento de Máquinas e Equipamentos")
-    
     aba_lista, aba_cadastrar, aba_editar = st.tabs(["🔍 Ver e Excluir", "➕ Cadastrar Novo", "✏️ Editar Existente"])
     
     with aba_lista:
@@ -92,7 +92,6 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             nome_eq = st.text_input("Nome do Equipamento:")
             local_eq = st.text_input("Localização / Setor:")
             crit_eq = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"])
-            
             st.markdown("---")
             st.subheader("📋 Definição dos Itens Fixos de Preventiva (Coloque um por linha):")
             c_sem = st.text_area("Itens da Preventiva Semanal:", "Verificar nível de óleo\nLimpeza geral")
@@ -127,7 +126,6 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar['nome'])
                 novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
                 novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
-                
                 st.markdown("---")
                 st.subheader("✏️ Editar Itens de Verificação da Máquina:")
                 n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
@@ -155,12 +153,11 @@ elif menu == "📅 Planejamento & Checklists":
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
     def exibir_itens(frequencia, chave_check):
-        dados = [p for p in st.session_state.planejamento if p['periodo'] == frequencia]
+        dados = [p for p in st.session_state.planejamento if p['periodo'] == frequencia and p['status'] == "Pendente"]
         if dados:
             for p in dados:
                 st.write(f"⚙️ **{p['equipamento']}** | **Status:** {p['status']}")
                 st.write(f"🔧 Peças Programadas para Troca: {p['pecas']}")
-                
                 maq = next((e for e in st.session_state.equipamentos if e['nome'] == p['equipamento']), None)
                 if maq and maq.get(chave_check):
                     st.caption("📋 **Itens Específicos que serão verificados nesta máquina:**")
@@ -182,12 +179,14 @@ elif menu == "📅 Planejamento & Checklists":
                 eq_escolhido = st.selectbox("Escolha o Equipamento:", [e['nome'] for e in st.session_state.equipamentos])
                 periodo_escolhido = st.selectbox("Período/Frequência:", ["Semanal", "Mensal", "Anual"])
                 pecas_necessarias = st.text_area("Peças a serem Trocadas:")
-                regras_seguranca = st.text_area("Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento.")
+                regras_seguranca = st.text_area("Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).")
                 
                 if st.form_submit_button("Salvar no Planejamento"):
                     st.session_state.planejamento.append({
                         "id": len(st.session_state.planejamento) + 1, "equipamento": eq_escolhido,
-                        "periodo": periodo_escolhido, "pecas": pecas_necessarias, "status": "Pendente", "seguranca": rules_seguranca
+                        "periodo": periodo_escolhido, "pecas": pecas_necessarias, "status": "Pendente", "seguranca": regras_seguranca
                     })
                     salvar_dados(ARQUIVO_PLAN, st.session_state.planejamento)
                     st.success("Manutenção programada e salva!")
+                    st.rerun()
+
