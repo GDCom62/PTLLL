@@ -210,6 +210,5 @@ elif menu == "📅 Planejamento & Checklists":
         exibir_itens("Anual", "check_anual")
     with aba_novo:
         if not st.session_state.equipamentos:
-            st.warning("Cadastre um equipamento antes de agendar uma manutenção.")
+            st.warning("Nenhum equipamento cadastrado no sistema. Cadastre uma máquina primeiro.")
         else:
-            form_plan = st.form("form_plan_preventivo")
