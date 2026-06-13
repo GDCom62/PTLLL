@@ -2,7 +2,6 @@ import streamlit as st
 import json
 import os
 import base64
-from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
@@ -115,7 +114,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 if st.button(f"🗑️ Remover {eq['id']}", key=f"del_{eq['id']}"):
                     st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
                     salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
-                    st.success(f"Equipamento {eq['id']} removido com sucesso!")
+                    st.success(f"Equipamento {eq['id']} removido!")
                     st.rerun()
                 st.write("---")
                         
@@ -135,17 +134,17 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             if st.form_submit_button("Salvar Equipamento"):
                 if id_eq and nome_eq:
                     if any(e['id'] == id_eq for e in st.session_state.equipamentos):
-                        st.error("Já existe um equipamento cadastrado com este Código/Tag.")
+                        st.error("Tag duplicada.")
                     else:
                         st.session_state.equipamentos.append({
                             "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
                             "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
                         })
                         salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
-                        st.success("Equipamento adicionado com sucesso!")
+                        st.success("Adicionado!")
                         st.rerun()
                 else:
-                    st.error("Por favor, preencha o Código e o Nome.")
+                    st.error("Preencha os campos obrigatórios.")
 
     with aba_editar:
         st.subheader("Editar Máquina Existente")
@@ -176,7 +175,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                             e['check_mensal'] = n_mes
                             e['check_anual'] = n_ano
                     salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
-                    st.success("Alterações salvas com sucesso!")
+                    st.success("Alterações salvas!")
                     st.rerun()
 
 # ==========================================
@@ -200,14 +199,15 @@ elif menu == "📅 Planejamento & Checklists":
                             st.caption(f" ▢ {item.strip()}")
                 st.write("---")
         else:
-            st.info(f"Nenhuma manutenção pendente para o período {frequencia}.")
+            st.info(f"Nenhuma manutenção pendente para {frequencia}.")
 
-    with aba_sem:
-        exibir_itens("Semanal", "check_semanal")
-    with aba_mes:
-        exibir_itens("Mensal", "check_mensal")
-    with aba_ano:
-        exibir_itens("Anual", "check_anual")
+    with aba_sem: exibir_itens("Semanal", "check_semanal")
+    with aba_mes: exibir_itens("Mensal", "check_mensal")
+    with aba_ano: exibir_itens("Anual", "check_anual")
     with aba_novo:
-        # SOLUÇÃO COMPLETA CONTRA ERROS DE ESTRUTURA CONDICIONAL
-        if not st.session_state.equipamentos:
+        # REMOÇÃO COMPLETA DE ESTRUTURAS CONDICIONAIS DE RISCO
+        lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
+        if not lista_nomes:
+            st.warning("Cadastre uma máquina primeiro.")
+        else:
+            eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes)
