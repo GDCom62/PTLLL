@@ -208,7 +208,7 @@ elif menu == "📅 Planejamento & Checklists":
     
     with aba_novo:
         lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
+        
+        # ESTRUTURA BLINDADA SEM CONDICIONAIS DE RISCO (SEM ELSE)
         if not lista_nomes:
             st.warning("Cadastre uma máquina primeiro na aba de Cadastro.")
-        
-        if lista_nomes:
