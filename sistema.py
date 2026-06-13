@@ -209,5 +209,5 @@ elif menu == "📅 Planejamento & Checklists":
     with aba_ano:
         exibir_itens("Anual", "check_anual")
     with aba_novo:
-        # SOLUÇÃO DEFINITIVA: Remoção completa do bloco condicional com 'else:' na linha 214
+        # SOLUÇÃO COMPLETA CONTRA ERROS DE ESTRUTURA CONDICIONAL
         if not st.session_state.equipamentos:
