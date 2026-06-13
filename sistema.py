@@ -180,7 +180,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PLANEJAMENTO TEMPORAL (CORRIGIDO)
+# 2. PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -212,4 +212,4 @@ elif menu == "📅 Planejamento & Checklists":
         if not st.session_state.equipamentos:
             st.warning("Cadastre um equipamento antes de agendar uma manutenção.")
         else:
-            with st.form("form_plan"):
+            form_plan = st.form("form_plan_preventivo")
