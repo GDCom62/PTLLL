@@ -55,7 +55,7 @@ def salvar_dados(arquivo, dados):
     with open(arquivo, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-# --- INICIALIZAÇÃO DOS DADOS (SESSION STATE) ---
+# --- INICIALIZAÇÃO DOS DADOS ---
 if "equipamentos" not in st.session_state:
     st.session_state.equipamentos = carregar_dados(ARQUIVO_EQ, [
         {
@@ -209,3 +209,4 @@ elif menu == "📅 Planejamento & Checklists":
         if not st.session_state.equipamentos:
             st.warning("Cadastre um equipamento antes de agendar uma manutenção.")
         else:
+            with st.form("form_plan"):
