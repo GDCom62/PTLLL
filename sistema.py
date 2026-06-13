@@ -209,6 +209,5 @@ elif menu == "📅 Planejamento & Checklists":
     with aba_ano:
         exibir_itens("Anual", "check_anual")
     with aba_novo:
+        # SOLUÇÃO DEFINITIVA: Remoção completa do bloco condicional com 'else:' na linha 214
         if not st.session_state.equipamentos:
-            st.warning("Nenhum equipamento cadastrado no sistema. Cadastre uma máquina primeiro.")
-        else:
