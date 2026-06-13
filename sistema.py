@@ -7,7 +7,7 @@ from datetime import datetime
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 (EVITA DEPENDÊNCIA DO NUMPY) ---
+# --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 ---
 def obter_base64_imagem(caminho_imagem):
     if os.path.exists(caminho_imagem):
         with open(caminho_imagem, "rb") as f:
