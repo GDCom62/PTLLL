@@ -180,7 +180,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PLANEJAMENTO TEMPORAL
+# 2. PLANEJAMENTO TEMPORAL (CORRIGIDO)
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -202,9 +202,12 @@ elif menu == "📅 Planejamento & Checklists":
         else:
             st.info(f"Nenhuma manutenção pendente para o período {frequencia}.")
 
-    with aba_sem: exibir_itens("Semanal", "check_semanal")
-    with aba_mes: exibir_itens("Mensal", "check_mensal")
-    with aba_ano: exibir_itens("Anual", "check_anual")
+    with aba_sem:
+        exibir_itens("Semanal", "check_semanal")
+    with aba_mes:
+        exibir_itens("Mensal", "check_mensal")
+    with aba_ano:
+        exibir_itens("Anual", "check_anual")
     with aba_novo:
         if not st.session_state.equipamentos:
             st.warning("Cadastre um equipamento antes de agendar uma manutenção.")
