@@ -15,20 +15,22 @@ def obter_base64_imagem(caminho_imagem):
         return base64.b64encode(dados).decode()
     return None
 
-# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA (TAMANHO DE ÍCONE) ---
+# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA (TAMANHO ÍCONE FORÇADO) ---
 img_marca_b64 = obter_base64_imagem("logo gdcom1.png")
 if img_marca_b64:
     st.markdown(
         """
         <style>
         .marca-fixa {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            z-index: 9999;
-            opacity: 0.5; /* Mantém uma leve transparência */
-            max-width: 32px; /* Reduzido para o tamanho padrão de um ícone */
-            pointer-events: none;
+            position: fixed !important;
+            bottom: 10px !important;
+            right: 10px !important;
+            z-index: 9999 !important;
+            opacity: 0.6 !important;
+            width: 32px !important; /* Força o tamanho horizontal exato de um ícone */
+            height: 32px !important; /* Força o tamanho vertical exato de um ícone */
+            object-fit: contain !important;
+            pointer-events: none !important;
         }
         </style>
         """,
@@ -196,5 +198,3 @@ elif menu == "📅 Planejamento & Checklists":
             pecas_necessarias = st.text_area("4. Descrição das Peças a serem Trocadas:", key="plan_pecas")
             regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
             
-            if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
-                nova_ordem = {}
