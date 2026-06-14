@@ -4,7 +4,7 @@ from datetime import datetime
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- BANCO DE DADOS EM MEMÓRIA ATIVA ---
+# --- BANCO DE DADOS EM MEMÓRIA ATIVA (BLINDADO) ---
 if "equipamentos" not in st.session_state:
     st.session_state.equipamentos = [
         {
@@ -33,6 +33,9 @@ if "planejamento" not in st.session_state:
 if "historico" not in st.session_state:
     st.session_state.historico = []
 
+if "pt_gerada" not in st.session_state:
+    st.session_state.pt_gerada = None
+
 # --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
 st.markdown(
     """
@@ -43,7 +46,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- MENU LATERAL DE NAVEGAÇÃO ORIGINAL ---
+# --- MENU LATERAL DE NAVEGAÇÃO ---
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
     "📋 Cadastro & Edição de Máquinas", 
@@ -182,6 +185,3 @@ elif menu == "📅 Planejamento & Checklists":
                     "status": "Pendente", 
                     "seguranca": regras_seguranca
                 })
-                st.success(f"Manutenção para '{eq_escolhido}' agendada com sucesso!")
-                st.rerun()
-
