@@ -18,10 +18,11 @@ def obter_base64_imagem(caminho_imagem):
 # --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
 img_marca_b64 = obter_base64_imagem("logo gdcom1.png")
 if img_marca_b64:
+    # CORREÇÃO CRUCIAL DA LINHA 40: Remoção do f-string para banir o erro de chaves abertas do CSS
     st.markdown(
-        f"""
+        """
         <style>
-        .marca-fixa {{
+        .marca-fixa {
             position: fixed;
             bottom: 15px;
             right: 15px;
@@ -29,14 +30,33 @@ if img_marca_b64:
             opacity: 0.7;
             max-width: 120px;
             pointer-events: none;
-        }}
+        }
         </style>
-        <img src="data:image/png;base64,{img_marca_b64}" class="marca-fixa">
         """,
         unsafe_allow_html=True
     )
+    st.markdown('<img src="data:image/png;base64,' + img_marca_b64 + '" class="marca-fixa">', unsafe_allow_html=True)
 
-# --- BANCO DE DADOS FIXO EM NÍVEL DE SERVIDOR (BLINDADO PARA NUVEM) ---
+# --- ARQUIVOS DE ARMAZENAMENTO ---
+ARQUIVO_EQ = "dados_equipamentos.json"
+ARQUIVO_PLAN = "dados_planejamento.json"
+ARQUIVO_HIST = "dados_historico.json"
+
+# --- FUNÇÕES DE CARGA E SALVAMENTO ---
+def carregar_dados(arquivo, dados_padrao):
+    if os.path.exists(arquivo):
+        try:
+            with open(arquivo, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return dados_padrao
+    return dados_padrao
+
+def salvar_dados(arquivo, dados):
+    with open(arquivo, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+# --- BANCO DE DADOS PERSISTENTE ---
 @st.cache_resource
 def iniciar_banco_nuvem():
     return {
@@ -78,7 +98,7 @@ menu = st.sidebar.radio("Navegar para:", [
 # --- EXIBIÇÃO DO LOGO SUPERIOR ---
 img_logo_b64 = obter_base64_imagem("logo.png")
 if img_logo_b64:
-    st.markdown(f'<img src="data:image/png;base64,{img_logo_b64}" style="width:200px; margin-bottom:20px;">', unsafe_allow_html=True)
+    st.markdown('<img src="data:image/png;base64,' + img_logo_b64 + '" style="width:200px; margin-bottom:20px;">', unsafe_allow_html=True)
 
 # ==========================================
 # 1. CADASTRO, EDIÇÃO E EXCLUSÃO
@@ -158,7 +178,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PLANEJAMENTO TEMPORAL (BLINDADO CONTRA INDENTAÇÃO)
+# 2. PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -185,7 +205,6 @@ elif menu == "📅 Planejamento & Checklists":
     with aba_ano: exibir_itens("Anual", "check_anual")
     
     with aba_novo:
-        # REMOÇÃO TOTAL DA ESTRUTURA SEPARADA POR ELSE (MANTÉM O CÓDIGO LINEAR)
         lista_nomes = [e['nome'] for e in banco["equipamentos"]]
         
         if not lista_nomes:
@@ -195,10 +214,3 @@ elif menu == "📅 Planejamento & Checklists":
             st.subheader("📋 Agendar Nova Ordem de Preventiva")
             eq_escolhido = st.selectbox("1. Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
             periodo_escolhido = st.selectbox("2. Escolha o Período / Frequência:", ["Semanal", "Mensal", "Anual"], key="plan_per")
-            data_planejada = st.date_input("3. Selecione a Data para Executar o Serviço:", datetime.now(), key="plan_data")
-            pecas_necessarias = st.text_area("4. Descrição das Peças a serem Trocadas:", key="plan_pecas")
-            regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
-            
-            if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
-                banco["planejamento"].append({
-                    "id": len(banco["planejamento"]) + 1, 
