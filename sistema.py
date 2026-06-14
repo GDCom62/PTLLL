@@ -18,7 +18,6 @@ def obter_base64_imagem(caminho_imagem):
 # --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
 img_marca_b64 = obter_base64_imagem("logo gdcom1.png")
 if img_marca_b64:
-    # CORREÇÃO CRUCIAL DA LINHA 40: Remoção do f-string para banir o erro de chaves abertas do CSS
     st.markdown(
         """
         <style>
@@ -37,26 +36,7 @@ if img_marca_b64:
     )
     st.markdown('<img src="data:image/png;base64,' + img_marca_b64 + '" class="marca-fixa">', unsafe_allow_html=True)
 
-# --- ARQUIVOS DE ARMAZENAMENTO ---
-ARQUIVO_EQ = "dados_equipamentos.json"
-ARQUIVO_PLAN = "dados_planejamento.json"
-ARQUIVO_HIST = "dados_historico.json"
-
-# --- FUNÇÕES DE CARGA E SALVAMENTO ---
-def carregar_dados(arquivo, dados_padrao):
-    if os.path.exists(arquivo):
-        try:
-            with open(arquivo, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            return dados_padrao
-    return dados_padrao
-
-def salvar_dados(arquivo, dados):
-    with open(arquivo, "w", encoding="utf-8") as f:
-        json.dump(dados, f, ensure_ascii=False, indent=4)
-
-# --- BANCO DE DADOS PERSISTENTE ---
+# --- BANCO DE DADOS PERSISTENTE EM NÍVEL DE SERVIDOR (BLINDADO PARA NUVEM) ---
 @st.cache_resource
 def iniciar_banco_nuvem():
     return {
@@ -206,11 +186,17 @@ elif menu == "📅 Planejamento & Checklists":
     
     with aba_novo:
         lista_nomes = [e['nome'] for e in banco["equipamentos"]]
-        
         if not lista_nomes:
             st.warning("Cadastre uma máquina primeiro na aba de Cadastro.")
-        
         if lista_nomes:
             st.subheader("📋 Agendar Nova Ordem de Preventiva")
             eq_escolhido = st.selectbox("1. Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
             periodo_escolhido = st.selectbox("2. Escolha o Período / Frequência:", ["Semanal", "Mensal", "Anual"], key="plan_per")
+            data_planejada = st.date_input("3. Selecione a Data para Executar o Serviço:", datetime.now(), key="plan_data")
+            pecas_necessarias = st.text_area("4. Descrição das Peças a serem Trocadas:", key="plan_pecas")
+            regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
+            
+            if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
+                banco["planejamento"].append({
+                    "id": len(banco["planejamento"]) + 1, 
+                    "equipamento": eq_escolhido,
