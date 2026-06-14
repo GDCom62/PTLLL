@@ -133,7 +133,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PLANEJAMENTO TEMPORAL (BLINDADO)
+# 2. PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -167,7 +167,6 @@ elif menu == "📅 Planejamento & Checklists":
             regras_seguranca = st.text_area("Instruções de Segurança:", value="Uso de EPIs obrigatório. Lockout/Tagout.", key="plan_seg")
             
             if st.button("💾 Gravar Agendamento", key="btn_gravar_preventiva"):
-                # CORREÇÃO CRUCIAL DA VARIAVEL FANTASMA: Criando dicionário explícito e sem erros
                 nova_os = {
                     "id": len(st.session_state.planejamento) + 1,
                     "equipamento": eq_escolhido,
@@ -191,3 +190,4 @@ elif menu == "📜 Histórico de Trocas":
     else:
         for h in st.session_state.historico:
             st.markdown(f"""
+            <div style="padding:12px; border-radius:6px; background-color:#F4FBF7; margin-bottom:8px; border-left:5px solid #28A745; color: black;">
