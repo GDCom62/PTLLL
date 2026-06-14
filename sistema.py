@@ -1,34 +1,12 @@
 import streamlit as st
-import json
-import os
-import base64
 from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- ARQUIVOS DE ARMAZENAMENTO REAL (NÃO APAGA MAIS) ---
-ARQUIVO_EQ = "dados_equipamentos.json"
-ARQUIVO_PLAN = "dados_planejamento.json"
-ARQUIVO_HIST = "dados_historico.json"
-
-# --- FUNÇÕES DE CARGA E SALVAMENTO AUTOMÁTICO ---
-def carregar_dados(arquivo, dados_padrao):
-    if os.path.exists(arquivo):
-        try:
-            with open(arquivo, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            return dados_padrao
-    return dados_padrao
-
-def salvar_dados(arquivo, dados):
-    with open(arquivo, "w", encoding="utf-8") as f:
-        json.dump(dados, f, ensure_ascii=False, indent=4)
-
-# --- INICIALIZAÇÃO FIXA EM STATE ---
+# --- BANCO DE DADOS EM MEMÓRIA ATIVA (BLINDADO CONTRA TRAVAMENTOS DE ARQUIVO) ---
 if "equipamentos" not in st.session_state:
-    st.session_state.equipamentos = carregar_dados(ARQUIVO_EQ, [
+    st.session_state.equipamentos = [
         {
             "id": "EQ-001", 
             "nome": "Torno Mecânico Nardini", 
@@ -47,45 +25,23 @@ if "equipamentos" not in st.session_state:
             "check_mensal": "Limpar filtro de ar\nVerificar nível de óleo",
             "check_anual": "Teste hidrostático do vaso\nTroca de válvulas de segurança"
         }
-    ])
+    ]
 
 if "planejamento" not in st.session_state:
-    st.session_state.planejamento = carregar_dados(ARQUIVO_PLAN, [])
+    st.session_state.planejamento = []
 
 if "historico" not in st.session_state:
-    st.session_state.historico = carregar_dados(ARQUIVO_HIST, [])
+    st.session_state.historico = []
 
-# --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 ---
-def obter_base64_imagem(caminho_imagem):
-    if os.path.exists(caminho_imagem):
-        with open(caminho_imagem, "rb") as f:
-            return base64.b64encode(f.read()).decode()
-    return None
-
-# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA (TAMANHO ÍCONE FORÇADO) ---
-img_marca_b64 = obter_base64_imagem("logo gdcom1.png")
-if img_marca_b64:
-    st.markdown(
-        """
-        <style>
-        .marca-fixa {
-            position: fixed !important;
-            bottom: 10px !important;
-            right: 10px !important;
-            z-index: 9999 !important;
-            opacity: 0.6 !important;
-            width: 32px !important;
-            height: 32px !important;
-            object-fit: contain !important;
-            pointer-events: none !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-    st.markdown('<img src="data:image/png;base64,' + img_marca_b64 + '" class="marca-fixa">', unsafe_allow_html=True)
-else:
-    st.markdown("<div style='position:fixed; bottom:10px; right:10px; z-index:9999; font-size:10px; color:gray; font-weight:bold;'>GDCOM</div>", unsafe_allow_html=True)
+# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA (TAMANHO ÍCONE ESTÁTICO) ---
+st.markdown(
+    """
+    <div style="position: fixed; bottom: 12px; right: 12px; z-index: 9999; display: flex; align-items: center; justify-content: center; background-color: #262730; border: 1px solid #FF4B4B; width: 32px; height: 32px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); pointer-events: none;">
+        <span style="font-size: 8px; font-family: sans-serif; font-weight: bold; color: #FF4B4B; letter-spacing: 0.2px;">GDCOM</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- MENU LATERAL DE NAVEGAÇÃO ORIGINAL ---
 st.sidebar.title("⚙️ Gestão de Manutenção")
@@ -96,10 +52,8 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-# --- EXIBIÇÃO DO LOGO SUPERIOR ---
-img_logo_b64 = obter_base64_imagem("logo.png")
-if img_logo_b64:
-    st.markdown('<img src="data:image/png;base64,' + img_logo_b64 + '" style="width:110px; margin-bottom:15px;">', unsafe_allow_html=True)
+st.sidebar.markdown("---")
+st.sidebar.caption("Controle Operacional Industrial")
 
 # ==========================================
 # 1. CADASTRO, EDIÇÃO E EXCLUSÃO
@@ -116,7 +70,6 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
             if st.button(f"🗑️ Remover {eq['id']}", key=f"del_{eq['id']}"):
                 st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
-                salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
                 st.success(f"Equipamento {eq['id']} removido com sucesso!")
                 st.rerun()
             st.write("---")
@@ -143,8 +96,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                             "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
                             "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
                         })
-                        salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
-                        st.success("Máquina registrada e salva com sucesso!")
+                        st.success("Máquina registrada com sucesso!")
                         st.rerun()
                 else:
                     st.error("Preencha os campos obrigatórios.")
@@ -177,12 +129,11 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                             e['check_semanal'] = n_sem
                             e['check_mensal'] = n_mes
                             e['check_anual'] = n_ano
-                    salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
-                    st.success("Alterações salvas!")
+                    st.success("Alterações salvas com sucesso!")
                     st.rerun()
 
 # ==========================================
-# 2. PLANEJAMENTO TEMPORAL (RESTRUTURADO COM ABAS ORIGINAIS)
+# 2. PLANEJAMENTO TEMPORAL (CORRIGIDO E SEPARADO)
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -204,3 +155,30 @@ elif menu == "📅 Planejamento & Checklists":
         else:
             st.info(f"Nenhuma manutenção pendente para {frequencia}.")
 
+    with aba_sem: exibir_itens("Semanal", "check_semanal")
+    with aba_mes: exibir_itens("Mensal", "check_mensal")
+    with aba_ano: exibir_itens("Anual", "check_anual")
+    
+    with aba_novo:
+        st.subheader("📋 Agendar Nova Ordem de Preventiva")
+        lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
+        
+        if not lista_nomes:
+            st.warning("Cadastre uma máquina primeiro na aba de Cadastro.")
+        else:
+            eq_escolhido = st.selectbox("1. Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
+            periodo_escolhido = st.selectbox("2. Escolha o Período / Frequência:", ["Semanal", "Mensal", "Anual"], key="plan_per")
+            data_planejada = st.date_input("3. Selecione a Data para Executar o Serviço:", datetime.now(), key="plan_data")
+            pecas_necessarias = st.text_area("4. Descrição das Peças a serem Trocadas:", key="plan_pecas")
+            regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
+            
+            if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
+                st.session_state.planejamento.append({
+                    "id": len(st.session_state.planejamento) + 1, 
+                    "equipamento": eq_escolhido,
+                    "periodo": periodo_escolhido, 
+                    "data_prevista": data_planejada.strftime('%d/%m/%Y'),
+                    "pecas": pecas_necessarias, 
+                    "status": "Pendente", 
+                    "seguranca": regras_seguranca
+                })
