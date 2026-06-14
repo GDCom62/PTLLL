@@ -1,7 +1,6 @@
 import streamlit as st
 import json
 import os
-import base64
 from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
@@ -26,7 +25,7 @@ def salvar_dados(arquivo, dados):
     with open(arquivo, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-# --- INICIALIZAÇÃO FIXA EM STATE (EVITA CONFLITOS DE CACHE) ---
+# --- INICIALIZAÇÃO FIXA EM STATE ---
 if "equipamentos" not in st.session_state:
     st.session_state.equipamentos = carregar_dados(ARQUIVO_EQ, [
         {
@@ -55,36 +54,27 @@ if "planejamento" not in st.session_state:
 if "historico" not in st.session_state:
     st.session_state.historico = carregar_dados(ARQUIVO_HIST, [])
 
-# --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 ---
-def obter_base64_imagem(caminho_imagem):
-    if os.path.exists(caminho_imagem):
-        with open(caminho_imagem, "rb") as f:
-            return base64.b64encode(f.read()).decode()
-    return None
-
-# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
-img_marca_b64 = obter_base64_imagem("logo gdcom1.png")
-if img_marca_b64:
-    st.markdown("<style>.marca-fixa { position: fixed !important; bottom: 10px !important; right: 10px !important; z-index: 9999 !important; opacity: 0.6 !important; width: 32px !important; height: 32px !important; object-fit: contain !important; pointer-events: none !important; }</style>", unsafe_allow_html=True)
-    st.markdown('<img src="data:image/png;base64,' + img_marca_b64 + '" class="marca-fixa">', unsafe_allow_html=True)
-else:
-    st.markdown("<div style='position:fixed; bottom:10px; right:10px; z-index:9999; font-size:10px; color:gray; font-weight:bold;'>GDCOM</div>", unsafe_allow_html=True)
+# --- INJEÇÃO DA MARCA DIGITAL NO CANTO INFERIOR DIREITO (BLINDADO - SEM DEPENDER DE IMAGEM) ---
+st.markdown(
+    """
+    <div style="position: fixed; bottom: 10px; right: 10px; z-index: 9999; display: flex; align-items: center; background-color: rgba(255,255,255,0.8); padding: 4px 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); pointer-events: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF4B4B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+        <span style="font-size: 11px; font-family: sans-serif; font-weight: bold; color: #333; letter-spacing: 0.5px;">DGCOM</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- MENU LATERAL DE NAVEGAÇÃO ---
-st.sidebar.title("⚙️ Gestão de Manutenção")
+st.sidebar.markdown("<h2 style='color:#FF4B4B; margin-top:0;'>⚙️ DGCOM</h2>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='font-size:12px; color:gray; margin-top:-15px;'>Sistema de Gestão Industrial</p>", unsafe_allow_html=True)
+
 menu = st.sidebar.radio("Navegar para:", [
     "📋 Cadastro & Edição de Máquinas", 
     "📅 Planejamento & Checklists", 
     "📜 Histórico de Trocas", 
     "⚠️ Emissão de PT"
 ])
-
-# --- EXIBIÇÃO DO LOGO SUPERIOR ---
-img_logo_b64 = obter_base64_imagem("logo.png")
-if img_logo_b64:
-    st.markdown('<img src="data:image/png;base64,' + img_logo_b64 + '" style="width:110px; margin-bottom:15px;">', unsafe_allow_html=True)
-else:
-    st.sidebar.markdown("### **MANUTENÇÃO INDUSTRIAL**")
 
 # ==========================================
 # 1. CADASTRO, EDIÇÃO E EXCLUSÃO
@@ -167,7 +157,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PLANEJAMENTO TEMPORAL
+# 2. PLANEJAMENTO TEMPORAL (TOTALMENTE RECONSTRUÍDO)
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -193,3 +183,7 @@ elif menu == "📅 Planejamento & Checklists":
     with aba_mes: exibir_itens("Mensal", "check_mensal")
     with aba_ano: exibir_itens("Anual", "check_anual")
     
+    with aba_novo:
+        st.subheader("📋 Agendar Nova Ordem de Preventiva")
+        lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
+        
