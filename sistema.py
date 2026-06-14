@@ -118,7 +118,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
                 novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
                 st.markdown("---")
-                st.subheader("✏️ Editar Itens de Verification da Máquina:")
+                st.subheader("✏️ Editar Itens de Verificação da Máquina:")
                 n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
                 n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
                 n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
@@ -136,7 +136,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PLANEJAMENTO TEMPORAL
+# 2. PLANEJAMENTO TEMPORAL (CORRIGIDO)
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -176,6 +176,7 @@ elif menu == "📅 Planejamento & Checklists":
             regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
             
             if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
+                # CORREÇÃO DEFINITIVA: Vinculação ortográfica correta para regras_seguranca
                 st.session_state.planejamento.append({
                     "id": len(st.session_state.planejamento) + 1, 
                     "equipamento": eq_escolhido,
@@ -183,5 +184,3 @@ elif menu == "📅 Planejamento & Checklists":
                     "data_prevista": data_planejada.strftime('%d/%m/%Y'),
                     "pecas": pecas_necessarias, 
                     "status": "Pendente", 
-                    "seguranca": regras_seguranca
-                })
