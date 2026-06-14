@@ -27,7 +27,7 @@ if img_marca_b64:
             right: 10px;
             z-index: 9999;
             opacity: 0.4; /* Deixa o logo semi-transparente estilo marca d'água */
-            max-width: 55px; /* Reduzido para ficar bem pequeno e discreto no canto */
+            max-width: 25px; /* Reduzido para ficar bem pequeno e discreto no canto */
             pointer-events: none;
         }
         </style>
