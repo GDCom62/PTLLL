@@ -4,7 +4,7 @@ from datetime import datetime
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- BANCO DE DADOS EM MEMÓRIA ATIVA (BLINDADO CONTRA TRAVAMENTOS DE ARQUIVO) ---
+# --- BANCO DE DADOS EM MEMÓRIA ATIVA ---
 if "equipamentos" not in st.session_state:
     st.session_state.equipamentos = [
         {
@@ -33,7 +33,7 @@ if "planejamento" not in st.session_state:
 if "historico" not in st.session_state:
     st.session_state.historico = []
 
-# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA (TAMANHO ÍCONE ESTÁTICO) ---
+# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
 st.markdown(
     """
     <div style="position: fixed; bottom: 12px; right: 12px; z-index: 9999; display: flex; align-items: center; justify-content: center; background-color: #262730; border: 1px solid #FF4B4B; width: 32px; height: 32px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); pointer-events: none;">
@@ -182,3 +182,6 @@ elif menu == "📅 Planejamento & Checklists":
                     "status": "Pendente", 
                     "seguranca": regras_seguranca
                 })
+                st.success(f"Manutenção para '{eq_escolhido}' agendada com sucesso!")
+                st.rerun()
+
