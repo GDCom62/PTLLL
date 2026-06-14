@@ -136,7 +136,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PLANEJAMENTO TEMPORAL (CORRIGIDO)
+# 2. PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -176,11 +176,11 @@ elif menu == "📅 Planejamento & Checklists":
             regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
             
             if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
-                # CORREÇÃO DEFINITIVA: Vinculação ortográfica correta para regras_seguranca
-                st.session_state.planejamento.append({
-                    "id": len(st.session_state.planejamento) + 1, 
-                    "equipamento": eq_escolhido,
-                    "periodo": periodo_escolhido, 
-                    "data_prevista": data_planejada.strftime('%d/%m/%Y'),
-                    "pecas": pecas_necessarias, 
-                    "status": "Pendente", 
+                # CORREÇÃO DA LINHA 180: Criação limpa do dicionário para evitar erros de chaves
+                nova_os = {}
+                nova_os["id"] = len(st.session_state.planejamento) + 1
+                nova_os["equipamento"] = eq_escolhido
+                nova_os["periodo"] = periodo_escolhido
+                nova_os["data_prevista"] = data_planejada.strftime('%d/%m/%Y')
+                nova_os["pecas"] = pecas_necessarias
+                nova_os["status"] = "Pendente"
