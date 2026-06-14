@@ -118,7 +118,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
                 novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
                 st.markdown("---")
-                st.subheader("✏️ Editar Itens de Verificação da Máquina:")
+                st.subheader("✏️ Editar Itens de Verification da Máquina:")
                 n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
                 n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
                 n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
