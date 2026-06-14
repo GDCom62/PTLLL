@@ -15,7 +15,7 @@ def obter_base64_imagem(caminho_imagem):
         return base64.b64encode(dados).decode()
     return None
 
-# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA (BEM PEQUENA E DISCRETA) ---
+# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA (TAMANHO DE ÍCONE) ---
 img_marca_b64 = obter_base64_imagem("logo gdcom1.png")
 if img_marca_b64:
     st.markdown(
@@ -23,11 +23,11 @@ if img_marca_b64:
         <style>
         .marca-fixa {
             position: fixed;
-            bottom: 3px;
-            right: 3px;
+            bottom: 10px;
+            right: 10px;
             z-index: 9999;
-            opacity: 0.4; /* Deixa o logo semi-transparente estilo marca d'água */
-            max-width: 55px; /* Reduzido para ficar bem pequeno e discreto no canto */
+            opacity: 0.5; /* Mantém uma leve transparência */
+            max-width: 32px; /* Reduzido para o tamanho padrão de um ícone */
             pointer-events: none;
         }
         </style>
@@ -75,10 +75,9 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-# --- EXIBIÇÃO DO LOGO SUPERIOR (DIMINUÍDO) ---
+# --- EXIBIÇÃO DO LOGO SUPERIOR ---
 img_logo_b64 = obter_base64_imagem("logo.png")
 if img_logo_b64:
-    # Tamanho reduzido de 200px para 110px para ficar mais proporcional e elegante
     st.markdown('<img src="data:image/png;base64,' + img_logo_b64 + '" style="width:110px; margin-bottom:15px;">', unsafe_allow_html=True)
 
 # ==========================================
@@ -197,3 +196,5 @@ elif menu == "📅 Planejamento & Checklists":
             pecas_necessarias = st.text_area("4. Descrição das Peças a serem Trocadas:", key="plan_pecas")
             regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
             
+            if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
+                nova_ordem = {}
