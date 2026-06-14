@@ -7,66 +7,68 @@ from datetime import datetime
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
+# --- ARQUIVOS DE ARMAZENAMENTO REAL (NÃO APAGA MAIS) ---
+ARQUIVO_EQ = "dados_equipamentos.json"
+ARQUIVO_PLAN = "dados_planejamento.json"
+ARQUIVO_HIST = "dados_historico.json"
+
+# --- FUNÇÕES DE CARGA E SALVAMENTO AUTOMÁTICO ---
+def carregar_dados(arquivo, dados_padrao):
+    if os.path.exists(arquivo):
+        try:
+            with open(arquivo, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return dados_padrao
+    return dados_padrao
+
+def salvar_dados(arquivo, dados):
+    with open(arquivo, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+# --- INICIALIZAÇÃO FIXA EM STATE (EVITA CONFLITOS DE CACHE) ---
+if "equipamentos" not in st.session_state:
+    st.session_state.equipamentos = carregar_dados(ARQUIVO_EQ, [
+        {
+            "id": "EQ-001", 
+            "nome": "Torno Mecânico Nardini", 
+            "localizacao": "Oficina Central", 
+            "criticidade": "Alta",
+            "check_semanal": "Verificar nível de óleo e lubrificação geral\nLimpeza de resíduos e cavacos\nTestar botão de emergência",
+            "check_mensal": "Trocar filtros de óleo\nVerificar tensão de correias",
+            "check_anual": "Revisão do motor elétrico\nSubstituição do fluido hidráulico"
+        },
+        {
+            "id": "EQ-002", 
+            "nome": "Compressor de Ar Schulz", 
+            "localizacao": "Sala de Compressores", 
+            "criticidade": "Média",
+            "check_semanal": "Drenar condensado do reservatório\nVerificar ruídos anormais",
+            "check_mensal": "Limpar filtro de ar\nVerificar nível de óleo",
+            "check_anual": "Teste hidrostático do vaso\nTroca de válvulas de segurança"
+        }
+    ])
+
+if "planejamento" not in st.session_state:
+    st.session_state.planejamento = carregar_dados(ARQUIVO_PLAN, [])
+
+if "historico" not in st.session_state:
+    st.session_state.historico = carregar_dados(ARQUIVO_HIST, [])
+
 # --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 ---
 def obter_base64_imagem(caminho_imagem):
     if os.path.exists(caminho_imagem):
         with open(caminho_imagem, "rb") as f:
-            dados = f.read()
-        return base64.b64encode(dados).decode()
+            return base64.b64encode(f.read()).decode()
     return None
 
-# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA (TAMANHO ÍCONE FORÇADO) ---
+# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
 img_marca_b64 = obter_base64_imagem("logo gdcom1.png")
 if img_marca_b64:
-    st.markdown(
-        """
-        <style>
-        .marca-fixa {
-            position: fixed !important;
-            bottom: 10px !important;
-            right: 10px !important;
-            z-index: 9999 !important;
-            opacity: 0.6 !important;
-            width: 32px !important; /* Força o tamanho horizontal exato de um ícone */
-            height: 32px !important; /* Força o tamanho vertical exato de um ícone */
-            object-fit: contain !important;
-            pointer-events: none !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("<style>.marca-fixa { position: fixed !important; bottom: 10px !important; right: 10px !important; z-index: 9999 !important; opacity: 0.6 !important; width: 32px !important; height: 32px !important; object-fit: contain !important; pointer-events: none !important; }</style>", unsafe_allow_html=True)
     st.markdown('<img src="data:image/png;base64,' + img_marca_b64 + '" class="marca-fixa">', unsafe_allow_html=True)
-
-# --- BANCO DE DADOS PERSISTENTE EM NÍVEL DE SERVIDOR (BLINDADO PARA NUVEM) ---
-@st.cache_resource
-def iniciar_banco_nuvem():
-    return {
-        "equipamentos": [
-            {
-                "id": "EQ-001", 
-                "nome": "Torno Mecânico Nardini", 
-                "localizacao": "Oficina Central", 
-                "criticidade": "Alta",
-                "check_semanal": "Verificar nível de óleo e lubrificação geral\nLimpeza de resíduos e cavacos\nTestar botão de emergência",
-                "check_mensal": "Trocar filtros de óleo\nVerificar tensão de correias",
-                "check_anual": "Revisão do motor elétrico\nSubstituição do fluido hidráulico"
-            },
-            {
-                "id": "EQ-002", 
-                "nome": "Compressor de Ar Schulz", 
-                "localizacao": "Sala de Compressores", 
-                "criticidade": "Média",
-                "check_semanal": "Drenar condensado do reservatório\nVerificar ruídos anormais",
-                "check_mensal": "Limpar filtro de ar\nVerificar nível de óleo",
-                "check_anual": "Teste hidrostático do vaso\nTroca de válvulas de segurança"
-            }
-        ],
-        "planejamento": [],
-        "historico": []
-    }
-
-banco = iniciar_banco_nuvem()
+else:
+    st.markdown("<div style='position:fixed; bottom:10px; right:10px; z-index:9999; font-size:10px; color:gray; font-weight:bold;'>GDCOM</div>", unsafe_allow_html=True)
 
 # --- MENU LATERAL DE NAVEGAÇÃO ---
 st.sidebar.title("⚙️ Gestão de Manutenção")
@@ -81,6 +83,8 @@ menu = st.sidebar.radio("Navegar para:", [
 img_logo_b64 = obter_base64_imagem("logo.png")
 if img_logo_b64:
     st.markdown('<img src="data:image/png;base64,' + img_logo_b64 + '" style="width:110px; margin-bottom:15px;">', unsafe_allow_html=True)
+else:
+    st.sidebar.markdown("### **MANUTENÇÃO INDUSTRIAL**")
 
 # ==========================================
 # 1. CADASTRO, EDIÇÃO E EXCLUSÃO
@@ -91,13 +95,14 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     
     with aba_lista:
         st.subheader("Equipamentos Registrados no Sistema")
-        if not banco["equipamentos"]:
+        if not st.session_state.equipamentos:
             st.info("Nenhum equipamento cadastrado.")
-        for eq in banco["equipamentos"]:
+        for eq in st.session_state.equipamentos:
             st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
             if st.button(f"🗑️ Remover {eq['id']}", key=f"del_{eq['id']}"):
-                banco["equipamentos"] = [e for e in banco["equipamentos"] if e['id'] != eq['id']]
-                st.success(f"Equipamento {eq['id']} removido!")
+                st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
+                salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
+                st.success(f"Equipamento {eq['id']} removido com sucesso!")
                 st.rerun()
             st.write("---")
                         
@@ -116,24 +121,25 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             
             if st.form_submit_button("Salvar Equipamento"):
                 if id_eq and nome_eq:
-                    if any(e['id'] == id_eq for e in banco["equipamentos"]):
+                    if any(e['id'] == id_eq for e in st.session_state.equipamentos):
                         st.error("Tag duplicada.")
                     else:
-                        banco["equipamentos"].append({
+                        st.session_state.equipamentos.append({
                             "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
                             "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
                         })
-                        st.success("Adicionado com sucesso!")
+                        salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
+                        st.success("Máquina registrada e salva com sucesso!")
                         st.rerun()
                 else:
                     st.error("Preencha os campos obrigatórios.")
 
     with aba_editar:
         st.subheader("Editar Máquina Existente")
-        if not banco["equipamentos"]:
+        if not st.session_state.equipamentos:
             st.info("Nenhum equipamento disponível para edição.")
         else:
-            opcoes_edicao = {f"{e['id']} - {e['nome']}": e for e in banco["equipamentos"]}
+            opcoes_edicao = {f"{e['id']} - {e['nome']}": e for e in st.session_state.equipamentos}
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
             eq_para_editar = opcoes_edicao[selecionado_edicao]
             
@@ -148,7 +154,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
                 
                 if st.form_submit_button("Gravar Alterações"):
-                    for e in banco["equipamentos"]:
+                    for e in st.session_state.equipamentos:
                         if e['id'] == eq_para_editar['id']:
                             e['nome'] = novo_nome
                             e['localizacao'] = novo_local
@@ -156,6 +162,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                             e['check_semanal'] = n_sem
                             e['check_mensal'] = n_mes
                             e['check_anual'] = n_ano
+                    salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
                     st.success("Alterações salvas!")
                     st.rerun()
 
@@ -167,12 +174,12 @@ elif menu == "📅 Planejamento & Checklists":
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
     def exibir_itens(frequencia, chave_check):
-        dados = [p for p in banco["planejamento"] if p['periodo'] == frequencia and p['status'] == "Pendente"]
+        dados = [p for p in st.session_state.planejamento if p['periodo'] == frequencia and p['status'] == "Pendente"]
         if dados:
             for p in dados:
                 st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
                 st.write(f"🔧 Peças Programadas para Troca: {p['pecas']}")
-                maq = next((e for e in banco["equipamentos"] if e['nome'] == p['equipamento']), None)
+                maq = next((e for e in st.session_state.equipamentos if e['nome'] == p['equipamento']), None)
                 if maq and maq.get(chave_check):
                     st.caption("📋 **Itens Específicos que serão verificados nesta máquina:**")
                     for item in maq[chave_check].split('\n'):
@@ -186,15 +193,3 @@ elif menu == "📅 Planejamento & Checklists":
     with aba_mes: exibir_itens("Mensal", "check_mensal")
     with aba_ano: exibir_itens("Anual", "check_anual")
     
-    with aba_novo:
-        lista_nomes = [e['nome'] for e in banco["equipamentos"]]
-        if not lista_nomes:
-            st.warning("Cadastre uma máquina primeiro na aba de Cadastro.")
-        if lista_nomes:
-            st.subheader("📋 Agendar Nova Ordem de Preventiva")
-            eq_escolhido = st.selectbox("1. Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
-            periodo_escolhido = st.selectbox("2. Escolha o Período / Frequência:", ["Semanal", "Mensal", "Anual"], key="plan_per")
-            data_planejada = st.date_input("3. Selecione a Data para Executar o Serviço:", datetime.now(), key="plan_data")
-            pecas_necessarias = st.text_area("4. Descrição das Peças a serem Trocadas:", key="plan_pecas")
-            regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
-            
