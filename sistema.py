@@ -18,22 +18,7 @@ def obter_base64_imagem(caminho_imagem):
 # --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
 img_marca_b64 = obter_base64_imagem("logo gdcom1.png")
 if img_marca_b64:
-    st.markdown(
-        """
-        <style>
-        .marca-fixa {
-            position: fixed;
-            bottom: 15px;
-            right: 15px;
-            z-index: 9999;
-            opacity: 0.7;
-            max-width: 120px;
-            pointer-events: none;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("<style>.marca-fixa { position: fixed; bottom: 15px; right: 15px; z-index: 9999; opacity: 0.7; max-width: 120px; pointer-events: none; }</style>", unsafe_allow_html=True)
     st.markdown('<img src="data:image/png;base64,' + img_marca_b64 + '" class="marca-fixa">', unsafe_allow_html=True)
 
 # --- BANCO DE DADOS PERSISTENTE EM NÍVEL DE SERVIDOR (BLINDADO PARA NUVEM) ---
@@ -194,8 +179,11 @@ elif menu == "📅 Planejamento & Checklists":
             periodo_escolhido = st.selectbox("2. Escolha o Período / Frequência:", ["Semanal", "Mensal", "Anual"], key="plan_per")
             data_planejada = st.date_input("3. Selecione a Data para Executar o Serviço:", datetime.now(), key="plan_data")
             pecas_necessarias = st.text_area("4. Descrição das Peças a serem Trocadas:", key="plan_pecas")
-            regras_seguranca = st.text_area("5. Instructions de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
+            regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
             
             if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
-                # CORREÇÃO DEFINITIVA DA LINHA 197: Uso exclusivo da variável correta regras_seguranca
+                # CORREÇÃO CRUCIAL DA LINHA 213: Substituição definitiva de rules_seguranca por regras_seguranca
                 banco["planejamento"].append({
+                    "id": len(banco["planejamento"]) + 1, 
+                    "equipamento": eq_escolhido,
+                    "periodo": periodo_escolhido, 
