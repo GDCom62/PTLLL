@@ -194,9 +194,8 @@ elif menu == "📅 Planejamento & Checklists":
             periodo_escolhido = st.selectbox("2. Escolha o Período / Frequência:", ["Semanal", "Mensal", "Anual"], key="plan_per")
             data_planejada = st.date_input("3. Selecione a Data para Executar o Serviço:", datetime.now(), key="plan_data")
             pecas_necessarias = st.text_area("4. Descrição das Peças a serem Trocadas:", key="plan_pecas")
-            regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
+            regras_seguranca = st.text_area("5. Instructions de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
             
             if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
+                # CORREÇÃO DEFINITIVA DA LINHA 197: Uso exclusivo da variável correta regras_seguranca
                 banco["planejamento"].append({
-                    "id": len(banco["planejamento"]) + 1, 
-                    "equipamento": eq_escolhido,
