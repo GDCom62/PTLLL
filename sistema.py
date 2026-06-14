@@ -33,8 +33,8 @@ if "planejamento" not in st.session_state:
 if "historico" not in st.session_state:
     st.session_state.historico = []
 
-if "pt_gerada" not in st.session_state:
-    st.session_state.pt_gerada = None
+if "pt_ativa" not in st.session_state:
+    st.session_state.pt_ativa = None
 
 # --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
 st.markdown(
@@ -55,9 +55,6 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-st.sidebar.markdown("---")
-st.sidebar.caption("Controle Operacional Industrial")
-
 # ==========================================
 # 1. CADASTRO, EDIÇÃO E EXCLUSÃO
 # ==========================================
@@ -73,7 +70,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
             if st.button(f"🗑️ Remover {eq['id']}", key=f"del_{eq['id']}"):
                 st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
-                st.success(f"Equipamento {eq['id']} removido com sucesso!")
+                st.success(f"Equipamento {eq['id']} removido!")
                 st.rerun()
             st.write("---")
                         
@@ -136,7 +133,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PLANEJAMENTO TEMPORAL
+# 2. PLANEJAMENTO TEMPORAL (BLINDADO)
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -146,14 +143,8 @@ elif menu == "📅 Planejamento & Checklists":
         dados = [p for p in st.session_state.planejamento if p['periodo'] == frequencia and p['status'] == "Pendente"]
         if dados:
             for p in dados:
-                st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
-                st.write(f"🔧 Peças Programadas para Troca: {p['pecas']}")
-                maq = next((e for e in st.session_state.equipamentos if e['nome'] == p['equipamento']), None)
-                if maq and maq.get(chave_check):
-                    st.caption("📋 **Itens Específicos que serão verificados nesta máquina:**")
-                    for item in maq[chave_check].split('\n'):
-                        if item.strip():
-                            st.caption(f" ▢ {item.strip()}")
+                st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data:** {p.get('data_prevista')} | **Status:** {p['status']}")
+                st.write(f"🔧 Peças Programadas: {p['pecas']}")
                 st.write("---")
         else:
             st.info(f"Nenhuma manutenção pendente para {frequencia}.")
@@ -163,24 +154,40 @@ elif menu == "📅 Planejamento & Checklists":
     with aba_ano: exibir_itens("Anual", "check_anual")
     
     with aba_novo:
-        st.subheader("📋 Agendar Nova Ordem de Preventiva")
+        st.subheader("📋 Agendar Nova Preventiva")
         lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
         
         if not lista_nomes:
-            st.warning("Cadastre uma máquina primeiro na aba de Cadastro.")
+            st.warning("Cadastre uma máquina primeiro.")
         else:
-            eq_escolhido = st.selectbox("1. Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
-            periodo_escolhido = st.selectbox("2. Escolha o Período / Frequência:", ["Semanal", "Mensal", "Anual"], key="plan_per")
-            data_planejada = st.date_input("3. Selecione a Data para Executar o Serviço:", datetime.now(), key="plan_data")
-            pecas_necessarias = st.text_area("4. Descrição das Peças a serem Trocadas:", key="plan_pecas")
-            regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
+            eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
+            periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], key="plan_per")
+            data_planejada = st.date_input("Selecione a Data do Serviço:", datetime.now(), key="plan_data")
+            pecas_necessarias = st.text_area("Descrição das Peças:", key="plan_pecas")
+            regras_seguranca = st.text_area("Instruções de Segurança:", value="Uso de EPIs obrigatório. Lockout/Tagout.", key="plan_seg")
             
-            if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
-                # CORREÇÃO DA LINHA 180: Criação limpa do dicionário para evitar erros de chaves
-                nova_os = {}
-                nova_os["id"] = len(st.session_state.planejamento) + 1
-                nova_os["equipamento"] = eq_escolhido
-                nova_os["periodo"] = periodo_escolhido
-                nova_os["data_prevista"] = data_planejada.strftime('%d/%m/%Y')
-                nova_os["pecas"] = pecas_necessarias
-                nova_os["status"] = "Pendente"
+            if st.button("💾 Gravar Agendamento", key="btn_gravar_preventiva"):
+                # CORREÇÃO CRUCIAL DA VARIAVEL FANTASMA: Criando dicionário explícito e sem erros
+                nova_os = {
+                    "id": len(st.session_state.planejamento) + 1,
+                    "equipamento": eq_escolhido,
+                    "periodo": periodo_escolhido,
+                    "data_prevista": data_planejada.strftime('%d/%m/%Y'),
+                    "pecas": pecas_necessarias,
+                    "status": "Pendente",
+                    "seguranca": regras_seguranca
+                }
+                st.session_state.planejamento.append(nova_os)
+                st.success("Manutenção agendada com sucesso!")
+                st.rerun()
+
+# ==========================================
+# 3. HISTÓRICO DE TROCAS
+# ==========================================
+elif menu == "📜 Histórico de Trocas":
+    st.header("📜 Histórico de Manutenções Realizadas")
+    if not st.session_state.historico:
+        st.info("Nenhum registro encontrado no histórico.")
+    else:
+        for h in st.session_state.historico:
+            st.markdown(f"""
