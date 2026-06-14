@@ -182,8 +182,8 @@ elif menu == "📅 Planejamento & Checklists":
             regras_seguranca = st.text_area("5. Instruções de Segurança Específicas:", value="Uso obrigatório de EPIs adequados. Desenergizar o equipamento (Lockout/Tagout).", key="plan_seg")
             
             if st.button("💾 Gravar e Agendar Manutenção Definitivamente", key="btn_gravar_preventiva"):
-                # CORREÇÃO CRUCIAL DA LINHA 213: Substituição definitiva de rules_seguranca por regras_seguranca
-                banco["planejamento"].append({
-                    "id": len(banco["planejamento"]) + 1, 
-                    "equipamento": eq_escolhido,
-                    "periodo": periodo_escolhido, 
+                # CORREÇÃO COMPLETA: Criação limpa do dicionário sem nenhuma rota ou palavra em inglês
+                nova_ordem = {}
+                nova_ordem["id"] = len(banco["planejamento"]) + 1
+                nova_ordem["equipamento"] = eq_escolhido
+                nova_ordem["periodo"] = periodo_escolhido
