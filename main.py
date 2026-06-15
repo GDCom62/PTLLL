@@ -180,15 +180,16 @@ elif menu == "📜 Histórico de Trocas":
         st.info("Nenhum registro encontrado no histórico.")
     else:
         for h in st.session_state.historico:
-            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | 👷 **Executor:** " + str(h['executor']))
+            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | <b> Executor:</b> " + str(h['executor']))
             st.write("📌 **Tipo:** " + str(h['tipo']) + " | 🔄 **Peças Substituídas:** " + str(h['pecas_trocadas']))
             st.write("---")
 
 # ==========================================
-# 4. EMISSÃO DE PT (DIRETA SEM TRAVAS DE LAYOUT)
+# 4. EMISSÃO DE PT (ESTRUTURA LINEAR REVISADA)
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
     
     ordens_pendentes = [p for p in st.session_state.planejamento if p.get("status") == "Pendente"]
     
+    # Cria uma OS padrão de emergência para manter a lista ativa se o banco estiver limpo
