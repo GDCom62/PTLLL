@@ -138,36 +138,35 @@ elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    if len(st.session_state.planejamento) >= 0:
-        with aba_sem:
-            dados_sem = [p for p in st.session_state.planejamento if p['periodo'] == "Semanal" and p['status'] == "Pendente"]
-            if dados_sem:
-                for p in dados_sem:
-                    st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                    st.write("🔧 Peças Programadas: " + str(p['pecas']))
-                    st.write("---")
-            else:
-                st.info("Nenhuma manutenção pendente para Semanal.")
+    with aba_sem:
+        dados_sem = [p for p in st.session_state.planejamento if p['periodo'] == "Semanal" and p['status'] == "Pendente"]
+        if dados_sem:
+            for p in dados_sem:
+                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                st.write("🔧 Peças Programadas: " + str(p['pecas']))
+                st.write("---")
+        else:
+            st.info("Nenhuma manutenção pendente para Semanal.")
 
-        with aba_mes:
-            dados_mes = [p for p in st.session_state.planejamento if p['periodo'] == "Mensal" and p['status'] == "Pendente"]
-            if dados_mes:
-                for p in dados_mes:
-                    st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                    st.write("🔧 Peças Programadas: " + str(p['pecas']))
-                    st.write("---")
-            else:
-                st.info("Nenhuma manutenção pendente para Mensal.")
+    with aba_mes:
+        dados_mes = [p for p in st.session_state.planejamento if p['periodo'] == "Mensal" and p['status'] == "Pendente"]
+        if dados_mes:
+            for p in dados_mes:
+                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                st.write("🔧 Peças Programadas: " + str(p['pecas']))
+                st.write("---")
+        else:
+            st.info("Nenhuma manutenção pendente para Mensal.")
 
-        with aba_ano:
-            dados_ano = [p for p in st.session_state.planejamento if p['periodo'] == "Anual" and p['status'] == "Pendente"]
-            if dados_ano:
-                for p in dados_ano:
-                    st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                    st.write("🔧 Peças Programadas: " + str(p['pecas']))
-                    st.write("---")
-            else:
-                st.info("Nenhuma manutenção pendente para Anual.")
+    with aba_ano:
+        dados_ano = [p for p in st.session_state.planejamento if p['periodo'] == "Anual" and p['status'] == "Pendente"]
+        if dados_ano:
+            for p in dados_ano:
+                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                st.write("🔧 Peças Programadas: " + str(p['pecas']))
+                st.write("---")
+        else:
+            st.info("Nenhuma manutenção pendente para Anual.")
     
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
@@ -192,3 +191,7 @@ elif menu == "📅 Planejamento & Checklists":
                     "status": "Pendente",
                     "seguranca": regras_seguranca
                 }
+                st.session_state.planejamento.append(nova_os)
+                st.success("Manutenção agendada com sucesso!")
+                st.rerun()
+
