@@ -33,7 +33,7 @@ if "planejamento" not in st.session_state:
             "id": 1,
             "equipamento": "Torno Mecânico Nardini",
             "periodo": "Semanal",
-            "data_prevista": datetime.now().strftime('%d/%m/%Y'),
+            "data_prevista": datetime.now().strftime("%d/%m/%Y"),
             "pecas": "Inspeção preventiva padrão",
             "status": "Pendente",
             "seguranca": "Uso de EPIs obrigatório. Lockout/Tagout."
@@ -186,7 +186,7 @@ elif menu == "📅 Planejamento & Checklists":
                     "id": len(st.session_state.planejamento) + 1,
                     "equipamento": eq_escolhido,
                     "periodo": periodo_escolhido,
-                    "data_prevista": data_planejada.strftime('%d/%m/%Y'),
+                    "data_prevista": data_planejada.strftime("%d/%m/%Y"),
                     "pecas": pecas_necessarias,
                     "status": "Pendente",
                     "seguranca": regras_seguranca
