@@ -4,7 +4,7 @@ from datetime import datetime
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- BANCO DE DADOS EM MEMÓRIA ATIVA (BLINDADO) ---
+# --- BANCO DE DADOS EM MEMÓRIA ATIVA (COM DADOS PADRÃO PARA EVITAR TELA VAZIA) ---
 if "equipamentos" not in st.session_state:
     st.session_state.equipamentos = [
         {
@@ -27,8 +27,19 @@ if "equipamentos" not in st.session_state:
         }
     ]
 
+# ADICIONADA UMA ORDEM PADRÃO PARA A PT NUNCA FICAR EM BRANCO
 if "planejamento" not in st.session_state:
-    st.session_state.planejamento = []
+    st.session_state.planejamento = [
+        {
+            "id": 1,
+            "equipamento": "Torno Mecânico Nardini",
+            "periodo": "Semanal",
+            "data_prevista": datetime.now().strftime('%d/%m/%Y'),
+            "pecas": "Nenhuma peça necessária - Inspeção preventiva padrão",
+            "status": "Pendente",
+            "seguranca": "Uso de EPIs obrigatório. Desenergizar o equipamento (Lockout/Tagout)."
+        }
+    ]
 
 if "historico" not in st.session_state:
     st.session_state.historico = []
@@ -180,16 +191,7 @@ elif menu == "📜 Histórico de Trocas":
         st.info("Nenhum registro encontrado no histórico.")
     else:
         for h in st.session_state.historico:
-            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | <b> Executor:</b> " + str(h['executor']))
+            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | 👷 **Executor:** " + str(h['executor']))
             st.write("📌 **Tipo:** " + str(h['tipo']) + " | 🔄 **Peças Substituídas:** " + str(h['pecas_trocadas']))
             st.write("---")
 
-# ==========================================
-# 4. EMISSÃO DE PT (ESTRUTURA LINEAR REVISADA)
-# ==========================================
-elif menu == "⚠️ Emissão de PT":
-    st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
-    
-    ordens_pendentes = [p for p in st.session_state.planejamento if p.get("status") == "Pendente"]
-    
-    # Cria uma OS padrão de emergência para manter a lista ativa se o banco estiver limpo
