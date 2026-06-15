@@ -36,7 +36,7 @@ if "historico" not in st.session_state:
 if "pt_ativa" not in st.session_state:
     st.session_state.pt_ativa = None
 
-# --- INDICADOR DA MARCA (LINHA DIRETA SEM CONFIGURAÇÃO COMPLEXA) ---
+# --- INDICADOR DA MARCA NO MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 
 # --- MENU LATERAL DE NAVEGAÇÃO ---
@@ -77,7 +77,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             crit_eq = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"])
             st.markdown("---")
             c_sem = st.text_area("Itens da Preventiva Semanal:", "Verificar nível de óleo\nLimpeza geral")
-            c_mes = st.text_area("Itens da Preventiva Monsal:", "Trocar filtros\nConferir correias")
+            c_mes = st.text_area("Itens da Preventiva Mensal:", "Trocar filtros\nConferir correias")
             c_ano = st.text_area("Itens da Preventiva Anual:", "Revisão geral do motor")
             
             if st.form_submit_button("Salvar Equipamento"):
@@ -165,7 +165,7 @@ elif menu == "📅 Planejamento & Checklists":
                     "data_prevista": data_planejada.strftime('%d/%m/%Y'),
                     "pecas": pecas_necessarias,
                     "status": "Pendente",
-                    "seguranca": regras_seguranca
+                    "seguranca": rules_seguranca if 'rules_seguranca' in locals() else regras_seguranca
                 }
                 st.session_state.planejamento.append(nova_os)
                 st.success("Manutenção agendada com sucesso!")
@@ -185,12 +185,11 @@ elif menu == "📜 Histórico de Trocas":
             st.write("---")
 
 # ==========================================
-# 4. EMISSÃO DE PT (CORRIGIDO COM IF/ELSE LINEAR)
+# 4. EMISSÃO DE PT (BLINDAGEM CONTRA INDENTAÇÃO)
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
     
+    # Busca linear sem blocos condicionais aninhados (Imune a erros de espaço no else)
     ordens_pendentes = [p for p in st.session_state.planejamento if p.get("status") == "Pendente"]
     
-    # CORREÇÃO DEFINITIVA: Estrutura alinhada e acoplada usando if/else tradicional para evitar recuo órfão
-    if not ordens_pendentes:
