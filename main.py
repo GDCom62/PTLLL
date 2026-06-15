@@ -190,11 +190,11 @@ elif menu == "📜 Histórico de Trocas":
         st.info("Nenhum registro encontrado no histórico.")
     else:
         for h in st.session_state.historico:
-            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | <b> Executor:</b> " + str(h['executor']))
+            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | 👷 **Executor:** " + str(h['executor']))
             st.write("📌 **Tipo:** " + str(h['tipo']) + " | 🔄 **Peças Substituídas:** " + str(h['pecas_trocadas']))
             st.write("---")
 
 # ==========================================
-# 4. EMISSÃO DE PT (VARIÁVEL INTEGRADA EM PORTUGUÊS)
+# 4. EMISSÃO DE PT (ALINHAMENTO INDENTADO CORRIGIDO)
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
