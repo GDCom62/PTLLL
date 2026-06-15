@@ -69,9 +69,9 @@ if menu == "📋 Cadastro & Edição de Máquinas":
         else:
             for eq in st.session_state.equipamentos:
                 st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
-                if st.button(f"🗑️ Remover {eq['id']}", key=f"del_{eq['id']}"):
+                if st.button(f"🗑️ Remover {eq['id']}", key="del_" + str(eq['id'])):
                     st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
-                    st.success(f"Equipamento {eq['id']} removido!")
+                    st.success("Equipamento " + str(eq['id']) + " removido!")
                     st.rerun()
                 st.write("---")
                         
@@ -107,7 +107,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
         if not st.session_state.equipamentos:
             st.info("Nenhum equipamento disponível para edição.")
         else:
-            opcoes_edicao = {f"{e['id']} - {e['nome']}": e for e in st.session_state.equipamentos}
+            opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in st.session_state.equipamentos}
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
             eq_para_editar = opcoes_edicao[selecionado_edicao]
             
@@ -144,11 +144,11 @@ elif menu == "📅 Planejamento & Checklists":
         dados = [p for p in st.session_state.planejamento if p['periodo'] == frequencia and p['status'] == "Pendente"]
         if dados:
             for p in dados:
-                st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data:** {p.get('data_prevista')} | **Status:** {p['status']}")
-                st.write(f"🔧 Peças Programadas: {p['pecas']}")
+                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                st.write("🔧 Peças Programadas: " + str(p['pecas']))
                 st.write("---")
         else:
-            st.info(f"Nenhuma manutenção pendente para {frequencia}.")
+            st.info("Nenhuma manutenção pendente para " + str(frequencia) + ".")
 
     with aba_sem: exibir_itens("Semanal", "check_semanal")
     with aba_mes: exibir_itens("Mensal", "check_mensal")
@@ -190,5 +190,4 @@ elif menu == "📜 Histórico de Trocas":
         st.info("Nenhum registro encontrado no histórico.")
     else:
         for h in st.session_state.historico:
-            st.markdown(f"""
-            <div style="padding:12px; border-radius:6px; background-color:#F4FBF7; margin-bottom:8px; border-left:5px solid #28A745; color: black;">
+            st.markdown(
