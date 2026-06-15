@@ -36,15 +36,8 @@ if "historico" not in st.session_state:
 if "pt_ativa" not in st.session_state:
     st.session_state.pt_ativa = None
 
-# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
-st.markdown(
-    """
-    <div style="position: fixed; bottom: 12px; right: 12px; z-index: 9999; display: flex; align-items: center; justify-content: center; background-color: #262730; border: 1px solid #FF4B4B; width: 32px; height: 32px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); pointer-events: none;">
-        <span style="font-size: 8px; font-family: sans-serif; font-weight: bold; color: #FF4B4B; letter-spacing: 0.2px;">GDCOM</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# --- INDICADOR DA MARCA (LINHA DIRETA SEM CONFIGURAÇÃO COMPLEXA) ---
+st.sidebar.markdown("**Desenvolvido por GDCOM**")
 
 # --- MENU LATERAL DE NAVEGAÇÃO ---
 st.sidebar.title("⚙️ Gestão de Manutenção")
@@ -68,10 +61,10 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.info("Nenhum equipamento cadastrado.")
         else:
             for eq in st.session_state.equipamentos:
-                st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
-                if st.button(f"🗑️ Remover {eq['id']}", key="del_" + str(eq['id'])):
+                st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
+                if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
                     st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
-                    st.success("Equipamento " + str(eq['id']) + " removido!")
+                    st.success("Equipamento removido!")
                     st.rerun()
                 st.write("---")
                         
@@ -83,7 +76,6 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             local_eq = st.text_input("Localização / Setor:")
             crit_eq = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"])
             st.markdown("---")
-            st.subheader("📋 Definição dos Itens Fixos de Preventiva (Coloque um por linha):")
             c_sem = st.text_area("Itens da Preventiva Semanal:", "Verificar nível de óleo\nLimpeza geral")
             c_mes = st.text_area("Itens da Preventiva Mensal:", "Trocar filtros\nConferir correias")
             c_ano = st.text_area("Itens da Preventiva Anual:", "Revisão geral do motor")
@@ -115,8 +107,6 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar['nome'])
                 novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
                 novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
-                st.markdown("---")
-                st.subheader("✏️ Editar Itens de Verificação da Máquina:")
                 n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
                 n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
                 n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
@@ -182,7 +172,7 @@ elif menu == "📅 Planejamento & Checklists":
                 st.rerun()
 
 # ==========================================
-# 3. HISTÓRICO DE TROCAS
+# 3. HISTÓRICO DE TROCAS (STRINGS LINEARES SEM HTML COMPLEXO)
 # ==========================================
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Manutenções Realizadas")
@@ -190,4 +180,17 @@ elif menu == "📜 Histórico de Trocas":
         st.info("Nenhum registro encontrado no histórico.")
     else:
         for h in st.session_state.historico:
-            st.markdown(
+            # Layout nativo e linear do Streamlit: Imune a falhas de aspas
+            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | 👷 **Executor:** " + str(h['executor']))
+            st.write("📌 **Tipo:** " + str(h['tipo']) + " | 🔄 **Peças Substituídas:** " + str(h['pecas_trocadas']))
+            st.write("---")
+
+# ==========================================
+# 4. EMISSÃO DE PT (BLINDADO E SEM CONFLITO DE SINTAXE)
+# ==========================================
+elif menu == "⚠️ Emissão de PT":
+    st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
+    
+    ordens_pendentes = [p for p in st.session_state.planejamento if p.get("status") == "Pendente"]
+    
+    if not ordens_pendentes:
