@@ -158,6 +158,7 @@ elif menu == "📅 Planejamento & Checklists":
             regras_seguranca = st.text_area("Instruções de Segurança:", value="Uso de EPIs obrigatório. Lockout/Tagout.", key="plan_seg")
             
             if st.button("💾 Gravar Agendamento", key="btn_gravar_preventiva"):
+                # CORREÇÃO DA LINHA 155: Substituição definitiva do termo incorreto em inglês
                 nova_os = {
                     "id": len(st.session_state.planejamento) + 1,
                     "equipamento": eq_escolhido,
@@ -165,7 +166,7 @@ elif menu == "📅 Planejamento & Checklists":
                     "data_prevista": data_planejada.strftime('%d/%m/%Y'),
                     "pecas": pecas_necessarias,
                     "status": "Pendente",
-                    "seguranca": rules_seguranca if 'rules_seguranca' in locals() else regras_seguranca
+                    "seguranca": regras_seguranca
                 }
                 st.session_state.planejamento.append(nova_os)
                 st.success("Manutenção agendada com sucesso!")
@@ -180,16 +181,15 @@ elif menu == "📜 Histórico de Trocas":
         st.info("Nenhum registro encontrado no histórico.")
     else:
         for h in st.session_state.historico:
-            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | <b> Executor:</b> " + str(h['executor']))
+            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | 👷 **Executor:** " + str(h['executor']))
             st.write("📌 **Tipo:** " + str(h['tipo']) + " | 🔄 **Peças Substituídas:** " + str(h['pecas_trocadas']))
             st.write("---")
 
 # ==========================================
-# 4. EMISSÃO DE PT (BLINDAGEM CONTRA INDENTAÇÃO)
+# 4. EMISSÃO DE PT (DIRETA E TOTALMENTE ALINHADA)
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
     
-    # Busca linear sem blocos condicionais aninhados (Imune a erros de espaço no else)
     ordens_pendentes = [p for p in st.session_state.planejamento if p.get("status") == "Pendente"]
     
