@@ -4,7 +4,7 @@ from datetime import datetime
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- BANCO DE DADOS EM MEMÓRIA ATIVA ---
+# --- BANCO DE DADOS EM MEMÓRIA ATIVA (BLINDADO) ---
 if "equipamentos" not in st.session_state:
     st.session_state.equipamentos = [
         {
@@ -48,8 +48,6 @@ if "pt_ativa" not in st.session_state:
 
 # --- INDICADOR DA MARCA NO MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
-
-# --- MENU LATERAL DE NAVEGAÇÃO ---
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
     "📋 Cadastro & Edição de Máquinas", 
@@ -58,10 +56,8 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-# ==========================================
-# 1. CADASTRO, EDIÇÃO E EXCLUSÃO
-# ==========================================
-if menu == "📋 Cadastro & Edição de Máquinas":
+# --- PÁGINA 1: CADASTRO ---
+def pagina_cadastro():
     st.header("📋 Gerenciamento de Máquinas e Equipamentos")
     aba_lista, aba_cadastrar, aba_editar = st.tabs(["🔍 Ver e Excluir", "➕ Cadastrar Novo", "✏️ Editar Existente"])
     
@@ -133,14 +129,12 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.success("Alterações salvas com sucesso!")
                     st.rerun()
 
-# ==========================================
-# 2. PLANEJAMENTO TEMPORAL
-# ==========================================
-elif menu == "📅 Planejamento & Checklists":
+# --- PÁGINA 2: PLANEJAMENTO ---
+def pagina_planejamento():
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    def exibir_itens(frequencia, chave_check):
+    def exibir_itens(frequencia):
         dados = [p for p in st.session_state.planejamento if p['periodo'] == frequencia and p['status'] == "Pendente"]
         if dados:
             for p in dados:
@@ -150,9 +144,9 @@ elif menu == "📅 Planejamento & Checklists":
         else:
             st.info("Nenhuma manutenção pendente para " + str(frequencia) + ".")
 
-    with aba_sem: exibir_itens("Semanal", "check_semanal")
-    with aba_mes: exibir_itens("Mensal", "check_mensal")
-    with aba_ano: exibir_itens("Anual", "check_anual")
+    with aba_sem: exibir_itens("Semanal")
+    with aba_mes: exibir_itens("Mensal")
+    with aba_ano: exibir_itens("Anual")
     
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
@@ -181,20 +175,27 @@ elif menu == "📅 Planejamento & Checklists":
                 st.success("Manutenção agendada com sucesso!")
                 st.rerun()
 
-# ==========================================
-# 3. HISTÓRICO DE TROCAS
-# ==========================================
-elif menu == "📜 Histórico de Trocas":
+# --- PÁGINA 3: HISTÓRICO ---
+def pagina_historico():
     st.header("📜 Histórico de Manutenções Realizadas")
     if not st.session_state.historico:
         st.info("Nenhum registro encontrado no histórico.")
     else:
         for h in st.session_state.historico:
-            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | 👷 **Executor:** " + str(h['executor']))
+            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | <b> Executor:</b> " + str(h['executor']))
             st.write("📌 **Tipo:** " + str(h['tipo']) + " | 🔄 **Peças Substituídas:** " + str(h['pecas_trocadas']))
             st.write("---")
 
-# ==========================================
-# 4. EMISSÃO DE PT (ALINHAMENTO INDENTADO CORRIGIDO)
-# ==========================================
-elif menu == "⚠️ Emissão de PT":
+# --- PÁGINA 4: EMISSÃO DE PT ---
+def pagina_emissao_pt():
+    st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
+    ordens_pendentes = [p for p in st.session_state.planejamento if p.get("status") == "Pendente"]
+    
+    opcoes_selecao = {}
+    for o in ordens_pendentes:
+        nome_chave = "OS 00" + str(o['id']) + " - " + str(o['equipamento']) + " (" + str(o['periodo']) + ")"
+        opcoes_selecao[nome_chave] = o
+        
+    if not opcoes_selecao:
+        st.info("Não há ordens de serviço pendentes para emissão de PT no momento.")
+    else:
