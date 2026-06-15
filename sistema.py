@@ -1,12 +1,63 @@
 import streamlit as st
+import json
+import os
+import base64
 from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- BANCO DE DADOS EM MEMÓRIA ATIVA (BLINDADO) ---
+# --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 ---
+def obter_base64_imagem(caminho_imagem):
+    if os.path.exists(caminho_imagem):
+        with open(caminho_imagem, "rb") as f:
+            dados = f.read()
+        return base64.b64encode(dados).decode()
+    return None
+
+# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
+img_marca_b64 = obter_base64_imagem("logo gdcom1.png")
+if img_marca_b64:
+    st.markdown(
+        f"""
+        <style>
+        .marca-fixa {{
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            z-index: 9999;
+            opacity: 0.7;
+            max-width: 120px;
+            pointer-events: none;
+        }}
+        </style>
+        <img src="data:image/png;base64,{img_marca_b64}" class="marca-fixa">
+        """,
+        unsafe_allow_html=True
+    )
+
+# --- ARQUIVOS DE ARMAZENAMENTO ---
+ARQUIVO_EQ = "dados_equipamentos.json"
+ARQUIVO_PLAN = "dados_planejamento.json"
+ARQUIVO_HIST = "dados_historico.json"
+
+# --- FUNÇÕES DE CARGA E SALVAMENTO ---
+def carregar_dados(arquivo, dados_padrao):
+    if os.path.exists(arquivo):
+        try:
+            with open(arquivo, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return dados_padrao
+    return dados_padrao
+
+def salvar_dados(arquivo, dados):
+    with open(arquivo, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+# --- INICIALIZAÇÃO DOS DADOS ---
 if "equipamentos" not in st.session_state:
-    st.session_state.equipamentos = [
+    st.session_state.equipamentos = carregar_dados(ARQUIVO_EQ, [
         {
             "id": "EQ-001", 
             "nome": "Torno Mecânico Nardini", 
@@ -24,27 +75,14 @@ if "equipamentos" not in st.session_state:
             "check_semanal": "Drenar condensado do reservatório\nVerificar ruídos anormais",
             "check_mensal": "Limpar filtro de ar\nVerificar nível de óleo",
             "check_anual": "Teste hidrostático do vaso\nTroca de válvulas de segurança"
-        }
-    ]
-
-if "planejamento" not in st.session_state:
-    st.session_state.planejamento = []
+        },
+    ])
 
 if "historico" not in st.session_state:
-    st.session_state.historico = []
+    st.session_state.historico = carregar_dados(ARQUIVO_HIST, [])
 
-if "pt_ativa" not in st.session_state:
-    st.session_state.pt_ativa = None
-
-# --- INJEÇÃO DA MARCA NO CANTO INFERIOR DIREITO DA TELA ---
-st.markdown(
-    """
-    <div style="position: fixed; bottom: 12px; right: 12px; z-index: 9999; display: flex; align-items: center; justify-content: center; background-color: #262730; border: 1px solid #FF4B4B; width: 32px; height: 32px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); pointer-events: none;">
-        <span style="font-size: 8px; font-family: sans-serif; font-weight: bold; color: #FF4B4B; letter-spacing: 0.2px;">GDCOM</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+if "planejamento" not in st.session_state:
+    st.session_state.planejamento = carregar_dados(ARQUIVO_PLAN, [])
 
 # --- MENU LATERAL DE NAVEGAÇÃO ---
 st.sidebar.title("⚙️ Gestão de Manutenção")
@@ -54,6 +92,11 @@ menu = st.sidebar.radio("Navegar para:", [
     "📜 Histórico de Trocas", 
     "⚠️ Emissão de PT"
 ])
+
+# --- EXIBIÇÃO DO LOGO SUPERIOR ---
+img_logo_b64 = obter_base64_imagem("logo.png")
+if img_logo_b64:
+    st.markdown(f'<img src="data:image/png;base64,{img_logo_b64}" style="width:200px; margin-bottom:20px;">', unsafe_allow_html=True)
 
 # ==========================================
 # 1. CADASTRO, EDIÇÃO E EXCLUSÃO
@@ -66,13 +109,15 @@ if menu == "📋 Cadastro & Edição de Máquinas":
         st.subheader("Equipamentos Registrados no Sistema")
         if not st.session_state.equipamentos:
             st.info("Nenhum equipamento cadastrado.")
-        for eq in st.session_state.equipamentos:
-            st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
-            if st.button(f"🗑️ Remover {eq['id']}", key=f"del_{eq['id']}"):
-                st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
-                st.success(f"Equipamento {eq['id']} removido!")
-                st.rerun()
-            st.write("---")
+        else:
+            for eq in st.session_state.equipamentos:
+                st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
+                if st.button(f"🗑️ Remover {eq['id']}", key=f"del_{eq['id']}"):
+                    st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
+                    salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
+                    st.success(f"Equipamento {eq['id']} removido com sucesso!")
+                    st.rerun()
+                st.write("---")
                         
     with aba_cadastrar:
         st.subheader("Cadastrar Nova Máquina")
@@ -90,16 +135,17 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             if st.form_submit_button("Salvar Equipamento"):
                 if id_eq and nome_eq:
                     if any(e['id'] == id_eq for e in st.session_state.equipamentos):
-                        st.error("Tag duplicada.")
+                        st.error("Já existe um equipamento cadastrado com este Código/Tag.")
                     else:
                         st.session_state.equipamentos.append({
                             "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
                             "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
                         })
-                        st.success("Máquina registrada com sucesso!")
+                        salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
+                        st.success("Equipamento adicionado com sucesso!")
                         st.rerun()
                 else:
-                    st.error("Preencha os campos obrigatórios.")
+                    st.error("Por favor, preencha o Código e o Nome.")
 
     with aba_editar:
         st.subheader("Editar Máquina Existente")
@@ -129,6 +175,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                             e['check_semanal'] = n_sem
                             e['check_mensal'] = n_mes
                             e['check_anual'] = n_ano
+                    salvar_dados(ARQUIVO_EQ, st.session_state.equipamentos)
                     st.success("Alterações salvas com sucesso!")
                     st.rerun()
 
@@ -143,51 +190,25 @@ elif menu == "📅 Planejamento & Checklists":
         dados = [p for p in st.session_state.planejamento if p['periodo'] == frequencia and p['status'] == "Pendente"]
         if dados:
             for p in dados:
-                st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data:** {p.get('data_prevista')} | **Status:** {p['status']}")
-                st.write(f"🔧 Peças Programadas: {p['pecas']}")
+                st.write(f"⚙️ **{p['equipamento']}** | **Status:** {p['status']}")
+                st.write(f"🔧 Peças Programadas para Troca: {p['pecas']}")
+                maq = next((e for e in st.session_state.equipamentos if e['nome'] == p['equipamento']), None)
+                if maq and maq.get(chave_check):
+                    st.caption("📋 **Itens Específicos que serão verificados nesta máquina:**")
+                    for item in maq[chave_check].split('\n'):
+                        if item.strip():
+                            st.caption(f" ▢ {item.strip()}")
                 st.write("---")
         else:
-            st.info(f"Nenhuma manutenção pendente para {frequencia}.")
+            st.info(f"Nenhuma manutenção pendente para o período {frequencia}.")
 
-    with aba_sem: exibir_itens("Semanal", "check_semanal")
-    with aba_mes: exibir_itens("Mensal", "check_mensal")
-    with aba_ano: exibir_itens("Anual", "check_anual")
-    
+    with aba_sem:
+        exibir_itens("Semanal", "check_semanal")
+    with aba_mes:
+        exibir_itens("Mensal", "check_mensal")
+    with aba_ano:
+        exibir_itens("Anual", "check_anual")
     with aba_novo:
-        st.subheader("📋 Agendar Nova Preventiva")
-        lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
-        
-        if not lista_nomes:
-            st.warning("Cadastre uma máquina primeiro.")
+        if not st.session_state.equipamentos:
+            st.warning("Nenhum equipamento cadastrado no sistema. Cadastre uma máquina primeiro.")
         else:
-            eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
-            periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], key="plan_per")
-            data_planejada = st.date_input("Selecione a Data do Serviço:", datetime.now(), key="plan_data")
-            pecas_necessarias = st.text_area("Descrição das Peças:", key="plan_pecas")
-            regras_seguranca = st.text_area("Instruções de Segurança:", value="Uso de EPIs obrigatório. Lockout/Tagout.", key="plan_seg")
-            
-            if st.button("💾 Gravar Agendamento", key="btn_gravar_preventiva"):
-                nova_os = {
-                    "id": len(st.session_state.planejamento) + 1,
-                    "equipamento": eq_escolhido,
-                    "periodo": periodo_escolhido,
-                    "data_prevista": data_planejada.strftime('%d/%m/%Y'),
-                    "pecas": pecas_necessarias,
-                    "status": "Pendente",
-                    "seguranca": regras_seguranca
-                }
-                st.session_state.planejamento.append(nova_os)
-                st.success("Manutenção agendada com sucesso!")
-                st.rerun()
-
-# ==========================================
-# 3. HISTÓRICO DE TROCAS
-# ==========================================
-elif menu == "📜 Histórico de Trocas":
-    st.header("📜 Histórico de Manutenções Realizadas")
-    if not st.session_state.historico:
-        st.info("Nenhum registro encontrado no histórico.")
-    else:
-        for h in st.session_state.historico:
-            st.markdown(f"""
-            <div style="padding:12px; border-radius:6px; background-color:#F4FBF7; margin-bottom:8px; border-left:5px solid #28A745; color: black;">
