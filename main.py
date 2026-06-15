@@ -4,7 +4,7 @@ from datetime import datetime
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- BANCO DE DADOS EM MEMÓRIA ATIVA (COM DADOS PADRÃO PARA EVITAR TELA VAZIA) ---
+# --- BANCO DE DADOS EM MEMÓRIA ATIVA ---
 if "equipamentos" not in st.session_state:
     st.session_state.equipamentos = [
         {
@@ -27,7 +27,6 @@ if "equipamentos" not in st.session_state:
         }
     ]
 
-# ADICIONADA UMA ORDEM PADRÃO PARA A PT NUNCA FICAR EM BRANCO
 if "planejamento" not in st.session_state:
     st.session_state.planejamento = [
         {
@@ -35,9 +34,9 @@ if "planejamento" not in st.session_state:
             "equipamento": "Torno Mecânico Nardini",
             "periodo": "Semanal",
             "data_prevista": datetime.now().strftime('%d/%m/%Y'),
-            "pecas": "Nenhuma peça necessária - Inspeção preventiva padrão",
+            "pecas": "Inspeção preventiva padrão",
             "status": "Pendente",
-            "seguranca": "Uso de EPIs obrigatório. Desenergizar o equipamento (Lockout/Tagout)."
+            "seguranca": "Uso de EPIs obrigatório. Lockout/Tagout."
         }
     ]
 
@@ -191,7 +190,11 @@ elif menu == "📜 Histórico de Trocas":
         st.info("Nenhum registro encontrado no histórico.")
     else:
         for h in st.session_state.historico:
-            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | 👷 **Executor:** " + str(h['executor']))
+            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | <b> Executor:</b> " + str(h['executor']))
             st.write("📌 **Tipo:** " + str(h['tipo']) + " | 🔄 **Peças Substituídas:** " + str(h['pecas_trocadas']))
             st.write("---")
 
+# ==========================================
+# 4. EMISSÃO DE PT (VARIÁVEL INTEGRADA EM PORTUGUÊS)
+# ==========================================
+elif menu == "⚠️ Emissão de PT":
