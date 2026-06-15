@@ -77,7 +77,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             crit_eq = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"])
             st.markdown("---")
             c_sem = st.text_area("Itens da Preventiva Semanal:", "Verificar nível de óleo\nLimpeza geral")
-            c_mes = st.text_area("Itens da Preventiva Mensal:", "Trocar filtros\nConferir correias")
+            c_mes = st.text_area("Itens da Preventiva Monsal:", "Trocar filtros\nConferir correias")
             c_ano = st.text_area("Itens da Preventiva Anual:", "Revisão geral do motor")
             
             if st.form_submit_button("Salvar Equipamento"):
@@ -172,7 +172,7 @@ elif menu == "📅 Planejamento & Checklists":
                 st.rerun()
 
 # ==========================================
-# 3. HISTÓRICO DE TROCAS (STRINGS LINEARES SEM HTML COMPLEXO)
+# 3. HISTÓRICO DE TROCAS
 # ==========================================
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Manutenções Realizadas")
@@ -180,17 +180,17 @@ elif menu == "📜 Histórico de Trocas":
         st.info("Nenhum registro encontrado no histórico.")
     else:
         for h in st.session_state.historico:
-            # Layout nativo e linear do Streamlit: Imune a falhas de aspas
-            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | 👷 **Executor:** " + str(h['executor']))
+            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | <b> Executor:</b> " + str(h['executor']))
             st.write("📌 **Tipo:** " + str(h['tipo']) + " | 🔄 **Peças Substituídas:** " + str(h['pecas_trocadas']))
             st.write("---")
 
 # ==========================================
-# 4. EMISSÃO DE PT (BLINDADO E SEM CONFLITO DE SINTAXE)
+# 4. EMISSÃO DE PT (CORRIGIDO COM IF/ELSE LINEAR)
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
     
     ordens_pendentes = [p for p in st.session_state.planejamento if p.get("status") == "Pendente"]
     
+    # CORREÇÃO DEFINITIVA: Estrutura alinhada e acoplada usando if/else tradicional para evitar recuo órfão
     if not ordens_pendentes:
