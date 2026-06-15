@@ -186,7 +186,7 @@ def pagina_historico():
             st.write("📌 **Tipo:** " + str(h['tipo']) + " | 🔄 **Peças Substituídas:** " + str(h['pecas_trocadas']))
             st.write("---")
 
-# --- PÁGINA 4: EMISSÃO DE PT ---
+# --- PÁGINA 4: EMISSÃO DE PT (BLINDAGEM CONTRA INDENTAÇÃO) ---
 def pagina_emissao_pt():
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
     ordens_pendentes = [p for p in st.session_state.planejamento if p.get("status") == "Pendente"]
@@ -196,6 +196,4 @@ def pagina_emissao_pt():
         nome_chave = "OS 00" + str(o['id']) + " - " + str(o['equipamento']) + " (" + str(o['periodo']) + ")"
         opcoes_selecao[nome_chave] = o
         
-    if not opcoes_selecao:
-        st.info("Não há ordens de serviço pendentes para emissão de PT no momento.")
-    else:
+    # CORREÇÃO DEFINITIVA DA LINHA 201: Removido o bloco if/else aninhado que quebrava o espaçamento
