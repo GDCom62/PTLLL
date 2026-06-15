@@ -56,8 +56,10 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-# --- PÁGINA 1: CADASTRO ---
-def pagina_cadastro():
+# ==========================================
+# 1. PÁGINA: CADASTRO E EDIÇÃO
+# ==========================================
+if menu == "📋 Cadastro & Edição de Máquinas":
     st.header("📋 Gerenciamento de Máquinas e Equipamentos")
     aba_lista, aba_cadastrar, aba_editar = st.tabs(["🔍 Ver e Excluir", "➕ Cadastrar Novo", "✏️ Editar Existente"])
     
@@ -129,24 +131,43 @@ def pagina_cadastro():
                     st.success("Alterações salvas com sucesso!")
                     st.rerun()
 
-# --- PÁGINA 2: PLANEJAMENTO ---
-def pagina_planejamento():
+# ==========================================
+# 2. PÁGINA: PLANEJAMENTO TEMPORAL
+# ==========================================
+elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    def exibir_itens(frequencia):
-        dados = [p for p in st.session_state.planejamento if p['periodo'] == frequencia and p['status'] == "Pendente"]
-        if dados:
-            for p in dados:
-                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                st.write("🔧 Peças Programadas: " + str(p['pecas']))
-                st.write("---")
-        else:
-            st.info("Nenhuma manutenção pendente para " + str(frequencia) + ".")
+    if len(st.session_state.planejamento) >= 0:
+        with aba_sem:
+            dados_sem = [p for p in st.session_state.planejamento if p['periodo'] == "Semanal" and p['status'] == "Pendente"]
+            if dados_sem:
+                for p in dados_sem:
+                    st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                    st.write("🔧 Peças Programadas: " + str(p['pecas']))
+                    st.write("---")
+            else:
+                st.info("Nenhuma manutenção pendente para Semanal.")
 
-    with aba_sem: exibir_itens("Semanal")
-    with aba_mes: exibir_itens("Mensal")
-    with aba_ano: exibir_itens("Anual")
+        with aba_mes:
+            dados_mes = [p for p in st.session_state.planejamento if p['periodo'] == "Mensal" and p['status'] == "Pendente"]
+            if dados_mes:
+                for p in dados_mes:
+                    st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                    st.write("🔧 Peças Programadas: " + str(p['pecas']))
+                    st.write("---")
+            else:
+                st.info("Nenhuma manutenção pendente para Mensal.")
+
+        with aba_ano:
+            dados_ano = [p for p in st.session_state.planejamento if p['periodo'] == "Anual" and p['status'] == "Pendente"]
+            if dados_ano:
+                for p in dados_ano:
+                    st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                    st.write("🔧 Peças Programadas: " + str(p['pecas']))
+                    st.write("---")
+            else:
+                st.info("Nenhuma manutenção pendente para Anual.")
     
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
@@ -171,29 +192,3 @@ def pagina_planejamento():
                     "status": "Pendente",
                     "seguranca": regras_seguranca
                 }
-                st.session_state.planejamento.append(nova_os)
-                st.success("Manutenção agendada com sucesso!")
-                st.rerun()
-
-# --- PÁGINA 3: HISTÓRICO ---
-def pagina_historico():
-    st.header("📜 Histórico de Manutenções Realizadas")
-    if not st.session_state.historico:
-        st.info("Nenhum registro encontrado no histórico.")
-    else:
-        for h in st.session_state.historico:
-            st.success("📅 **Data:** " + str(h['data']) + " | ⚙️ **Máquina:** " + str(h['equipamento']) + " | <b> Executor:</b> " + str(h['executor']))
-            st.write("📌 **Tipo:** " + str(h['tipo']) + " | 🔄 **Peças Substituídas:** " + str(h['pecas_trocadas']))
-            st.write("---")
-
-# --- PÁGINA 4: EMISSÃO DE PT (BLINDAGEM CONTRA INDENTAÇÃO) ---
-def pagina_emissao_pt():
-    st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
-    ordens_pendentes = [p for p in st.session_state.planejamento if p.get("status") == "Pendente"]
-    
-    opcoes_selecao = {}
-    for o in ordens_pendentes:
-        nome_chave = "OS 00" + str(o['id']) + " - " + str(o['equipamento']) + " (" + str(o['periodo']) + ")"
-        opcoes_selecao[nome_chave] = o
-        
-    # CORREÇÃO DEFINITIVA DA LINHA 201: Removido o bloco if/else aninhado que quebrava o espaçamento
