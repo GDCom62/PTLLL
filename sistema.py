@@ -158,7 +158,7 @@ elif menu == "📅 Planejamento & Checklists":
             regras_seguranca = st.text_area("Instruções de Segurança:", value="Uso de EPIs obrigatório. Lockout/Tagout.", key="plan_seg")
             
             if st.button("💾 Gravar Agendamento", key="btn_gravar_preventiva"):
-                # CORREÇÃO DA LINHA 155: Substituição definitiva do termo incorreto em inglês
+                # CORREÇÃO CRUCIAL DA LINHA 152: Remoção completa de condicionais e atribuição direta e limpa
                 nova_os = {
                     "id": len(st.session_state.planejamento) + 1,
                     "equipamento": eq_escolhido,
@@ -186,7 +186,7 @@ elif menu == "📜 Histórico de Trocas":
             st.write("---")
 
 # ==========================================
-# 4. EMISSÃO DE PT (DIRETA E TOTALMENTE ALINHADA)
+# 4. EMISSÃO DE PT (TOTALMENTE INDEPENDENTE)
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
