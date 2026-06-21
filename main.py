@@ -217,4 +217,4 @@ elif menu == "📅 Planejamento & Checklists":
         lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
         
         if lista_nomes:
-            with st.form("form_novo_planejamento"):
+            # REMOVIDO FORMULÁRIO DO BLOCADO: Campos diretos e lineares para blindar contra IndentationError
