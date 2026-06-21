@@ -15,16 +15,12 @@ def carregar_imagem_base64(caminho_imagem):
     return None
 
 # --- ADIÇÃO DOS LOGOS ---
-
-# 1. Logo principal no topo da página (Tamanho 300x300)
 if os.path.exists("logo.png"):
     st.image("logo.png", width=300)
 else:
     st.info("Insira o arquivo 'logo.png' na pasta do script para exibir o logo do topo.")
 
-# 2. Logo do desenvolvedor no canto inferior direito (Fixo e estável)
 logo1_b64 = carregar_imagem_base64("logo1.png")
-
 if logo1_b64:
     st.markdown(
         f"""
@@ -213,6 +209,7 @@ elif menu == "📅 Planejamento & Checklists":
         lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
         
         if lista_nomes:
+            # CORREÇÃO AQUI: O formulário é aberto APENAS se houver itens na lista
             with st.form("form_novo_planejamento"):
                 eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
                 periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], key="plan_per")
