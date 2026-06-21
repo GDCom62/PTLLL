@@ -1,38 +1,51 @@
 import streamlit as st
 from datetime import datetime
+import base64
+import os
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
+# --- FUNÇÃO AUXILIAR PARA CORREÇÃO DE LOGO NA NUVEM ---
+def carregar_imagem_base64(caminho_imagem):
+    """Lê uma imagem local e transforma em Base64 para injeção segura de HTML na nuvem"""
+    if os.path.exists(caminho_imagem):
+        with open(caminho_imagem, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode()
+    return None
+
 # --- ADIÇÃO DOS LOGOS ---
 
 # 1. Logo principal no topo da página (Tamanho 300x300)
-try:
+if os.path.exists("logo.png"):
     st.image("logo.png", width=300)
-except Exception:
+else:
     st.info("Insira o arquivo 'logo.png' na pasta do script para exibir o logo do topo.")
 
-# 2. Logo do desenvolvedor no canto inferior direito (Fixo e discreto)
-st.markdown(
-    """
-    <style>
-    .developer-logo {
-        position: fixed;
-        bottom: 10px;
-        right: 10px;
-        width: 60px;
-        z-index: 9999;
-        opacity: 0.7;
-        transition: opacity 0.3s;
-    }
-    .developer-logo:hover {
-        opacity: 1.0;
-    }
-    </style>
-    <img src="app/static/logo1.png" class="developer-logo" onerror="this.style.display='none'">
-    """,
-    unsafe_html=True
-)
+# 2. Logo do desenvolvedor no canto inferior direito (Fixo e estável)
+logo1_b64 = carregar_imagem_base64("logo1.png")
+
+if logo1_b64:
+    st.markdown(
+        f"""
+        <style>
+        .developer-logo {{
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 60px;
+            z-index: 9999;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }}
+        .developer-logo:hover {{
+            opacity: 1.0;
+        }}
+        </style>
+        <img src="data:image/png;base64,{logo1_b64}" class="developer-logo">
+        """,
+        unsafe_html=True
+    )
 
 # --- BANCO DE DADOS FIXO INDUSTRIAL ---
 MÁQUINAS_PADRÃO = [
@@ -203,10 +216,3 @@ elif menu == "📅 Planejamento & Checklists":
             with st.form("form_novo_planejamento"):
                 eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
                 periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], key="plan_per")
-                data_planejada = st.date_input("Selecione a Data do Serviço:", datetime.now(), key="plan_data")
-                pecas_necessarias = st.text_area("Descrição das Peças / Notas adicionais:", value="Inspeção preventiva padrão")
-                
-                if st.form_submit_button("Agendar Manutenção"):
-                    novo_id = len(st.session_state.planejamento) + 1
-                    data_formatada = data_planejada.strftime("%d/%m/%Y")
-                    
