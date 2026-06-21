@@ -85,6 +85,26 @@ if "planejamento" not in st.session_state:
 if "historico" not in st.session_state:
     st.session_state.historico = []
 
+# --- FUNÇÃO DE COMANDO PARA SALVAR O AGENDAMENTO DIRETO ---
+def executar_agendamento():
+    if st.session_state.get("plan_eq") == "Nenhum equipamento cadastrado":
+        st.error("Por favor, cadastre uma máquina na primeira aba antes de agendar.")
+    else:
+        novo_id = len(st.session_state.planejamento) + 1
+        data_formatada = st.session_state.plan_data.strftime("%d/%m/%Y")
+        
+        novo_agendamento = {
+            "id": novo_id,
+            "equipamento": st.session_state.plan_eq,
+            "periodo": st.session_state.plan_per,
+            "data_prevista": data_formatada,
+            "pecas": st.session_state.plan_pecas,
+            "status": "Pendente",
+            "seguranca": "Uso de EPIs obrigatório. Verificar bloqueios elétricos."
+        }
+        st.session_state.planejamento.append(novo_agendamento)
+        st.toast("✅ Manutenção agendada com sucesso!")
+
 # --- MARCA DA EMPRESA NO MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
@@ -200,21 +220,3 @@ elif menu == "📅 Planejamento & Checklists":
                 st.write("🔧 Peças Programadas: " + str(p['pecas']))
                 st.write("---")
         else:
-            st.info("Nenhuma preventiva mensal pendente.")
-
-    with aba_ano:
-        dados_ano = [p for p in st.session_state.planejamento if p['periodo'] == "Anual" and p['status'] == "Pendente"]
-        if dados_ano:
-            for p in dados_ano:
-                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                st.write("🔧 Peças Programadas: " + str(p['pecas']))
-                st.write("---")
-        else:
-            st.info("Nenhuma preventiva anual pendente.")
-    
-    with aba_novo:
-        st.subheader("📋 Agendar Nova Preventiva")
-        lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
-        
-        opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
-        
