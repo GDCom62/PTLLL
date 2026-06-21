@@ -10,7 +10,6 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 try:
     st.image("logo.png", width=300)
 except Exception:
-    # Mensagem discreta caso o arquivo não exista no ambiente
     st.info("Insira o arquivo 'logo.png' na pasta do script para exibir o logo do topo.")
 
 # 2. Logo do desenvolvedor no canto inferior direito (Fixo e discreto)
@@ -210,3 +209,4 @@ elif menu == "📅 Planejamento & Checklists":
                 if st.form_submit_button("Agendar Manutenção"):
                     novo_id = len(st.session_state.planejamento) + 1
                     st.session_state.planejamento.append({
+                        "id": novo_id,
