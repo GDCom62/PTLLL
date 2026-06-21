@@ -208,6 +208,5 @@ elif menu == "📅 Planejamento & Checklists":
                 
                 if st.form_submit_button("Agendar Manutenção"):
                     novo_id = len(st.session_state.planejamento) + 1
-                    novo_item = {
-                        "id": novo_id,
-                        "equipamento": eq_escolhido,
+                    data_formatada = data_planejada.strftime("%d/%m/%Y")
+                    
