@@ -216,5 +216,4 @@ elif menu == "📅 Planejamento & Checklists":
         st.subheader("📋 Agendar Nova Preventiva")
         lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
         
-        # LÓGICA TOTALMENTE LINEAR: Sem blocos condicionais ou formulários complexos para evitar IndentationError
-        if not lista_nomes:
+        # LINHAS CORRIGIDAS AQUI: Alinhamento limpo e sem o comentário ou IFs que causavam o IndentationError
