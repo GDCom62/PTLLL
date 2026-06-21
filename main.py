@@ -127,7 +127,9 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             c_mes = st.text_area("Itens da Preventiva Mensal:", "Trocar filtros\nConferir correias")
             c_ano = st.text_area("Itens da Preventiva Anual:", "Revisão geral do motor")
             
-            if st.form_submit_button("Salvar Equipamento"):
+            btn_salvar = st.form_submit_button("Salvar Equipamento")
+            
+            if btn_salvar:
                 if id_eq and nome_eq:
                     if any(e['id'] == id_eq for e in st.session_state.equipamentos):
                         st.error("Este Código/Tag já está cadastrado!")
@@ -145,7 +147,6 @@ if menu == "📋 Cadastro & Edição de Máquinas":
         st.subheader("Editar Máquina Existente")
         opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in st.session_state.equipamentos}
         
-        # CORREÇÃO DEFINITIVA: O formulário só existe se houver dados válidos mapeados
         if opcoes_edicao:
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
             eq_para_editar = opcoes_edicao[selecionado_edicao]
@@ -158,7 +159,9 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
                 n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
                 
-                if st.form_submit_button("Gravar Alterações"):
+                btn_gravar = st.form_submit_button("Gravar Alterações")
+                
+                if btn_gravar:
                     for e in st.session_state.equipamentos:
                         if e['id'] == eq_para_editar['id']:
                             e['nome'] = novo_nome
@@ -215,4 +218,3 @@ elif menu == "📅 Planejamento & Checklists":
         
         if lista_nomes:
             with st.form("form_novo_planejamento"):
-                eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
