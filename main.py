@@ -8,7 +8,6 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 
 # --- FUNÇÃO AUXILIAR PARA CORREÇÃO DE LOGO NA NUVEM ---
 def carregar_imagem_base64(caminho_imagem):
-    """Lê uma imagem local e transforma em Base64 para injeção segura de HTML na nuvem"""
     if os.path.exists(caminho_imagem):
         with open(caminho_imagem, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode()
@@ -85,26 +84,6 @@ if "planejamento" not in st.session_state:
 if "historico" not in st.session_state:
     st.session_state.historico = []
 
-# --- FUNÇÃO DE COMANDO PARA SALVAR O AGENDAMENTO DIRETO ---
-def executar_agendamento():
-    if st.session_state.get("plan_eq") == "Nenhum equipamento cadastrado":
-        st.error("Por favor, cadastre uma máquina na primeira aba antes de agendar.")
-    else:
-        novo_id = len(st.session_state.planejamento) + 1
-        data_formatada = st.session_state.plan_data.strftime("%d/%m/%Y")
-        
-        novo_agendamento = {
-            "id": novo_id,
-            "equipamento": st.session_state.plan_eq,
-            "periodo": st.session_state.plan_per,
-            "data_prevista": data_formatada,
-            "pecas": st.session_state.plan_pecas,
-            "status": "Pendente",
-            "seguranca": "Uso de EPIs obrigatório. Verificar bloqueios elétricos."
-        }
-        st.session_state.planejamento.append(novo_agendamento)
-        st.toast("✅ Manutenção agendada com sucesso!")
-
 # --- MARCA DA EMPRESA NO MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
@@ -124,20 +103,17 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     
     with aba_lista:
         st.subheader("Equipamentos Registrados no Sistema")
-        if st.session_state.equipamentos:
-            for eq in list(st.session_state.equipamentos):
-                st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
-                if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
-                    st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
-                    st.success(f"Equipamento {eq['id']} removido!")
-                    st.rerun()
-                st.write("---")
-        else:
-            st.info("Nenhum equipamento cadastrado no sistema.")
+        for eq in list(st.session_state.equipamentos):
+            st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
+            if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
+                st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
+                st.success("Equipamento removido!")
+                st.rerun()
+            st.write("---")
                         
     with aba_cadastrar:
         st.subheader("Cadastrar Nova Máquina")
-        with st.form("form_cadastro", clear_on_submit=True):
+        with st.form("form_cadastro"):
             id_eq = st.text_input("Código/Tag do Equipamento (Ex: EQ-003):")
             nome_eq = st.text_input("Nome do Equipamento:")
             local_eq = st.text_input("Localização / Setor:")
@@ -147,26 +123,20 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             c_mes = st.text_area("Itens da Preventiva Mensal:", "Trocar filtros\nConferir correias")
             c_ano = st.text_area("Itens da Preventiva Anual:", "Revisão geral do motor")
             
-            btn_salvar = st.form_submit_button("Salvar Equipamento")
-            
-            if btn_salvar:
+            if st.form_submit_button("Salvar Equipamento"):
                 if id_eq and nome_eq:
-                    if any(e['id'] == id_eq for e in st.session_state.equipamentos):
-                        st.error("Este Código/Tag já está cadastrado!")
-                    else:
-                        st.session_state.equipamentos.append({
-                            "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
-                            "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
-                        })
-                        st.success("Máquina registrada com sucesso!")
-                        st.rerun()
+                    st.session_state.equipamentos.append({
+                        "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
+                        "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
+                    })
+                    st.success("Máquina registrada com sucesso!")
+                    st.rerun()
                 else:
-                    st.error("Preencha os campos obrigatórios (Código e Nome).")
+                    st.error("Preencha os campos obrigatórios.")
 
     with aba_editar:
         st.subheader("Editar Máquina Existente")
         opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in st.session_state.equipamentos}
-        
         if opcoes_edicao:
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
             eq_para_editar = opcoes_edicao[selecionado_edicao]
@@ -179,9 +149,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
                 n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
                 
-                btn_gravar = st.form_submit_button("Gravar Alterações")
-                
-                if btn_gravar:
+                if st.form_submit_button("Gravar Alterações"):
                     for e in st.session_state.equipamentos:
                         if e['id'] == eq_para_editar['id']:
                             e['nome'] = novo_nome
@@ -192,8 +160,6 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                             e['check_anual'] = n_ano
                     st.success("Alterações salvas com sucesso!")
                     st.rerun()
-        else:
-            st.info("Nenhum equipamento cadastrado para edição.")
 
 # ==========================================
 # 2. PÁGINA: PLANEJAMENTO TEMPORAL
@@ -204,19 +170,44 @@ elif menu == "📅 Planejamento & Checklists":
     
     with aba_sem:
         dados_sem = [p for p in st.session_state.planejamento if p['periodo'] == "Semanal" and p['status'] == "Pendente"]
-        if dados_sem:
-            for p in dados_sem:
-                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                st.write("🔧 Peças Programadas: " + str(p['pecas']))
-                st.write("---")
-        else:
-            st.info("Nenhuma preventiva semanal pendente.")
+        for p in dados_sem:
+            st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+            st.write("🔧 Peças Programadas: " + str(p['pecas']))
+            st.write("---")
 
     with aba_mes:
         dados_mes = [p for p in st.session_state.planejamento if p['periodo'] == "Mensal" and p['status'] == "Pendente"]
-        if dados_mes:
-            for p in dados_mes:
-                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                st.write("🔧 Peças Programadas: " + str(p['pecas']))
-                st.write("---")
-        else:
+        for p in dados_mes:
+            st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+            st.write("🔧 Peças Programadas: " + str(p['pecas']))
+            st.write("---")
+
+    with aba_ano:
+        dados_ano = [p for p in st.session_state.planejamento if p['periodo'] == "Anual" and p['status'] == "Pendente"]
+        for p in dados_ano:
+            st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+            st.write("🔧 Peças Programadas: " + str(p['pecas']))
+            st.write("---")
+    
+    with aba_novo:
+        st.subheader("📋 Agendar Nova Preventiva")
+        lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
+        
+        if lista_nomes:
+            with st.form("form_novo_planejamento"):
+                eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
+                periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], key="plan_per")
+                data_planejada = st.date_input("Selecione a Data do Serviço:", datetime.now(), key="plan_data")
+                pecas_necessarias = st.text_area("Descrição das Peças:", value="Inspeção preventiva padrão")
+                
+                if st.form_submit_button("Agendar Manutenção"):
+                    novo_id = len(st.session_state.planejamento) + 1
+                    st.session_state.planejamento.append({
+                        "id": novo_id,
+                        "equipamento": eq_escolhido,
+                        "periodo": periodo_escolhido,
+                        "data_prevista": data_planejada.strftime("%d/%m/%Y"),
+                        "pecas": pecas_necessarias,
+                        "status": "Pendente",
+                        "seguranca": "Uso de EPIs obrigatório."
+                    })
