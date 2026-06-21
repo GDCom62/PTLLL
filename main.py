@@ -104,13 +104,16 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     
     with aba_lista:
         st.subheader("Equipamentos Registrados no Sistema")
-        for eq in list(st.session_state.equipamentos):
-            st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
-            if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
-                st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
-                st.success(f"Equipamento {eq['id']} removido!")
-                st.rerun()
-            st.write("---")
+        if st.session_state.equipamentos:
+            for eq in list(st.session_state.equipamentos):
+                st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
+                if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
+                    st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
+                    st.success(f"Equipamento {eq['id']} removido!")
+                    st.rerun()
+                st.write("---")
+        else:
+            st.info("Nenhum equipamento cadastrado no sistema.")
                         
     with aba_cadastrar:
         st.subheader("Cadastrar Nova Máquina")
@@ -141,6 +144,8 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     with aba_editar:
         st.subheader("Editar Máquina Existente")
         opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in st.session_state.equipamentos}
+        
+        # CORREÇÃO DEFINITIVA: O formulário só existe se houver dados válidos mapeados
         if opcoes_edicao:
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
             eq_para_editar = opcoes_edicao[selecionado_edicao]
@@ -209,7 +214,5 @@ elif menu == "📅 Planejamento & Checklists":
         lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
         
         if lista_nomes:
-            # CORREÇÃO AQUI: O formulário é aberto APENAS se houver itens na lista
             with st.form("form_novo_planejamento"):
                 eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
-                periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], key="plan_per")
