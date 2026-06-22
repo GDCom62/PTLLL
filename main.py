@@ -105,7 +105,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
         st.subheader("Equipamentos Registrados no Sistema")
         if st.session_state.equipamentos:
             for eq in list(st.session_state.equipamentos):
-                st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
+                st.write("🔹 **[" + str(eq['id'])+ "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
                 if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
                     st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
                     st.success("Equipamento removido!")
