@@ -95,7 +95,7 @@ menu = st.sidebar.radio("Navegar para:", [
 ])
 
 # ==========================================
-# 1. PÁGINA:  CADASTRO E EDIÇÃO
+# 1. PÁGINA: CADASTRO E EDIÇÃO
 # ==========================================
 if menu == "📋 Cadastro & Edição de Máquinas":
     st.header("📋 Gerenciamento de Máquinas e Equipamentos")
