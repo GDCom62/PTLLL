@@ -193,21 +193,20 @@ elif menu == "📅 Planejamento & Checklists":
         st.subheader("📋 Agendar Nova Preventiva")
         lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
         
-        if lista_nomes:
-            with st.form("form_novo_planejamento"):
-                eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes, key="plan_eq")
-                periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], key="plan_per")
-                data_planejada = st.date_input("Selecione a Data do Serviço:", datetime.now(), key="plan_data")
-                pecas_necessarias = st.text_area("Descrição das Peças:", value="Inspeção preventiva padrão")
-                
-                if st.form_submit_button("Agendar Manutenção"):
-                    novo_id = len(st.session_state.planejamento) + 1
-                    st.session_state.planejamento.append({
-                        "id": novo_id,
-                        "equipamento": eq_escolhido,
-                        "periodo": periodo_escolhido,
-                        "data_prevista": data_planejada.strftime("%d/%m/%Y"),
-                        "pecas": pecas_necessarias,
-                        "status": "Pendente",
-                        "seguranca": "Uso de EPIs obrigatório."
-                    })
+        opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
+        st.selectbox("Selecione a Máquina Alvo:", opcoes_selecao, key="plan_eq")
+        st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], key="plan_per")
+        st.date_input("Selecione a Data do Serviço:", datetime.now(), key="plan_data")
+        st.text_area("Descrição das Peças / Notas adicionais:", value="Inspeção preventiva padrão", key="plan_pecas")
+        
+        # Função para salvar agendamento de forma direta, sem formulários
+        def realizar_agendamento():
+            if st.session_state.plan_eq != "Nenhum equipamento cadastrado":
+                novo_id = len(st.session_state.planejamento) + 1
+                st.session_state.planejamento.append({
+                    "id": novo_id,
+                    "equipamento": st.session_state.plan_eq,
+                    "periodo": st.session_state.plan_per,
+                    "data_prevista": st.session_state.plan_data.strftime("%d/%m/%Y"),
+                    "pecas": st.session_state.plan_pecas,
+                    "status": "Pendente",
