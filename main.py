@@ -2,72 +2,9 @@ import streamlit as st
 from datetime import datetime
 import base64
 import os
-import sqlite3
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
-
-# --- CONEXÃO E CRIAÇÃO DO BANCO DE DADOS (SQLITE) ---
-DB_FILE = "manutencao.db"
-
-def iniciar_banco():
-    """Cria as tabelas no banco de dados caso elas não existam"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    
-    # Tabela de Equipamentos
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS equipamentos (
-            id TEXT PRIMARY KEY,
-            nome TEXT NOT NULL,
-            localizacao TEXT,
-            criticidade TEXT,
-            check_semanal TEXT,
-            check_mensal TEXT,
-            check_anual TEXT
-        )
-    """)
-    
-    # Tabela de Planejamento (Preventivas)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS planejamento (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            equipamento TEXT NOT NULL,
-            periodo TEXT,
-            data_prevista TEXT,
-            pecas TEXT,
-            status TEXT DEFAULT 'Pendente',
-            seguranca TEXT
-        )
-    """)
-    
-    # Insere dados padrão se o banco de dados estiver totalmente vazio
-    cursor.execute("SELECT COUNT(*) FROM equipamentos")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute("""
-            INSERT INTO equipamentos VALUES 
-            ('EQ-001', 'Torno Mecânico Nardini', 'Oficina Central', 'Alta', 
-             'Verificar nível de óleo e lubrificação geral\nLimpeza de resíduos e cavacos\nTestar botão de emergência', 
-             'Trocar filtros de óleo\nVerificar tensão de correias', 
-             'Revisão do motor elétrico\nSubstituição do fluido hidráulico')
-        """)
-        cursor.execute("""
-            INSERT INTO equipamentos VALUES 
-            ('EQ-002', 'Compressor de Ar Schulz', 'Sala de Compressores', 'Média', 
-             'Drenar condensado do reservatório\nVerificar ruídos anormais', 
-             'Limpar filtro de ar\nVerificar nível de óleo', 
-             'Teste hidrostático do vaso\nTroca de válvulas de segurança')
-        """)
-        cursor.execute("""
-            INSERT INTO planejamento (equipamento, periodo, data_prevista, pecas, status, seguranca)
-            VALUES ('Torno Mecânico Nardini', 'Semanal', ?, 'Inspeção preventiva padrão', 'Pendente', 'Uso de EPIs obrigatório. Lockout/Tagout.')
-        """, (datetime.now().strftime("%d/%m/%Y"),))
-        
-    conn.commit()
-    conn.close()
-
-# Executa a inicialização do arquivo de banco de dados
-iniciar_banco()
 
 # --- FUNÇÃO AUXILIAR PARA CORREÇÃO DE LOGO NA NUVEM ---
 def carregar_imagem_base64(caminho_imagem):
@@ -105,6 +42,48 @@ if logo1_b64:
         unsafe_html=True
     )
 
+# --- BANCO DE DADOS FIXO INDUSTRIAL ---
+MÁQUINAS_PADRÃO = [
+    {
+        "id": "EQ-001", 
+        "nome": "Torno Mecânico Nardini", 
+        "localizacao": "Oficina Central", 
+        "criticidade": "Alta",
+        "check_semanal": "Verificar nível de óleo e lubrificação geral\nLimpeza de resíduos e cavacos\nTestar botão de emergência",
+        "check_mensal": "Trocar filtros de óleo\nVerificar tensão de correias",
+        "check_anual": "Revisão do motor elétrico\nSubstituição do fluido hidráulico"
+    },
+    {
+        "id": "EQ-002", 
+        "nome": "Compressor de Ar Schulz", 
+        "localizacao": "Sala de Compressores", 
+        "criticidade": "Média",
+        "check_semanal": "Drenar condensado do reservatório\nVerificar ruídos anormais",
+        "check_mensal": "Limpar filtro de ar\nVerificar nível de óleo",
+        "check_anual": "Teste hidrostático do vaso\nTroca de válvulas de segurança"
+    }
+]
+
+# Inicialização segura na memória operacional
+if "equipamentos" not in st.session_state:
+    st.session_state.equipamentos = MÁQUINAS_PADRÃO.copy()
+
+if "planejamento" not in st.session_state:
+    st.session_state.planejamento = [
+        {
+            "id": 1,
+            "equipamento": "Torno Mecânico Nardini",
+            "periodo": "Semanal",
+            "data_prevista": datetime.now().strftime("%d/%m/%Y"),
+            "pecas": "Inspeção preventiva padrão",
+            "status": "Pendente",
+            "seguranca": "Uso de EPIs obrigatório. Lockout/Tagout."
+        }
+    ]
+
+if "historico" not in st.session_state:
+    st.session_state.historico = []
+
 # --- MARCA DA EMPRESA NO MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
@@ -124,27 +103,16 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     
     with aba_lista:
         st.subheader("Equipamentos Registrados no Sistema")
-        
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, nome, localizacao, criticidade FROM equipamentos")
-        equipamentos = cursor.fetchall()
-        conn.close()
-        
-        if equipamentos:
-            for eq in equipamentos:
-                st.write(f"🔹 **[{eq[0]}] {eq[1]}** | Setor: {eq[2]} | Criticidade: {eq[3]}")
-                if st.button("🗑️ Remover " + str(eq[0]), key="del_" + str(eq[0])):
-                    conn = sqlite3.connect(DB_FILE)
-                    cursor = conn.cursor()
-                    cursor.execute("DELETE FROM equipamentos WHERE id = ?", (eq[0],))
-                    conn.commit()
-                    conn.close()
-                    st.success(f"Equipamento {eq[0]} removido do banco de dados!")
+        if st.session_state.equipamentos:
+            for eq in list(st.session_state.equipamentos):
+                st.write("🔹 **[" + str(eq['id'])+ "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
+                if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
+                    st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
+                    st.success("Equipamento removido!")
                     st.rerun()
                 st.write("---")
         else:
-            st.info("Nenhum equipamento cadastrado no banco de dados.")
+            st.info("Nenhum equipamento cadastrado no sistema.")
                         
     with aba_cadastrar:
         st.subheader("Cadastrar Nova Máquina")
@@ -160,56 +128,41 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             
             if st.form_submit_button("Salvar Equipamento"):
                 if id_eq and nome_eq:
-                    conn = sqlite3.connect(DB_FILE)
-                    cursor = conn.cursor()
-                    try:
-                        cursor.execute("INSERT INTO equipamentos VALUES (?, ?, ?, ?, ?, ?, ?)", 
-                                       (id_eq, nome_eq, local_eq, crit_eq, c_sem, c_mes, c_ano))
-                        conn.commit()
-                        st.success("Máquina registrada e salva com sucesso no banco de dados!")
-                        st.rerun()
-                    except sqlite3.IntegrityError:
-                        st.error("Este Código/Tag já está cadastrado!")
-                    conn.close()
+                    st.session_state.equipamentos.append({
+                        "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
+                        "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
+                    })
+                    st.success("Máquina registrada com sucesso!")
+                    st.rerun()
                 else:
                     st.error("Preencha os campos obrigatórios.")
 
     with aba_editar:
         st.subheader("Editar Máquina Existente")
-        
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, nome, localizacao, criticidade, check_semanal, check_mensal, check_anual FROM equipamentos")
-        lista_eq = cursor.fetchall()
-        conn.close()
-        
-        opcoes_edicao = {f"{e[0]} - {e[1]}": e for e in lista_eq}
+        opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in st.session_state.equipamentos}
         if opcoes_edicao:
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
-            eq_dados = opcoes_edicao[selecionado_edicao]
+            eq_para_editar = opcoes_edicao[selecionado_edicao]
             
             with st.form("form_edicao"):
-                novo_nome = st.text_input("Nome do Equipamento:", value=eq_dados[1])
-                novo_local = st.text_input("Localização / Setor:", value=eq_dados[2])
-                novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_dados[3]))
-                n_sem = st.text_area("Preventiva Semanal:", value=eq_dados[4])
-                n_mes = st.text_area("Preventiva Mensal:", value=eq_dados[5])
-                n_ano = st.text_area("Preventiva Anual:", value=eq_dados[6])
+                novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar['nome'])
+                novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
+                novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
+                n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
+                n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
+                n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
                 
                 if st.form_submit_button("Gravar Alterações"):
-                    conn = sqlite3.connect(DB_FILE)
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        UPDATE equipamentos 
-                        SET nome=?, localizacao=?, criticidade=?, check_semanal=?, check_mensal=?, check_anual=?
-                        WHERE id=?
-                    """, (novo_nome, novo_local, novo_crit, n_sem, n_mes, n_ano, eq_dados[0]))
-                    conn.commit()
-                    conn.close()
-                    st.success("Alterações gravadas no arquivo de banco de dados!")
+                    for e in st.session_state.equipamentos:
+                        if e['id'] == eq_para_editar['id']:
+                            e['nome'] = novo_nome
+                            e['localizacao'] = novo_local
+                            e['criticidade'] = novo_crit
+                            e['check_semanal'] = n_sem
+                            e['check_mensal'] = n_mes
+                            e['check_anual'] = n_ano
+                    st.success("Alterações salvas com sucesso!")
                     st.rerun()
-        else:
-            st.info("Nenhum equipamento cadastrado para edição.")
 
 # ==========================================
 # 2. PÁGINA: PLANEJAMENTO TEMPORAL
@@ -219,69 +172,45 @@ elif menu == "📅 Planejamento & Checklists":
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
     with aba_sem:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("SELECT equipamento, data_prevista, pecas FROM planejamento WHERE status='Pendente' AND periodo='Semanal'")
-        dados_sem = cursor.fetchall()
-        conn.close()
-        
+        dados_sem = [p for p in st.session_state.planejamento if p['periodo'] == "Semanal" and p['status'] == "Pendente"]
         if dados_sem:
             for p in dados_sem:
-                st.write(f"⚙️ **{p[0]}** | 📅 **Data:** {p[1]} | **Status:** Pendente")
-                st.write(f"🔧 Peças Programadas: {p[2]}")
+                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                st.write("🔧 Peças Programadas: " + str(p['pecas']))
                 st.write("---")
         else:
             st.info("Nenhuma preventiva semanal pendente.")
 
     with aba_mes:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
+        dados_mes = [p for p in st.session_state.planejamento if p['periodo'] == "Mensal" and p['status'] == "Pendente"]
+        if dados_mes:
+            for p in dados_mes:
+                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                st.write("🔧 Peças Programadas: " + str(p['pecas']))
+                st.write("---")
+        else:
+            st.info("Nenhuma preventiva mensal pendente.")
 
-# ==========================================
-# 4. PÁGINA: EMISSÃO DE PT (TOTALMENTE DESACOPLADA)
-# ==========================================
-elif menu == "⚠️ Emissão de PT":
-    st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
+    with aba_ano:
+        dados_ano = [p for p in st.session_state.planejamento if p['periodo'] == "Anual" and p['status'] == "Pendente"]
+        if dados_ano:
+            for p in dados_ano:
+                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                st.write("🔧 Peças Programadas: " + str(p['pecas']))
+                st.write("---")
+        else:
+            st.info("Nenhuma preventiva anual pendente.")
     
-    # 1. Filtra as manutenções pendentes registradas no sistema
-    ordens_pendentes = [p for p in st.session_state.planejamento if p['status'] == "Pendente"]
-    
-    if not ordens_pendentes:
-        st.warning("Não existem manutenções pendentes no momento para emitir uma PT. Agende uma preventiva primeiro!")
-    else:
-        # Monta a lista de opções para o seletor
-        opcoes_os = {f"OS #{p['id']} - {p['equipamento']} ({p['periodo']})": p for p in ordens_pendentes}
-        os_selecionada_str = str(st.selectbox("Selecione a Ordem de Serviço para vincular à PT:", list(opcoes_os.keys())))
-        os_dados = opcoes_os[os_selecionada_str]
+    with aba_novo:
+        st.subheader("📋 Agendar Nova Preventiva")
+        lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
+        opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
         
-        st.markdown("---")
-        st.subheader("📋 Formulário de Liberação de Segurança")
+        st.selectbox("Selecione a Máquina Alvo:", opcoes_selecao, key="plan_eq")
+        st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], key="plan_per")
+        st.date_input("Selecione a Data do Serviço:", datetime.now(), key="plan_data")
+        st.text_area("Descrição das Peças / Notas adicionais:", value="Inspeção preventiva padrão", key="plan_pecas")
         
-        # Formulário isolado para preenchimento dos dados da PT
-        with st.form("form_emissao_pt"):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                emitente = st.text_input("Nome do Emitente / Supervisor:", value="Supervisor de Manutenção")
-                executante = st.text_input("Nome do Executante / Técnico:")
-                empresa_exec = st.selectbox("Empresa Executante:", ["Própria (Interna)", "Terceirizada / Contratada"])
-            
-            with col2:
-                validade_data = st.date_input("Válido para o dia:", datetime.now())
-                hora_inicio = st.time_input("Horário de Início Autorizado:", value=datetime.strptime("08:00", "%H:%M").time())
-                hora_fim = st.time_input("Horário de Término Máximo:", value=datetime.strptime("17:00", "%H:%M").time())
-            
-            st.markdown("##### 🚨 Análise de Riscos e Riscos Envolvidos")
-            col_r1, col_r2, col_r3 = st.columns(3)
-            with col_r1:
-                r_altura = st.checkbox("Trabalho em Altura (NR-35)")
-                r_eletrico = st.checkbox("Risco Elétrico / Energias Vivas (NR-10)")
-            with col_r2:
-                r_confinado = st.checkbox("Espaço Confinado (NR-33)")
-                r_quimico = st.checkbox("Risco Químico (Gases/Vapores/Ácidos)")
-            with col_r3:
-                r_quente = st.checkbox("Trabalho a Quente (Solda/Esmeril/Corte)")
-                r_mecanico = st.checkbox("Risco Mecânico (Prensamento/Corte)")
-                
-            st.markdown("##### 🛡️ Medidas de Controle Obrigatórias")
-            col_c1, col_c2 = st.columns(2)
+        def realizar_agendamento():
+            if st.session_state.plan_eq != "Nenhum equipamento cadastrado":
+                novo_id = len(st.session_state.planejamento) + 1
