@@ -196,35 +196,41 @@ elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    with aba_sem:
-        dados_sem = [p for p in st.session_state.planejamento if p['periodo'] == "Semanal" and p['status'] == "Pendente"]
-        if dados_sem:
-            for p in dados_sem:
-                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                st.write("🔧 Peças Programadas: " + str(p['pecas']))
+    # Função auxiliar interna para renderizar o botão de conclusão sem quebra de fluxo
+    def renderizar_lista_preventivas(dados_filtrados):
+        if dados_filtrados:
+            for p in dados_filtrados:
+                col_dados, col_acao = st.columns([4, 1])
+                with col_dados:
+                    st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                    st.write("🔧 Peças Programadas: " + str(p['pecas']))
+                with col_acao:
+                    # Botão para dar baixa na Ordem de Serviço
+                    if st.button("✔️ Concluir", key="comp_" + str(p['id'])):
+                        # Altera o status e adiciona o carimbo de data/hora do fechamento
+                        p['status'] = "Concluído"
+                        p['data_conclusao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                        
+                        # Remove do planejamento ativo e joga para o histórico permanente
+                        st.session_state.historico.append(p)
+                        st.session_state.planejamento = [item for item in st.session_state.planejamento if item['id'] != p['id']]
+                        
+                        # Grava as alterações no disco rígido do servidor
+                        salvar_banco_permanente()
+                        st.success("Ordem de serviço finalizada e enviada ao histórico!")
+                        st.rerun()
                 st.write("---")
         else:
-            st.info("Nenhuma preventiva semanal pendente.")
+            st.info("Nenhuma manutenção preventiva pendente para este período.")
+
+    with aba_sem:
+        renderizar_lista_preventivas([p for p in st.session_state.planejamento if p['periodo'] == "Semanal" and p['status'] == "Pendente"])
 
     with aba_mes:
-        dados_mes = [p for p in st.session_state.planejamento if p['periodo'] == "Mensal" and p['status'] == "Pendente"]
-        if dados_mes:
-            for p in dados_mes:
-                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                st.write("🔧 Peças Programadas: " + str(p['pecas']))
-                st.write("---")
-        else:
-            st.info("Nenhuma preventiva mensal pendente.")
+        renderizar_lista_preventivas([p for p in st.session_state.planejamento if p['periodo'] == "Mensal" and p['status'] == "Pendente"])
 
     with aba_ano:
-        dados_ano = [p for p in st.session_state.planejamento if p['periodo'] == "Anual" and p['status'] == "Pendente"]
-        if dados_ano:
-            for p in dados_ano:
-                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                st.write("🔧 Peças Programadas: " + str(p['pecas']))
-                st.write("---")
-        else:
-            st.info("Nenhuma preventiva anual pendente.")
+        renderizar_lista_preventivas([p for p in st.session_state.planejamento if p['periodo'] == "Anual" and p['status'] == "Pendente"])
     
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
@@ -239,7 +245,7 @@ elif menu == "📅 Planejamento & Checklists":
             
             if st.form_submit_button("Agendar Manutenção"):
                 if eq_escolhido != "Nenhum equipamento cadastrado":
-                    novo_id = len(st.session_state.planejamento) + 1
+                    novo_id = len(st.session_state.planejamento) + len(st.session_state.historico) + 1
                     st.session_state.planejamento.append({
                         "id": novo_id,
                         "equipamento": eq_escolhido,
@@ -260,7 +266,15 @@ elif menu == "📅 Planejamento & Checklists":
 # ==========================================
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Trocas e Manutenções Concluídas")
-    st.info("Esta seção exibirá o histórico de ordens finalizadas da fábrica.")
+    
+    if st.session_state.historico:
+        for h in list(st.session_state.historico):
+            st.write("✅ **" + str(h['equipamento']) + "** | Período: " + str(h['periodo']))
+            st.write("📅 **Planejado para:** " + str(h['data_prevista']) + " | ⏱️ **Encerrado em:** " + str(h.get('data_conclusao', 'N/A')))
+            st.write("🔧 Peças / Intervenções: " + str(h['pecas']))
+            st.write("---")
+    else:
+        st.info("Nenhuma ordem de serviço foi finalizada no sistema ainda.")
 
 # ==========================================
 # 4. PÁGINA: EMISSÃO DE PT
@@ -343,18 +357,5 @@ elif menu == "⚠️ Emissão de PT":
                     html_corpo += '<p><b>EQUIPAMENTO:</b> ' + str(os_dados['equipamento']) + ' | <b>SERVIÇO:</b> ' + str(os_dados['pecas']) + '</p>'
                     html_corpo += "<hr style='border-top:1px dashed #FF0000;'>"
                     html_corpo += '<p><b>EMITENTE/SUPERVISOR:</b> ' + str(emitente) + ' | <b>EXECUTANTE:</b> ' + str(executante) + ' (' + str(empresa_exec) + ')</p>'
-                    html_corpo += '<p><b>VALIDADE:</b> ' + validade_data.strftime('%d/%m/%Y') + ' das ' + hora_inicio.strftime('%H:%M') + ' às ' + hora_fim.strftime('%H:%M') + '</p>'
-                    html_corpo += "<hr style='border-top:1px dashed #FF0000;'>"
-                    
-                    html_corpo += '<p><b>RISCOS DETECTADOS:</b><br>'
-                    if r_altura: html_corpo += '- Trabalho em Altura (NR-35)<br>'
-                    if r_eletrico: html_corpo += '- Risco Elétrico / Energias Vivas (NR-10)<br>'
-                    if r_confinado: html_corpo += '- Espaço Confinado (NR-33)<br>'
-                    if r_quimico: html_corpo += '- Risco Químico<br>'
-                    if r_quente: html_corpo += '- Trabalho a Quente<br>'
-                    if r_mecanico: html_corpo += '- Risco Mecânico<br>'
-                    html_corpo += '</p>'
-                    
-                    html_corpo += '<p><b>CONTROLES EXECUTADOS:</b><br>'
-                    if c_loto: html_corpo += '[X] Bloqueio e Etiquetagem (LOTO)<br>'
+
                     if c_delim: html_corpo += '[X] Área Isolada e Sinalizada<br>'
