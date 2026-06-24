@@ -218,14 +218,13 @@ elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("SELECT equipamento, data_prevista, pecas, periodo FROM planejamento WHERE status='Pendente'")
-    todos_agendamentos = cursor.fetchall()
-    conn.close()
-    
     with aba_sem:
-        dados_sem = [a for a in todos_agendamentos if a[3] == "Semanal"]
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT equipamento, data_prevista, pecas FROM planejamento WHERE status='Pendente' AND periodo='Semanal'")
+        dados_sem = cursor.fetchall()
+        conn.close()
+        
         if dados_sem:
             for p in dados_sem:
                 st.write(f"⚙️ **{p[0]}** | 📅 **Data:** {p[1]} | **Status:** Pendente")
@@ -235,5 +234,5 @@ elif menu == "📅 Planejamento & Checklists":
             st.info("Nenhuma preventiva semanal pendente.")
 
     with aba_mes:
-        dados_mes = [a for a in todos_agendamentos if a[3] == "Mensal"]
-        if dados_mes:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
