@@ -236,7 +236,7 @@ elif menu == "📜 Histórico de Trocas":
     st.info("Esta seção exibirá o histórico de ordens finalizadas da fábrica.")
 
 # ==========================================
-# 4. PÁGINA: EMISSÃO DE PT
+# 4. PÁGINA: EMISSÃO DE PT (BLINDADA CONTRA SYNTAXERROR)
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
@@ -307,30 +307,30 @@ elif menu == "⚠️ Emissão de PT":
                 if not executante:
                     st.error("Por favor, preencha o nome do técnico executante para assinar a ordem.")
                 else:
-                    id_impressao = f"pt_print_{os_dados['id']}"
+                    id_print = "pt_print_" + str(os_dados['id'])
+                    cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
                     
-                    st.session_state.pt_gerada_html = f"""
-                    <div id="{id_impressao}" style="border: 3px double #FF0000; padding: 20px; background-color: #FFF5F5; color: #000000; font-family: monospace; border-radius: 5px; margin-bottom: 20px;">
-                        <h2 style="text-align: center; color: #FF0000; margin-bottom: 20px;">⚠️ PERMISSÃO DE TRABALHO (PT) - REGISTRO INDUSTRIAL</h2>
-                        <p><b>CÓDIGO PT:</b> PT-{os_dados['id']}{datetime.now().strftime('%M%S')} | <b>VINCULADO À:</b> OS #{os_dados['id']}</p>
-                        <p><b>EQUIPAMENTO:</b> {os_dados['equipamento']} | <b>SERVIÇO:</b> {os_dados['pecas']}</p>
-                        <hr style='border-top: 1px dashed #FF0000;'>
-                        <p><b>EMITENTE/SUPERVISOR:</b> {emitente} | <b>EXECUTANTE:</b> {executante} ({empresa_exec})</p>
-                        <p><b>VALIDADE:</b> {validade_data.strftime('%d/%m/%Y')} das {hora_inicio.strftime('%H:%M')} às {hora_fim.strftime('%H:%M')}</p>
-                        <hr style='border-top: 1px dashed #FF0000;'>
-                        <p><b>RISCOS DETECTADOS:</b><br>
-                        {"- Trabalho em Altura<br>" if r_altura else ""}
-                        {"- Risco Elétrico<br>" if r_eletrico else ""}
-                        {"- Espaço Confinado<br>" if r_confinado else ""}
-                        {"- Risco Químico<br>" if r_quimico else ""}
-                        {"- Trabalho a Quente<br>" if r_quente else ""}
-                        {"- Risco Mecânico<br>" if r_mecanico else ""}
-                        </p>
-                        <p><b>CONTROLES EXECUTADOS:</b><br>
-                        {"[X] Lockout / Tagout Ativo<br>" if c_loto else ""}
-                        {"[X] Área Isolada<br>" if c_delim else ""}
-                        {"[X] EPIs Verificados<br>" if c_epi else ""}
-                        {"[X] Proteção Incêndio Pronta<br>" if c_extintor else ""}
-                        </p>
+                    # Concatenação linear e segura para eliminar o risco de f-strings triplas abertas
+                    html_corpo = '<div id="' + id_print + '" style="border:3px double #FF0000; padding:20px; background-color:#FFF5F5; color:#000000; font-family:monospace; border-radius:5px; margin-bottom:20px;">'
+                    html_corpo += '<h2 style="text-align:center; color:#FF0000; margin-bottom:20px;">⚠️ PERMISSÃO DE TRABALHO (PT) - REGISTRO INDUSTRIAL</h2>'
+                    html_corpo += '<p><b>CÓDIGO PT:</b> ' + cod_pt + ' | <b>VINCULADO À:</b> OS #' + str(os_dados['id']) + '</p>'
+                    html_corpo += '<p><b>EQUIPAMENTO:</b> ' + str(os_dados['equipamento']) + ' | <b>SERVIÇO:</b> ' + str(os_dados['pecas']) + '</p>'
+                    html_corpo += "<hr style='border-top:1px dashed #FF0000;'>"
+                    html_corpo += '<p><b>EMITENTE/SUPERVISOR:</b> ' + str(emitente) + ' | <b>EXECUTANTE:</b> ' + str(executante) + ' (' + str(empresa_exec) + ')</p>'
+                    html_corpo += '<p><b>VALIDADE:</b> ' + validade_data.strftime('%d/%m/%Y') + ' das ' + hora_inicio.strftime('%H:%M') + ' às ' + hora_fim.strftime('%H:%M') + '</p>'
+                    html_corpo += "<hr style='border-top:1px dashed #FF0000;'>"
+                    
+                    html_corpo += '<p><b>RISCOS DETECTADOS:</b><br>'
+                    if r_altura: html_corpo += '- Trabalho em Altura (NR-35)<br>'
+                    if r_eletrico: html_corpo += '- Risco Elétrico / Energias Vivas (NR-10)<br>'
+                    if r_confinado: html_corpo += '- Espaço Confinado (NR-33)<br>'
+                    if r_quimico: html_corpo += '- Risco Químico<br>'
+                    if r_quente: html_corpo += '- Trabalho a Quente<br>'
+                    if r_mecanico: html_corpo += '- Risco Mecânico<br>'
+                    html_corpo += '</p>'
+                    
+                    html_corpo += '<p><b>CONTROLES EXECUTADOS:</b><br>'
+                    if c_loto: html_corpo += '[X] Bloqueio e Etiquetagem (LOTO)<br>'
+
                         <p><b>OBSERVAÇÕES:</b> {observacoes_seg}</p>
                         <br><br>
