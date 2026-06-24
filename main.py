@@ -165,7 +165,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL
+# 2. PÁGINA: PLANEJAMENTO TEMPORAL (CONTINUAÇÃO)
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -206,11 +206,11 @@ elif menu == "📅 Planejamento & Checklists":
         lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
         opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
         
-        st.selectbox("Selecione a Máquina Alvo:", opcoes_selecao, key="plan_eq")
-        st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], key="plan_per")
-        st.date_input("Selecione a Data do Serviço:", datetime.now(), key="plan_data")
-        st.text_area("Descrição das Peças / Notas adicionais:", value="Inspeção preventiva padrão", key="plan_pecas")
-        
-        def realizar_agendamento():
-            if st.session_state.plan_eq != "Nenhum equipamento cadastrado":
-                novo_id = len(st.session_state.planejamento) + 1
+        with st.form("form_novo_planejamento"):
+            eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", opcoes_selecao)
+            periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
+            data_planejada = st.date_input("Selecione a Data do Serviço:", datetime.now())
+            pecas_necessarias = st.text_area("Descrição das Peças:", value="Inspeção preventiva padrão")
+            
+            if st.form_submit_button("Agendar Manutenção"):
+                if eq_escolhido != "Nenhum equipamento cadastrado":
