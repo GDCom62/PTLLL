@@ -236,7 +236,7 @@ elif menu == "📜 Histórico de Trocas":
     st.info("Esta seção exibirá o histórico de ordens finalizadas da fábrica.")
 
 # ==========================================
-# 4. PÁGINA: EMISSÃO DE PT (BLINDADA CONTRA SYNTAXERROR)
+# 4. PÁGINA: EMISSÃO DE PT
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
@@ -310,7 +310,6 @@ elif menu == "⚠️ Emissão de PT":
                     id_print = "pt_print_" + str(os_dados['id'])
                     cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
                     
-                    # Concatenação linear e segura para eliminar o risco de f-strings triplas abertas
                     html_corpo = '<div id="' + id_print + '" style="border:3px double #FF0000; padding:20px; background-color:#FFF5F5; color:#000000; font-family:monospace; border-radius:5px; margin-bottom:20px;">'
                     html_corpo += '<h2 style="text-align:center; color:#FF0000; margin-bottom:20px;">⚠️ PERMISSÃO DE TRABALHO (PT) - REGISTRO INDUSTRIAL</h2>'
                     html_corpo += '<p><b>CÓDIGO PT:</b> ' + cod_pt + ' | <b>VINCULADO À:</b> OS #' + str(os_dados['id']) + '</p>'
@@ -331,6 +330,5 @@ elif menu == "⚠️ Emissão de PT":
                     
                     html_corpo += '<p><b>CONTROLES EXECUTADOS:</b><br>'
                     if c_loto: html_corpo += '[X] Bloqueio e Etiquetagem (LOTO)<br>'
-
-                        <p><b>OBSERVAÇÕES:</b> {observacoes_seg}</p>
-                        <br><br>
+                    if c_delim: html_corpo += '[X] Área Isolada e Sinalizada<br>'
+                    if c_epi: html_corpo += '[X] EPIs Verificados<br>'
