@@ -236,3 +236,52 @@ elif menu == "📅 Planejamento & Checklists":
     with aba_mes:
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
+
+# ==========================================
+# 4. PÁGINA: EMISSÃO DE PT (TOTALMENTE DESACOPLADA)
+# ==========================================
+elif menu == "⚠️ Emissão de PT":
+    st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
+    
+    # 1. Filtra as manutenções pendentes registradas no sistema
+    ordens_pendentes = [p for p in st.session_state.planejamento if p['status'] == "Pendente"]
+    
+    if not ordens_pendentes:
+        st.warning("Não existem manutenções pendentes no momento para emitir uma PT. Agende uma preventiva primeiro!")
+    else:
+        # Monta a lista de opções para o seletor
+        opcoes_os = {f"OS #{p['id']} - {p['equipamento']} ({p['periodo']})": p for p in ordens_pendentes}
+        os_selecionada_str = str(st.selectbox("Selecione a Ordem de Serviço para vincular à PT:", list(opcoes_os.keys())))
+        os_dados = opcoes_os[os_selecionada_str]
+        
+        st.markdown("---")
+        st.subheader("📋 Formulário de Liberação de Segurança")
+        
+        # Formulário isolado para preenchimento dos dados da PT
+        with st.form("form_emissao_pt"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                emitente = st.text_input("Nome do Emitente / Supervisor:", value="Supervisor de Manutenção")
+                executante = st.text_input("Nome do Executante / Técnico:")
+                empresa_exec = st.selectbox("Empresa Executante:", ["Própria (Interna)", "Terceirizada / Contratada"])
+            
+            with col2:
+                validade_data = st.date_input("Válido para o dia:", datetime.now())
+                hora_inicio = st.time_input("Horário de Início Autorizado:", value=datetime.strptime("08:00", "%H:%M").time())
+                hora_fim = st.time_input("Horário de Término Máximo:", value=datetime.strptime("17:00", "%H:%M").time())
+            
+            st.markdown("##### 🚨 Análise de Riscos e Riscos Envolvidos")
+            col_r1, col_r2, col_r3 = st.columns(3)
+            with col_r1:
+                r_altura = st.checkbox("Trabalho em Altura (NR-35)")
+                r_eletrico = st.checkbox("Risco Elétrico / Energias Vivas (NR-10)")
+            with col_r2:
+                r_confinado = st.checkbox("Espaço Confinado (NR-33)")
+                r_quimico = st.checkbox("Risco Químico (Gases/Vapores/Ácidos)")
+            with col_r3:
+                r_quente = st.checkbox("Trabalho a Quente (Solda/Esmeril/Corte)")
+                r_mecanico = st.checkbox("Risco Mecânico (Prensamento/Corte)")
+                
+            st.markdown("##### 🛡️ Medidas de Controle Obrigatórias")
+            col_c1, col_c2 = st.columns(2)
