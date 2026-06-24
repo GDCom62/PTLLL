@@ -325,14 +325,12 @@ elif menu == "⚠️ Emissão de PT":
                         {"- Risco Químico<br>" if r_quimico else ""}
                         {"- Trabalho a Quente<br>" if r_quente else ""}
                         {"- Risco Mecânico<br>" if r_mecanico else ""}
-                    </p>
-                    <p><b>CONTROLES EXECUTADOS:</b><br>
+                        </p>
+                        <p><b>CONTROLES EXECUTADOS:</b><br>
                         {"[X] Lockout / Tagout Ativo<br>" if c_loto else ""}
                         {"[X] Área Isolada<br>" if c_delim else ""}
                         {"[X] EPIs Verificados<br>" if c_epi else ""}
                         {"[X] Proteção Incêndio Pronta<br>" if c_extintor else ""}
-                    </p>
-                    <p><b>OBSERVAÇÕES:</b> {observacoes_seg}</p>
-                    <br><br>
-                    <p style='text-align: center;'>________________________________________<br>Assinatura Digital do Supervisor (Liberado)</p>
-                </div>
+                        </p>
+                        <p><b>OBSERVAÇÕES:</b> {observacoes_seg}</p>
+                        <br><br>
