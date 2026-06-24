@@ -167,6 +167,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                                        (id_eq, nome_eq, local_eq, crit_eq, c_sem, c_mes, c_ano))
                         conn.commit()
                         st.success("Máquina registrada e salva com sucesso no banco de dados!")
+                        st.rerun()
                     except sqlite3.IntegrityError:
                         st.error("Este Código/Tag já está cadastrado!")
                     conn.close()
@@ -236,4 +237,3 @@ elif menu == "📅 Planejamento & Checklists":
     with aba_mes:
         dados_mes = [a for a in todos_agendamentos if a[3] == "Mensal"]
         if dados_mes:
-            for p in dados_mes:
