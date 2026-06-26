@@ -43,6 +43,32 @@ try:
 except:
     pass
 
+# --- FUNÇÃO AUXILIAR PARA RENDERIZAR LISTA DE PREVENTIVAS ---
+def renderizar_lista_preventivas(dados_filtrados):
+    if dados_filtrados and isinstance(dados_filtrados, list):
+        for p in dados_filtrados:
+            col_dados, col_acao = st.columns([4, 1])
+            with col_dados:
+                st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
+                st.write(f"🔧 Peças Programadas: {p['pecas']}")
+            with col_acao:
+                if st.button("✔️ Concluir", key="comp_" + str(p['id'])):
+                    registro_historico = {
+                        "equipamento": p['equipamento'],
+                        "periodo": p['periodo'],
+                        "data_prevista": p['data_prevista'],
+                        "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "pecas": p['pecas'],
+                        "status": "Concluído"
+                    }
+                    requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_historico, headers=SUB_HEADERS)
+                    requests.delete(f"{SUB_URL}/rest/v1/planejamento?id=eq.{p['id']}", headers=SUB_HEADERS)
+                    st.success("Ordem de serviço finalizada!")
+                    st.rerun()
+            st.write("---")
+    else:
+        st.info("Nenhuma manutenção preventiva pendente para este período.")
+
 # --- FUNÇÃO AUXILIAR PARA CORREÇÃO DE LOGO NA NUVEM ---
 def carregar_imagem_base64(caminho_imagem):
     if os.path.exists(caminho_imagem):
@@ -178,29 +204,5 @@ elif menu == "📅 Planejamento & Checklists":
     req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
     todos_agendamentos = req_plan.json() if req_plan.status_code == 200 else []
 
-    def renderizar_lista_preventivas(dados_filtrados):
-        if dados_filtrados and isinstance(dados_filtrados, list):
-            for p in dados_filtrados:
-                col_dados, col_acao = st.columns()
-                with col_dados:
-                    st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
-                    st.write(f"🔧 Peças Programadas: {p['pecas']}")
-                with col_acao:
-                    if st.button("✔️ Concluir", key="comp_" + str(p['id'])):
-                        registro_historico = {
-                            "equipamento": p['equipamento'],
-                            "periodo": p['periodo'],
-                            "data_prevista": p['data_prevista'],
-                            "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                            "pecas": p['pecas'],
-                            "status": "Concluído"
-                        }
-                        requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_historico, headers=SUB_HEADERS)
-                        requests.delete(f"{SUB_URL}/rest/v1/planejamento?id=eq.{p['id']}", headers=SUB_HEADERS)
-                        st.success("Ordem de serviço finalizada!")
-                        st.rerun()
-                st.write("---")
-        else:
-            st.info("Nenhuma manutenção preventiva pendente para este período.")
-
     with aba_sem:
+        if isinstance(todos_agendamentos, list):
