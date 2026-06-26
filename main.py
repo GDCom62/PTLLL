@@ -2,23 +2,29 @@ import streamlit as st
 from datetime import datetime
 import base64
 import os
-from supabase import create_client, Client
+import requests
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- CONEXÃO COM O BANCO DE DADOS EM NUVEM SUPABASE ---
+# --- CONEXÃO COM O BANCO DE DADOS EM NUVEM SUPABASE VIA API HTTP NATIVA ---
 @st.cache_resource
-def conectar_supabase() -> Client:
-    """Conecta com segurança ao banco de dados usando os Secrets do Streamlit"""
-    url = st.secrets["SUPABASE_URL"]
+def obter_credenciais_supabase():
+    """Busca as credenciais com segurança nos Secrets e monta os cabeçalhos padrão"""
+    url = st.secrets["SUPABASE_URL"].rstrip("/")
     key = st.secrets["SUPABASE_KEY"]
-    return create_client(url, key)
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+    }
+    return url, headers
 
 try:
-    supabase = conectar_supabase()
+    SUB_URL, SUB_HEADERS = obter_credenciais_supabase()
 except Exception as e:
-    st.error("Erro ao conectar ao banco de dados em nuvem. Verifique os Secrets do Streamlit.")
+    st.error("Erro ao ler credenciais. Verifique se os Secrets do Streamlit possuem SUPABASE_URL e SUPABASE_KEY.")
     st.stop()
 
 # --- FUNÇÃO AUXILIAR PARA CORREÇÃO DE LOGO NA NUVEM ---
@@ -76,15 +82,15 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     
     with aba_lista:
         st.subheader("Equipamentos Registrados no Sistema")
-        # Busca dados direto da nuvem permanente
-        response = supabase.table("equipamentos").select("*").execute()
-        equipamentos = response.data
+        # Busca dados via requisição HTTP direta
+        req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
+        equipamentos = req.json() if req.status_code == 200 else []
         
-        if equipamentos:
+        if equipamentos and isinstance(equipamentos, list):
             for eq in equipamentos:
                 st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
                 if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
-                    supabase.table("equipamentos").delete().eq("id", eq['id']).execute()
+                    requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq['id']}", headers=SUB_HEADERS)
                     st.success("Equipamento removido do banco de dados na nuvem!")
                     st.rerun()
                 st.write("---")
@@ -109,7 +115,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                         "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
                         "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
                     }
-                    supabase.table("equipamentos").insert(novo_registro).execute()
+                    requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS)
                     st.success("Máquina registrada e salva permanentemente na nuvem!")
                     st.rerun()
                 else:
@@ -117,9 +123,11 @@ if menu == "📋 Cadastro & Edição de Máquinas":
 
     with aba_editar:
         st.subheader("Editar Máquina Existente")
-        response = supabase.table("equipamentos").select("*").execute()
-        equipamentos_lista = response.data
-        opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in equipamentos_lista}
+        req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
+        equipamentos_lista = req.json() if req.status_code == 200 else []
+        opcoes_edicao = {}
+        if isinstance(equipamentos_lista, list):
+            opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in equipamentos_lista}
         
         if opcoes_edicao:
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
@@ -138,7 +146,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                         "nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit,
                         "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
                     }
-                    supabase.table("equipamentos").update(alteracoes).eq("id", eq_para_editar['id']).execute()
+                    requests.patch(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_para_editar['id']}", json=alteracoes, headers=SUB_HEADERS)
                     st.success("Alterações salvas com sucesso na nuvem!")
                     st.rerun()
 # ==========================================
@@ -148,20 +156,20 @@ elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    # Busca todos os planejamentos pendentes direto da nuvem
-    response_plan = supabase.table("planejamento").select("*").eq("status", "Pendente").execute()
-    todos_agendamentos = response_plan.data
+    # Busca planejamentos pendentes direto da API do Supabase
+    req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*", headers=SUB_HEADERS)
+    todos_agendamentos = req_plan.json() if req_plan.status_code == 200 else []
 
     def renderizar_lista_preventivas(dados_filtrados):
-        if dados_filtrados:
+        if dados_filtrados and isinstance(dados_filtrados, list):
             for p in dados_filtrados:
-                col_dados, col_acao = st.columns([4, 1])
+                col_dados, col_acao = st.columns()
                 with col_dados:
                     st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
                     st.write("🔧 Peças Programadas: " + str(p['pecas']))
                 with col_acao:
                     if st.button("✔️ Concluir", key="comp_" + str(p['id'])):
-                        # Salva o registro finalizado na tabela de histórico da nuvem
+                        # Insere o registro finalizado na tabela de historico via API
                         registro_historico = {
                             "equipamento": p['equipamento'],
                             "periodo": p['periodo'],
@@ -170,10 +178,10 @@ elif menu == "📅 Planejamento & Checklists":
                             "pecas": p['pecas'],
                             "status": "Concluído"
                         }
-                        supabase.table("historico").insert(registro_historico).execute()
+                        requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_historico, headers=SUB_HEADERS)
                         
-                        # Remove a ordem antiga da tabela de planejamento ativo na nuvem
-                        supabase.table("planejamento").delete().eq("id", p['id']).execute()
+                        # Deleta a ordem pendente antiga via API
+                        requests.delete(f"{SUB_URL}/rest/v1/planejamento?id=eq.{p['id']}", headers=SUB_HEADERS)
                         
                         st.success("Ordem de serviço finalizada e salva permanentemente no histórico!")
                         st.rerun()
@@ -182,19 +190,23 @@ elif menu == "📅 Planejamento & Checklists":
             st.info("Nenhuma manutenção preventiva pendente para este período.")
 
     with aba_sem:
-        renderizar_lista_preventivas([a for a in todos_agendamentos if a['periodo'] == "Semanal"])
+        if isinstance(todos_agendamentos, list):
+            renderizar_lista_preventivas([a for a in todos_agendamentos if a.get('periodo') == "Semanal"])
 
     with aba_mes:
-        renderizar_lista_preventivas([a for a in todos_agendamentos if a['periodo'] == "Mensal"])
+        if isinstance(todos_agendamentos, list):
+            renderizar_lista_preventivas([a for a in todos_agendamentos if a.get('periodo') == "Mensal"])
 
     with aba_ano:
-        renderizar_lista_preventivas([a for a in todos_agendamentos if a['periodo'] == "Anual"])
+        if isinstance(todos_agendamentos, list):
+            renderizar_lista_preventivas([a for a in todos_agendamentos if a.get('periodo') == "Anual"])
     
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
-        # Busca os nomes das máquinas cadastradas na nuvem para preencher o seletor
-        response_eq = supabase.table("equipamentos").select("nome").execute()
-        lista_nomes = [row['nome'] for row in response_eq.data]
+        # Busca as máquinas da API para o seletor
+        req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=nome", headers=SUB_HEADERS)
+        eq_data = req_eq.json() if req_eq.status_code == 200 else []
+        lista_nomes = [row['nome'] for row in eq_data] if isinstance(eq_data, list) else []
         opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
         
         with st.form("form_novo_planejamento"):
@@ -213,7 +225,7 @@ elif menu == "📅 Planejamento & Checklists":
                         "status": "Pendente",
                         "seguranca": "Uso de EPIs obrigatório. Verificar bloqueios elétricos."
                     }
-                    supabase.table("planejamento").insert(novo_agendamento).execute()
+                    requests.post(f"{SUB_URL}/rest/v1/planejamento", json=novo_agendamento, headers=SUB_HEADERS)
                     st.success("Manutenção agendada e guardada com sucesso na nuvem permanentemente!")
                     st.rerun()
 
@@ -222,11 +234,11 @@ elif menu == "📅 Planejamento & Checklists":
 # ==========================================
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Trocas e Manutenções Concluídas")
-    # Busca os registros de manutenções finalizadas direto da tabela permanente
-    response_hist = supabase.table("historico").select("*").execute()
-    historico_lista = response_hist.data
+    # Busca os históricos finalizados na API
+    req_hist = requests.get(f"{SUB_URL}/rest/v1/historico?select=*", headers=SUB_HEADERS)
+    historico_lista = req_hist.json() if req_hist.status_code == 200 else []
     
-    if historico_lista:
+    if historico_lista and isinstance(historico_lista, list):
         for h in list(historico_lista):
             st.write("✅ **" + str(h['equipamento']) + "** | Período: " + str(h['periodo']))
             st.write("📅 **Planejado para:** " + str(h['data_prevista']) + " | ⏱️ **Encerrado em:** " + str(h.get('data_conclusao', 'N/A')))
@@ -248,11 +260,11 @@ elif menu == "⚠️ Emissão de PT":
     if "pt_id_atual" not in st.session_state:
         st.session_state.pt_id_atual = None
 
-    # Busca as ordens de manutenção pendentes na nuvem
-    response_pend = supabase.table("planejamento").select("*").eq("status", "Pendente").execute()
-    ordens_pendentes = response_pend.data
+    # Busca ordens ativas para gerar a PT
+    req_pend = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*", headers=SUB_HEADERS)
+    ordens_pendentes = req_pend.json() if req_pend.status_code == 200 else []
     
-    if not ordens_pendentes:
+    if not ordens_pendentes or not isinstance(ordens_pendentes, list):
         st.warning("Não existem manutenções pendentes no momento para emitir uma PT. Agende uma preventiva primeiro!")
     else:
         opcoes_os = {f"OS #{p['id']} - {p['equipamento']} ({p['periodo']})": p for p in ordens_pendentes}
@@ -313,7 +325,3 @@ elif menu == "⚠️ Emissão de PT":
                     cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
                     
                     html_corpo = '<div id="' + id_print + '" style="border:3px double #FF0000; padding:20px; background-color:#FFF5F5; color:#000000; font-family:monospace; border-radius:5px; margin-bottom:20px;">'
-                    html_corpo += '<h2 style="text-align:center; color:#FF0000; margin-bottom:20px;">⚠️ PERMISSÃO DE TRABALHO (PT) - REGISTRO INDUSTRIAL</h2>'
-                    html_corpo += '<p><b>CÓDIGO PT:</b> ' + cod_pt + ' | <b>VINCULADO À:</b> OS #' + str(os_dados['id']) + '</p>'
-                    html_corpo += '<p><b>EQUIPAMENTO:</b> ' + str(os_dados['equipamento']) + ' | <b>SERVIÇO:</b> ' + str(os_dados['pecas']) + '</p>'
-                    html_corpo += "<hr style='border-top:1px dashed #FF0000;'>"
