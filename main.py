@@ -14,7 +14,6 @@ MODO_DEMO = False
 
 try:
     if "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.secrets:
-        # Puxa o link como texto puro (string) sem nenhuma divisão ou tratamento perigoso
         SUB_URL = str(st.secrets["SUPABASE_URL"]).strip().rstrip("/")
         key_limpa = str(st.secrets["SUPABASE_KEY"]).strip()
         
@@ -40,10 +39,43 @@ if "planejamento_local" not in st.session_state:
 if "historico_local" not in st.session_state:
     st.session_state.historico_local = []
 
+# --- FUNÇÃO AUXILIAR PARA RENDERIZAR LISTA DE PREVENTIVAS ---
+def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_headers):
+    if dados_filtrados and isinstance(dados_filtrados, list):
+        for p in dados_filtrados:
+            col_dados, col_acao = st.columns()
+            with col_dados:
+                st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
+                st.write(f"🔧 Peças Programadas: {p['pecas']}")
+            with col_acao:
+                if st.button("✔️ Concluir", key="comp_" + str(p.get('id', p.get('equipamento')))):
+                    registro_historico = {
+                        "equipamento": p['equipamento'],
+                        "periodo": p['periodo'],
+                        "data_prevista": p['data_prevista'],
+                        "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "pecas": p['pecas'],
+                        "status": "Concluído"
+                    }
+                    if not modo_demo:
+                        try:
+                            rota_hist_post = f"{sub_url}/rest/v1/historico" if "/rest/v1" not in sub_url else f"{sub_url}/historico"
+                            requests.post(rota_hist_post, json=registro_historico, headers=sub_headers, timeout=5)
+                            rota_plan_del = f"{sub_url}/rest/v1/planejamento?id=eq.{p['id']}" if "/rest/v1" not in sub_url else f"{sub_url}/planejamento?id=eq.{p['id']}"
+                            requests.delete(rota_plan_del, headers=sub_headers, timeout=5)
+                        except:
+                            pass
+                    st.session_state.historico_local.append(registro_historico)
+                    st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
+                    st.success("Ordem de serviço finalizada!")
+                    st.rerun()
+            st.write("---")
+    else:
+        st.info("Nenhuma manutenção preventiva pendente para este período.")
+
 # --- INJEÇÃO AUTOMÁTICA DE DADOS SE O BANCO DA NUVEM ESTIVER VAZIO ---
 if not MODO_DEMO:
     try:
-        # Se o link guardado já tiver o sufixo rest/v1, ajusta a rota de checagem de forma segura
         rota_check = f"{SUB_URL}/rest/v1/equipamentos?select=id" if "/rest/v1" not in SUB_URL else f"{SUB_URL}/equipamentos?select=id"
         req_check = requests.get(rota_check, headers=SUB_HEADERS, timeout=5)
         if req_check.status_code == 200 and len(req_check.json()) == 0:
@@ -125,7 +157,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 if id_eq and nome_eq:
                     novo_registro = {
                         "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
-                        "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
+                        "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano
                     }
                     if not MODO_DEMO:
                         try:
@@ -157,37 +189,3 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 
                 if st.form_submit_button("Gravar Alterações"):
                     alteracoes = {
-                        "nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit,
-                        "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
-                    }
-                    if not MODO_DEMO:
-                        try:
-                            rota_patch = f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_para_editar['id']}" if "/rest/v1" not in SUB_URL else f"{SUB_URL}/equipamentos?id=eq.{eq_para_editar['id']}"
-                            requests.patch(rota_patch, json=alteracoes, headers=SUB_HEADERS, timeout=5)
-                        except:
-                            pass
-                    for m in st.session_state.maquinas_locais:
-                        if m['id'] == eq_para_editar['id']:
-                            m.update(alteracoes)
-                    st.success("Alterações salvas!")
-                    st.rerun()
-
-# ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL
-# ==========================================
-elif menu == "📅 Planejamento & Checklists":
-    st.header("📅 Planejamento de Manutenções Preventivas")
-    aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
-    
-    todos_agendamentos = []
-    if not MODO_DEMO:
-        try:
-            rota_plan = f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc" if "/rest/v1" not in SUB_URL else f"{SUB_URL}/planejamento?status=eq.Pendente&select=*&order=id.asc"
-            req_plan = requests.get(rota_plan, headers=SUB_HEADERS, timeout=5)
-            todos_agendamentos = req_plan.json() if req_plan.status_code == 200 else st.session_state.planejamento_local
-        except:
-            todos_agendamentos = st.session_state.planejamento_local
-    else:
-        todos_agendamentos = st.session_state.planejamento_local
-
-    def renderizar_lista_preventivas(dados_filtrados):
