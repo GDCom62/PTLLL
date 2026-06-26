@@ -12,9 +12,12 @@ SUB_URL = ""
 SUB_HEADERS = {}
 MODO_DEMO = False
 
+# Bloco try/except isolado e fechado imediatamente para evitar o SyntaxError
 try:
     if "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.secrets:
-        SUB_URL = str(st.secrets["SUPABASE_URL"]).strip().rstrip("/")
+        # Puxa o link como texto puro (string) sem divisões perigosas
+        url_bruta = str(st.secrets["SUPABASE_URL"]).strip().rstrip("/")
+        SUB_URL = url_bruta.replace("/rest/v1", "")
         key_limpa = str(st.secrets["SUPABASE_KEY"]).strip()
         
         SUB_HEADERS = {
@@ -154,7 +157,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 if id_eq and nome_eq:
                     novo_registro = {
                         "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
-                        "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
+                        "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano
                     }
                     if not MODO_DEMO:
                         try:
@@ -193,6 +196,3 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                         "nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit,
                         "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
                     }
-                    if not MODO_DEMO:
-                        try:
-                            rota_patch = SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id'])
