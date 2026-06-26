@@ -17,14 +17,14 @@ def obter_credenciais_supabase():
         "apikey": key,
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json",
-        "Prefer": "return=representation"  # CORREÇÃO CRÍTICA PARA FORÇAR RETORNO DE DADOS
+        "Prefer": "return=representation"
     }
     return url, headers
 
 try:
     SUB_URL, SUB_HEADERS = obter_credenciais_supabase()
 except Exception as e:
-    st.error("Erro ao ler credenciais. Verifique se os Secrets do Streamlit possuem SUPABASE_URL e SUPABASE_KEY.")
+    st.error("Erro ao ler credenciais. Verifique se os Secrets do Streamlit possuem SUPABASE_URL and SUPABASE_KEY.")
     st.stop()
 
 # --- FUNÇÃO AUXILIAR PARA CORREÇÃO DE LOGO NA NUVEM ---
@@ -82,7 +82,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     
     with aba_lista:
         st.subheader("Equipamentos Registrados no Sistema")
-        # Busca dados via requisição HTTP direta ordenando por ID para estabilidade
+        # CORREÇÃO DA URL: Caminho direto rest/v1 unificado
         req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS)
         equipamentos = req.json() if req.status_code == 200 else []
         
@@ -116,7 +116,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                         "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
                     }
                     res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS)
-                    if res.status_code in [200, 201]:
+                    if res.status_code < 400:
                         st.success("Máquina registrada e salva permanentemente na nuvem!")
                         st.rerun()
                     else:
@@ -229,7 +229,7 @@ elif menu == "📅 Planejamento & Checklists":
                         "seguranca": "Uso de EPIs obrigatório. Verificar bloqueios elétricos."
                     }
                     res_plan = requests.post(f"{SUB_URL}/rest/v1/planejamento", json=novo_agendamento, headers=SUB_HEADERS)
-                    if res_plan.status_code < 400:  # CORREÇÃO DA SINTAXE DO STATUS CODE
+                    if res_plan.status_code < 400:
                         st.success("Manutenção agendada e guardada com sucesso na nuvem permanentemente!")
                         st.rerun()
                     else:
@@ -327,7 +327,5 @@ elif menu == "⚠️ Emissão de PT":
                 if not executante:
                     st.error("Por favor, preencha o nome do técnico executante para assinar a ordem.")
                 else:
-                    id_print = "pt_print_" + str(os_dados['id'])
-
                     id_print = "pt_print_" + str(os_dados['id'])
                     cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
