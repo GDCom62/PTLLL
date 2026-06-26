@@ -224,7 +224,7 @@ elif menu == "📅 Planejamento & Checklists":
     def renderizar_lista_preventivas(dados_filtrados):
         if dados_filtrados and isinstance(dados_filtrados, list):
             for p in dados_filtrados:
-                col_dados, col_acao = st.columns([4, 1])
+                col_dados, col_acao = st.columns()
                 with col_dados:
                     st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
                     st.write(f"🔧 Peças Programadas: {p['pecas']}")
@@ -372,15 +372,11 @@ elif menu == "⚠️ Emissão de PT":
                 if not executante:
                     st.error("Preencha o nome do técnico executante.")
                 else:
-                    id_print = f"pt_print_{os_dados['id']}"
-                    cod_pt = f"PT-{os_dados['id']}{datetime.now().strftime('%M%S')}"
-                    
-                    html_corpo = f'<div id="{id_print}" style="border:3px double #FF0000; padding:20px; background-color:#FFF5F5; color:#000000; font-family:monospace; border-radius:5px; margin-bottom:20px;">'
-                    html_corpo += f'<h2 style="text-align:center; color:#FF0000; margin-bottom:20px;">⚠️ PERMISSÃO DE TRABALHO (PT)</h2>'
-                    html_corpo += f'<p><b>CÓDIGO PT:</b> {cod_pt} | <b>VINCULADO À:</b> OS #{os_dados["id"]}</p>'
-                    html_corpo += f'<p><b>EQUIPAMENTO:</b> {os_dados["equipamento"]} | <b>SERVIÇO:</b> {os_dados["pecas"]}</p>'
-                    html_corpo += "<hr style='border-top:1px dashed #FF0000;'>"
-                    html_corpo += f'<p><b>SUPERVISOR:</b> {emitente} | <b>EXECUTANTE:</b> {executante} ({empresa_exec})</p>'
-
-                else:
                     id_print = "pt_print_" + str(os_dados['id'])
+                    cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
+                    
+                    # Strings concatenadas sem f-string tripla para evitar conflitos de sintaxe
+                    html_corpo = '<div id="' + id_print + '" style="border:3px double #FF0000; padding:20px; background-color:#FFF5F5; color:#000000; font-family:monospace; border-radius:5px; margin-bottom:20px;">'
+                    html_corpo += '<h2 style="text-align:center; color:#FF0000; margin-bottom:20px;">⚠️ PERMISSÃO DE TRABALHO (PT)</h2>'
+                    html_corpo += '<p><b>CÓDIGO PT:</b> ' + cod_pt + ' | <b>VINCULADO À:</b> OS #' + str(os_dados['id']) + '</p>'
+                    html_corpo += '<p><b>EQUIPAMENTO:</b> ' + str(os_dados['equipamento']) + ' | <b>SERVIÇO:</b> ' + str(os_dados['pecas']) + '</p>'
