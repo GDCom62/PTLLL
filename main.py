@@ -393,5 +393,4 @@ elif menu == "⚠️ Emissão de PT":
                 hora_fim = st.time_input("Horário de Término Máximo:", value=datetime.strptime("17:00", "%H:%M").time())
             
 
-            observacoes_seg = st.text_area("Observações Adicionais:", value=str(os_dados.get('seguranca', '')))
 
