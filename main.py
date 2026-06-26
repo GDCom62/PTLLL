@@ -17,7 +17,7 @@ def obter_credenciais_supabase():
         "apikey": key,
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json",
-        "Prefer": "return=representation"
+        "Prefer": "return=representation"  # CORREÇÃO CRÍTICA PARA FORÇAR RETORNO DE DADOS
     }
     return url, headers
 
@@ -82,8 +82,8 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     
     with aba_lista:
         st.subheader("Equipamentos Registrados no Sistema")
-        # Busca dados via requisição HTTP direta
-        req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
+        # Busca dados via requisição HTTP direta ordenando por ID para estabilidade
+        req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS)
         equipamentos = req.json() if req.status_code == 200 else []
         
         if equipamentos and isinstance(equipamentos, list):
@@ -115,9 +115,12 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                         "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
                         "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
                     }
-                    requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS)
-                    st.success("Máquina registrada e salva permanentemente na nuvem!")
-                    st.rerun()
+                    res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS)
+                    if res.status_code in [200, 201]:
+                        st.success("Máquina registrada e salva permanentemente na nuvem!")
+                        st.rerun()
+                    else:
+                        st.error(f"Erro ao salvar no banco em nuvem: {res.text}")
                 else:
                     st.error("Preencha os campos obrigatórios.")
 
@@ -157,7 +160,7 @@ elif menu == "📅 Planejamento & Checklists":
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
     # Busca planejamentos pendentes direto da API do Supabase
-    req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*", headers=SUB_HEADERS)
+    req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
     todos_agendamentos = req_plan.json() if req_plan.status_code == 200 else []
 
     def renderizar_lista_preventivas(dados_filtrados):
@@ -204,7 +207,7 @@ elif menu == "📅 Planejamento & Checklists":
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
         # Busca as máquinas da API para o seletor
-        req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=nome", headers=SUB_HEADERS)
+        req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=nome&order=nome.asc", headers=SUB_HEADERS)
         eq_data = req_eq.json() if req_eq.status_code == 200 else []
         lista_nomes = [row['nome'] for row in eq_data] if isinstance(eq_data, list) else []
         opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
@@ -225,9 +228,12 @@ elif menu == "📅 Planejamento & Checklists":
                         "status": "Pendente",
                         "seguranca": "Uso de EPIs obrigatório. Verificar bloqueios elétricos."
                     }
-                    requests.post(f"{SUB_URL}/rest/v1/planejamento", json=novo_agendamento, headers=SUB_HEADERS)
-                    st.success("Manutenção agendada e guardada com sucesso na nuvem permanentemente!")
-                    st.rerun()
+                    res_plan = requests.post(f"{SUB_URL}/rest/v1/planejamento", json=novo_agendamento, headers=SUB_HEADERS)
+                    if res_plan.status_code in:
+                        st.success("Manutenção agendada e guardada com sucesso na nuvem permanentemente!")
+                        st.rerun()
+                    else:
+                        st.error(f"Erro ao agendar manutenção no banco: {res_plan.text}")
 
 # ==========================================
 # 3. PÁGINA: HISTÓRICO DE TROCAS
@@ -235,7 +241,7 @@ elif menu == "📅 Planejamento & Checklists":
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Trocas e Manutenções Concluídas")
     # Busca os históricos finalizados na API
-    req_hist = requests.get(f"{SUB_URL}/rest/v1/historico?select=*", headers=SUB_HEADERS)
+    req_hist = requests.get(f"{SUB_URL}/rest/v1/historico?select=*&order=id.desc", headers=SUB_HEADERS)
     historico_lista = req_hist.json() if req_hist.status_code == 200 else []
     
     if historico_lista and isinstance(historico_lista, list):
@@ -261,7 +267,7 @@ elif menu == "⚠️ Emissão de PT":
         st.session_state.pt_id_atual = None
 
     # Busca ordens ativas para gerar a PT
-    req_pend = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*", headers=SUB_HEADERS)
+    req_pend = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
     ordens_pendentes = req_pend.json() if req_pend.status_code == 200 else []
     
     if not ordens_pendentes or not isinstance(ordens_pendentes, list):
@@ -323,5 +329,3 @@ elif menu == "⚠️ Emissão de PT":
                 else:
                     id_print = "pt_print_" + str(os_dados['id'])
                     cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
-                    
-                    html_corpo = '<div id="' + id_print + '" style="border:3px double #FF0000; padding:20px; background-color:#FFF5F5; color:#000000; font-family:monospace; border-radius:5px; margin-bottom:20px;">'
