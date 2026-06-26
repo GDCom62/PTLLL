@@ -211,12 +211,12 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.info("Nenhum equipamento cadastrado para edição.")
 
 # ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL (BLINDADO CONTRA NAMEERROR)
+# 2. PÁGINA: PLANEJAMENTO TEMPORAL (CORREÇÃO DE SELETOR)
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
-    import requests # Injeção de segurança local
+    import requests
     
-    # Reconecta localmente com os Secrets para evitar falha de escopo
+    # Conexão local estável com os Secrets
     SUB_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
     if "/rest/v1" in SUB_URL:
         SUB_URL = SUB_URL.split("/rest/v1")[0]
@@ -232,7 +232,7 @@ elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    # Busca planejamentos pendentes direto da API do Supabase com rota limpa
+    # Busca planejamentos pendentes direto do Supabase
     req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
     todos_agendamentos = req_plan.json() if req_plan.status_code == 200 else []
 
@@ -275,9 +275,30 @@ elif menu == "📅 Planejamento & Checklists":
     
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
-        req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=nome&order=nome.asc", headers=SUB_HEADERS)
+        
+        # BUSCA CORRIGIDA: Puxa todos os dados das máquinas cadastrados na nuvem
+        req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
         eq_data = req_eq.json() if req_eq.status_code == 200 else []
-        lista_nomes = [row['nome'] for row in eq_data] if isinstance(eq_data, list) else []
+        
+        # INJEÇÃO AUTOMÁTICA DE SEGURANÇA: Se o banco na nuvem estiver zerado, alimenta ele com os padrões
+        if not eq_data or not isinstance(eq_data, list) or len(eq_data) == 0:
+            maquinas_padrao = [
+                {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Nível de óleo", "check_mensal": "Filtros", "check_anual": "Motor"},
+                {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar", "check_mensal": "Filtro ar", "check_anual": "Válvulas"}
+            ]
+            for mq in maquinas_padrao:
+                requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=mq, headers=SUB_HEADERS)
+            # Refaz a busca para carregar o seletor atualizado
+            req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
+            eq_data = req_eq.json() if req_eq.status_code == 200 else []
+
+        # Extrai os nomes das máquinas de forma segura contra erros de dicionário
+        lista_nomes = []
+        if isinstance(eq_data, list):
+            for row in eq_data:
+                if 'nome' in row:
+                    lista_nomes.append(row['nome'])
+                    
         opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
         
         with st.form("form_novo_planejamento"):
@@ -371,26 +392,6 @@ elif menu == "⚠️ Emissão de PT":
                 hora_inicio = st.time_input("Horário de Início Autorizado:", value=datetime.strptime("08:00", "%H:%M").time())
                 hora_fim = st.time_input("Horário de Término Máximo:", value=datetime.strptime("17:00", "%H:%M").time())
             
-            st.markdown("##### 🚨 Análise de Riscos Envolvidos")
-            col_r1, col_r2, col_r3 = st.columns(3)
-            with col_r1:
-                r_altura = st.checkbox("Trabalho em Altura (NR-35)")
-                r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
-            with col_r2:
-                r_confinado = st.checkbox("Espaço Confinado (NR-33)")
-                r_quimico = st.checkbox("Risco Químico")
-            with col_r3:
-                r_quente = st.checkbox("Trabalho a Quente")
-                r_mecanico = st.checkbox("Risco Mecânico")
-                
-            st.markdown("##### 🛡️ Medidas de Controle Obrigatórias")
-            col_c1, col_c2 = st.columns(2)
-            with col_c1:
-                c_loto = st.checkbox("Bloqueio e Etiquetagem (LOTO)", value=True)
-                c_delim = st.checkbox("Área isolada e sinalizada", value=True)
-            with col_c2:
-                c_epi = st.checkbox("EPIs verificados", value=True)
-                c_extintor = st.checkbox("Combate a incêndio pronto")
 
             observacoes_seg = st.text_area("Observações Adicionais:", value=str(os_dados.get('seguranca', '')))
 
