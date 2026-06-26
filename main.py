@@ -59,10 +59,10 @@ def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_header
                     }
                     if not modo_demo:
                         try:
-                            rota_hist_post = sub_url + "/historico" if "/rest/v1" in sub_url else sub_url + "/rest/v1/historico"
-                            requests.post(rota_hist_post, json=registro_historico, headers=sub_headers, timeout=5)
-                            rota_plan_del = sub_url + "/planejamento?id=eq." + str(p['id']) if "/rest/v1" in sub_url else sub_url + "/rest/v1/planejamento?id=eq." + str(p['id'])
-                            requests.delete(rota_plan_del, headers=sub_headers, timeout=5)
+                            rota_hist_post = sub_url + "/rest/v1/historico"
+                            requests.post(rota_hist_post, json=registro_historico, headers=sub_headers, timeout=15)
+                            rota_plan_del = sub_url + "/rest/v1/planejamento?id=eq." + str(p['id'])
+                            requests.delete(rota_plan_del, headers=sub_headers, timeout=15)
                         except:
                             pass
                     st.session_state.historico_local.append(registro_historico)
@@ -76,12 +76,12 @@ def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_header
 # --- INJEÇÃO AUTOMÁTICA DE DADOS SE O BANCO DA NUVEM ESTIVER VAZIO ---
 if not MODO_DEMO:
     try:
-        rota_check = SUB_URL + "/equipamentos?select=id" if "/rest/v1" in SUB_URL else SUB_URL + "/rest/v1/equipamentos?select=id"
-        req_check = requests.get(rota_check, headers=SUB_HEADERS, timeout=5)
+        rota_check = SUB_URL + "/rest/v1/equipamentos?select=id"
+        req_check = requests.get(rota_check, headers=SUB_HEADERS, timeout=15)
         if req_check.status_code == 200 and len(req_check.json()) == 0:
-            rota_insert = SUB_URL + "/equipamentos" if "/rest/v1" in SUB_URL else SUB_URL + "/rest/v1/equipamentos"
+            rota_insert = SUB_URL + "/rest/v1/equipamentos"
             for mq in st.session_state.maquinas_locais:
-                requests.post(rota_insert, json=mq, headers=SUB_HEADERS, timeout=5)
+                requests.post(rota_insert, json=mq, headers=SUB_HEADERS, timeout=15)
     except:
         MODO_DEMO = True
 
@@ -90,9 +90,6 @@ if os.path.exists("logo.png"):
     st.image("logo.png", width=150)
 else:
     st.info("Insira o arquivo 'logo.png' na pasta do script para exibir o logo do topo.")
-
-if MODO_DEMO:
-    st.warning("⚠️ O sistema está operando em Modo Local. Verifique suas credenciais no painel do Streamlit.")
 
 # --- MARCA DA EMPRESA NO MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
@@ -114,8 +111,8 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     equipamentos = []
     if not MODO_DEMO:
         try:
-            rota_get = SUB_URL + "/equipamentos?select=*&order=id.asc" if "/rest/v1" in SUB_URL else SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc"
-            req = requests.get(rota_get, headers=SUB_HEADERS, timeout=5)
+            rota_get = SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc"
+            req = requests.get(rota_get, headers=SUB_HEADERS, timeout=15)
             equipamentos = req.json() if req.status_code == 200 else st.session_state.maquinas_locais
         except:
             equipamentos = st.session_state.maquinas_locais
@@ -130,8 +127,8 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
                     if not MODO_DEMO:
                         try:
-                            rota_del = SUB_URL + "/equipamentos?id=eq." + str(eq['id']) if "/rest/v1" in SUB_URL else SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id'])
-                            requests.delete(rota_del, headers=SUB_HEADERS, timeout=5)
+                            rota_del = SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id'])
+                            requests.delete(rota_del, headers=SUB_HEADERS, timeout=15)
                         except:
                             pass
                     st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m['id'] != eq['id']]
@@ -157,12 +154,12 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 if id_eq and nome_eq:
                     novo_registro = {
                         "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
-                        "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano
+                        "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
                     }
                     if not MODO_DEMO:
                         try:
-                            rota_post = SUB_URL + "/equipamentos" if "/rest/v1" in SUB_URL else SUB_URL + "/rest/v1/equipamentos"
-                            requests.post(rota_post, json=novo_registro, headers=SUB_HEADERS, timeout=5)
+                            rota_post = SUB_URL + "/rest/v1/equipamentos"
+                            requests.post(rota_post, json=novo_registro, headers=SUB_HEADERS, timeout=15)
                         except:
                             pass
                     st.session_state.maquinas_locais.append(novo_registro)
@@ -189,3 +186,13 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
                 n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
                 n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
+                n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
+                
+                if st.form_submit_button("Gravar Alterações"):
+                    alteracoes = {
+                        "nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit,
+                        "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
+                    }
+                    if not MODO_DEMO:
+                        try:
+                            rota_patch = SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id'])
