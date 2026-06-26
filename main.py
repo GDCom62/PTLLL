@@ -176,7 +176,7 @@ elif menu == "📅 Planejamento & Checklists":
     
     SUB_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
     if "/rest/v1" in SUB_URL:
-        SUB_URL = SUB_URL.split("/rest/v1")[0]
+        SUB_URL = SUB_URL.split("/rest/v1")
         
     SUB_KEY = st.secrets["SUPABASE_KEY"].strip()
     SUB_HEADERS = {
@@ -189,20 +189,18 @@ elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    # Busca planejamentos pendentes direto da API do Supabase com rota limpa
     req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
     todos_agendamentos = req_plan.json() if req_plan.status_code == 200 else []
 
     def renderizar_lista_preventivas(dados_filtrados):
         if dados_filtrados and isinstance(dados_filtrados, list):
             for p in dados_filtrados:
-                col_dados, col_acao = st.columns([4, 1])
+                col_dados, col_acao = st.columns()
                 with col_dados:
                     st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
                     st.write(f"🔧 Peças Programadas: {p['pecas']}")
                 with col_acao:
                     if st.button("✔️ Concluir", key="comp_" + str(p['id'])):
-                        # Insere o registro finalizado na tabela de historico via API
                         registro_historico = {
                             "equipamento": p['equipamento'],
                             "periodo": p['periodo'],
@@ -212,10 +210,7 @@ elif menu == "📅 Planejamento & Checklists":
                             "status": "Concluído"
                         }
                         requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_historico, headers=SUB_HEADERS)
-                        
-                        # Deleta a ordem pendente antiga via API
                         requests.delete(f"{SUB_URL}/rest/v1/planejamento?id=eq.{p['id']}", headers=SUB_HEADERS)
-                        
                         st.success("Ordem de serviço finalizada!")
                         st.rerun()
                 st.write("---")
@@ -236,7 +231,6 @@ elif menu == "📅 Planejamento & Checklists":
     
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
-        # Busca todas as máquinas registradas na tabela do Supabase de forma direta e sem filtros que limpem a tela
         req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=nome&order=nome.asc", headers=SUB_HEADERS)
         eq_data = req_eq.json() if req_eq.status_code == 200 else []
         
@@ -278,12 +272,11 @@ elif menu == "📜 Histórico de Trocas":
     import requests
     SUB_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
     if "/rest/v1" in SUB_URL: 
-        SUB_URL = SUB_URL.split("/rest/v1")[0]
+        SUB_URL = SUB_URL.split("/rest/v1")
     SUB_KEY = st.secrets["SUPABASE_KEY"].strip()
     SUB_HEADERS = {"apikey": SUB_KEY, "Authorization": f"Bearer {SUB_KEY}"}
 
     st.header("📜 Histórico de Trocas e Manutenções Concluídas")
-    # Busca os históricos finalizados na API ordenando do mais novo ao mais antigo
     req_hist = requests.get(f"{SUB_URL}/rest/v1/historico?select=*&order=id.desc", headers=SUB_HEADERS)
     historico_lista = req_hist.json() if req_hist.status_code == 200 else []
     
@@ -303,7 +296,7 @@ elif menu == "⚠️ Emissão de PT":
     import requests
     SUB_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
     if "/rest/v1" in SUB_URL: 
-        SUB_URL = SUB_URL.split("/rest/v1")[0]
+        SUB_URL = SUB_URL.split("/rest/v1")
     SUB_KEY = st.secrets["SUPABASE_KEY"].strip()
     SUB_HEADERS = {"apikey": SUB_KEY, "Authorization": f"Bearer {SUB_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
 
@@ -313,7 +306,6 @@ elif menu == "⚠️ Emissão de PT":
     if "pt_gerada_txt" not in st.session_state: st.session_state.pt_gerada_txt = None
     if "pt_id_atual" not in st.session_state: st.session_state.pt_id_atual = None
 
-    # Busca ordens ativas para gerar a PT
     req_pend = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
     ordens_pendentes = req_pend.json() if req_pend.status_code == 200 else []
     
@@ -356,5 +348,18 @@ elif menu == "⚠️ Emissão de PT":
                 r_mecanico = st.checkbox("Risco Mecânico")
                 
             st.markdown("##### 🛡️ Medidas de Controle Obrigatórias")
+            col_c1, col_c2 = st.columns(2)
+            with col_c1:
+                c_loto = st.checkbox("Bloqueio e Etiquetagem (LOTO)", value=True)
+                c_delim = st.checkbox("Área isolada e sinalizada", value=True)
+            with col_c2:
+                c_epi = st.checkbox("EPIs verificados", value=True)
+                c_extintor = st.checkbox("Combate a incêndio pronto")
+
+            observacoes_seg = st.text_area("Observações Adicionais:", value=str(os_dados.get('seguranca', '')))
+            bt_gerar = st.form_submit_button("Validar e Gerar Documento de PT")
+            
+            if bt_gerar:
+
             col_c1, col_c2 = st.columns(2)
             with col_c1:
