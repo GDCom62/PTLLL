@@ -2,74 +2,24 @@ import streamlit as st
 from datetime import datetime
 import base64
 import os
-import json
+from supabase import create_client, Client
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- SISTEMA DE BANCO DE DADOS PERSISTENTE (JSON) ---
-ARQUIVO_BANCO = "dados_manutencao.json"
+# --- CONEXÃO COM O BANCO DE DADOS EM NUVEM SUPABASE ---
+@st.cache_resource
+def conectar_supabase() -> Client:
+    """Conecta com segurança ao banco de dados usando os Secrets do Streamlit"""
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
 
-MÁQUINAS_PADRÃO = [
-    {
-        "id": "EQ-001", 
-        "nome": "Torno Mecânico Nardini", 
-        "localizacao": "Oficina Central", 
-        "criticidade": "Alta",
-        "check_semanal": "Verificar nível de óleo e lubrificação geral\nLimpeza de resíduos e cavacos\nTestar botão de emergência",
-        "check_mensal": "Trocar filtros de óleo\nVerificar tensão de correias",
-        "check_anual": "Revisão do motor elétrico\nSubstituição do fluido hidráulico"
-    },
-    {
-        "id": "EQ-002", 
-        "nome": "Compressor de Ar Schulz", 
-        "localizacao": "Sala de Compressores", 
-        "criticidade": "Média",
-        "check_semanal": "Drenar condensado do reservatório\nVerificar ruídos anormais",
-        "check_mensal": "Limpar filtro de ar\nVerificar nível de óleo",
-        "check_anual": "Teste hidrostático do vaso\nTroca de válvulas de segurança"
-    }
-]
-
-PLANEJAMENTO_PADRÃO = [
-    {
-        "id": 1,
-        "equipamento": "Torno Mecânico Nardini",
-        "periodo": "Semanal",
-        "data_prevista": datetime.now().strftime("%d/%m/%Y"),
-        "pecas": "Inspeção preventiva padrão",
-        "status": "Pendente",
-        "seguranca": "Uso de EPIs obrigatório. Lockout/Tagout."
-    }
-]
-
-def carregar_banco_permanente():
-    """Carrega os dados salvos no disco ou cria o arquivo inicial se ele não existir"""
-    if os.path.exists(ARQUIVO_BANCO):
-        try:
-            with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            pass
-    return {"equipamentos": MÁQUINAS_PADRÃO.copy(), "planejamento": PLANEJAMENTO_PADRÃO.copy(), "historico": []}
-
-def salvar_banco_permanente():
-    """Grava as alterações da memória direto no arquivo físico do servidor"""
-    dados = {
-        "equipamentos": st.session_state.equipamentos,
-        "planejamento": st.session_state.planejamento,
-        "historico": st.session_state.historico
-    }
-    with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
-        json.dump(dados, f, indent=4, ensure_ascii=False)
-
-# Inicialização síncrona com o disco rígido da nuvem
-if "dados_carregados" not in st.session_state:
-    banco_fisico = carregar_banco_permanente()
-    st.session_state.equipamentos = banco_fisico["equipamentos"]
-    st.session_state.planejamento = banco_fisico["planejamento"]
-    st.session_state.historico = banco_fisico["historico"]
-    st.session_state.dados_carregados = True
+try:
+    supabase = conectar_supabase()
+except Exception as e:
+    st.error("Erro ao conectar ao banco de dados em nuvem. Verifique os Secrets do Streamlit.")
+    st.stop()
 
 # --- FUNÇÃO AUXILIAR PARA CORREÇÃO DE LOGO NA NUVEM ---
 def carregar_imagem_base64(caminho_imagem):
@@ -126,13 +76,16 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     
     with aba_lista:
         st.subheader("Equipamentos Registrados no Sistema")
-        if st.session_state.equipamentos:
-            for eq in list(st.session_state.equipamentos):
-                st.write("🔹 **[" + str(eq['id'])+ "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
+        # Busca dados direto da nuvem permanente
+        response = supabase.table("equipamentos").select("*").execute()
+        equipamentos = response.data
+        
+        if equipamentos:
+            for eq in equipamentos:
+                st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
                 if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
-                    st.session_state.equipamentos = [e for e in st.session_state.equipamentos if e['id'] != eq['id']]
-                    salvar_banco_permanente()
-                    st.success("Equipamento removido!")
+                    supabase.table("equipamentos").delete().eq("id", eq['id']).execute()
+                    st.success("Equipamento removido do banco de dados na nuvem!")
                     st.rerun()
                 st.write("---")
         else:
@@ -152,19 +105,22 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             
             if st.form_submit_button("Salvar Equipamento"):
                 if id_eq and nome_eq:
-                    st.session_state.equipamentos.append({
+                    novo_registro = {
                         "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
                         "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
-                    })
-                    salvar_banco_permanente()
-                    st.success("Máquina registrada com sucesso!")
+                    }
+                    supabase.table("equipamentos").insert(novo_registro).execute()
+                    st.success("Máquina registrada e salva permanentemente na nuvem!")
                     st.rerun()
                 else:
                     st.error("Preencha os campos obrigatórios.")
 
     with aba_editar:
         st.subheader("Editar Máquina Existente")
-        opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in st.session_state.equipamentos}
+        response = supabase.table("equipamentos").select("*").execute()
+        equipamentos_lista = response.data
+        opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in equipamentos_lista}
+        
         if opcoes_edicao:
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
             eq_para_editar = opcoes_edicao[selecionado_edicao]
@@ -178,16 +134,12 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
                 
                 if st.form_submit_button("Gravar Alterações"):
-                    for e in st.session_state.equipamentos:
-                        if e['id'] == eq_para_editar['id']:
-                            e['nome'] = novo_nome
-                            e['localizacao'] = novo_local
-                            e['criticidade'] = novo_crit
-                            e['check_semanal'] = n_sem
-                            e['check_mensal'] = n_mes
-                            e['check_anual'] = n_ano
-                    salvar_banco_permanente()
-                    st.success("Alterações salvas com sucesso!")
+                    alteracoes = {
+                        "nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit,
+                        "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
+                    }
+                    supabase.table("equipamentos").update(alteracoes).eq("id", eq_para_editar['id']).execute()
+                    st.success("Alterações salvas com sucesso na nuvem!")
                     st.rerun()
 # ==========================================
 # 2. PÁGINA: PLANEJAMENTO TEMPORAL
@@ -196,7 +148,10 @@ elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    # Função auxiliar interna para renderizar o botão de conclusão sem quebra de fluxo
+    # Busca todos os planejamentos pendentes direto da nuvem
+    response_plan = supabase.table("planejamento").select("*").eq("status", "Pendente").execute()
+    todos_agendamentos = response_plan.data
+
     def renderizar_lista_preventivas(dados_filtrados):
         if dados_filtrados:
             for p in dados_filtrados:
@@ -205,36 +160,41 @@ elif menu == "📅 Planejamento & Checklists":
                     st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
                     st.write("🔧 Peças Programadas: " + str(p['pecas']))
                 with col_acao:
-                    # Botão para dar baixa na Ordem de Serviço
                     if st.button("✔️ Concluir", key="comp_" + str(p['id'])):
-                        # Altera o status e adiciona o carimbo de data/hora do fechamento
-                        p['status'] = "Concluído"
-                        p['data_conclusao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                        # Salva o registro finalizado na tabela de histórico da nuvem
+                        registro_historico = {
+                            "equipamento": p['equipamento'],
+                            "periodo": p['periodo'],
+                            "data_prevista": p['data_prevista'],
+                            "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                            "pecas": p['pecas'],
+                            "status": "Concluído"
+                        }
+                        supabase.table("historico").insert(registro_historico).execute()
                         
-                        # Remove do planejamento ativo e joga para o histórico permanente
-                        st.session_state.historico.append(p)
-                        st.session_state.planejamento = [item for item in st.session_state.planejamento if item['id'] != p['id']]
+                        # Remove a ordem antiga da tabela de planejamento ativo na nuvem
+                        supabase.table("planejamento").delete().eq("id", p['id']).execute()
                         
-                        # Grava as alterações no disco rígido do servidor
-                        salvar_banco_permanente()
-                        st.success("Ordem de serviço finalizada e enviada ao histórico!")
+                        st.success("Ordem de serviço finalizada e salva permanentemente no histórico!")
                         st.rerun()
                 st.write("---")
         else:
             st.info("Nenhuma manutenção preventiva pendente para este período.")
 
     with aba_sem:
-        renderizar_lista_preventivas([p for p in st.session_state.planejamento if p['periodo'] == "Semanal" and p['status'] == "Pendente"])
+        renderizar_lista_preventivas([a for a in todos_agendamentos if a['periodo'] == "Semanal"])
 
     with aba_mes:
-        renderizar_lista_preventivas([p for p in st.session_state.planejamento if p['periodo'] == "Mensal" and p['status'] == "Pendente"])
+        renderizar_lista_preventivas([a for a in todos_agendamentos if a['periodo'] == "Mensal"])
 
     with aba_ano:
-        renderizar_lista_preventivas([p for p in st.session_state.planejamento if p['periodo'] == "Anual" and p['status'] == "Pendente"])
+        renderizar_lista_preventivas([a for a in todos_agendamentos if a['periodo'] == "Anual"])
     
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
-        lista_nomes = [e['nome'] for e in st.session_state.equipamentos]
+        # Busca os nomes das máquinas cadastradas na nuvem para preencher o seletor
+        response_eq = supabase.table("equipamentos").select("nome").execute()
+        lista_nomes = [row['nome'] for row in response_eq.data]
         opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
         
         with st.form("form_novo_planejamento"):
@@ -245,20 +205,16 @@ elif menu == "📅 Planejamento & Checklists":
             
             if st.form_submit_button("Agendar Manutenção"):
                 if eq_escolhido != "Nenhum equipamento cadastrado":
-                    novo_id = len(st.session_state.planejamento) + len(st.session_state.historico) + 1
-                    st.session_state.planejamento.append({
-                        "id": novo_id,
+                    novo_agendamento = {
                         "equipamento": eq_escolhido,
                         "periodo": periodo_escolhido,
                         "data_prevista": data_planejada.strftime("%d/%m/%Y"),
                         "pecas": pecas_necessarias,
                         "status": "Pendente",
                         "seguranca": "Uso de EPIs obrigatório. Verificar bloqueios elétricos."
-                    })
-                    salvar_banco_permanente()
-                    if "pt_gerada_html" in st.session_state:
-                        st.session_state.pt_gerada_html = None
-                    st.success("Manutenção agendada com sucesso!")
+                    }
+                    supabase.table("planejamento").insert(novo_agendamento).execute()
+                    st.success("Manutenção agendada e guardada com sucesso na nuvem permanentemente!")
                     st.rerun()
 
 # ==========================================
@@ -266,9 +222,12 @@ elif menu == "📅 Planejamento & Checklists":
 # ==========================================
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Trocas e Manutenções Concluídas")
+    # Busca os registros de manutenções finalizadas direto da tabela permanente
+    response_hist = supabase.table("historico").select("*").execute()
+    historico_lista = response_hist.data
     
-    if st.session_state.historico:
-        for h in list(st.session_state.historico):
+    if historico_lista:
+        for h in list(historico_lista):
             st.write("✅ **" + str(h['equipamento']) + "** | Período: " + str(h['periodo']))
             st.write("📅 **Planejado para:** " + str(h['data_prevista']) + " | ⏱️ **Encerrado em:** " + str(h.get('data_conclusao', 'N/A')))
             st.write("🔧 Peças / Intervenções: " + str(h['pecas']))
@@ -289,7 +248,9 @@ elif menu == "⚠️ Emissão de PT":
     if "pt_id_atual" not in st.session_state:
         st.session_state.pt_id_atual = None
 
-    ordens_pendentes = [p for p in st.session_state.planejamento if p['status'] == "Pendente"]
+    # Busca as ordens de manutenção pendentes na nuvem
+    response_pend = supabase.table("planejamento").select("*").eq("status", "Pendente").execute()
+    ordens_pendentes = response_pend.data
     
     if not ordens_pendentes:
         st.warning("Não existem manutenções pendentes no momento para emitir uma PT. Agende uma preventiva primeiro!")
@@ -356,6 +317,3 @@ elif menu == "⚠️ Emissão de PT":
                     html_corpo += '<p><b>CÓDIGO PT:</b> ' + cod_pt + ' | <b>VINCULADO À:</b> OS #' + str(os_dados['id']) + '</p>'
                     html_corpo += '<p><b>EQUIPAMENTO:</b> ' + str(os_dados['equipamento']) + ' | <b>SERVIÇO:</b> ' + str(os_dados['pecas']) + '</p>'
                     html_corpo += "<hr style='border-top:1px dashed #FF0000;'>"
-                    html_corpo += '<p><b>EMITENTE/SUPERVISOR:</b> ' + str(emitente) + ' | <b>EXECUTANTE:</b> ' + str(executante) + ' (' + str(empresa_exec) + ')</p>'
-
-                    if c_delim: html_corpo += '[X] Área Isolada e Sinalizada<br>'
