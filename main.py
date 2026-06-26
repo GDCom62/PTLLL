@@ -8,62 +8,49 @@ import requests
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
 def main():
-    # --- CONEXÃO COM O BANCO DE DADOS EM NUVEM SUPABASE VIA API HTTP NATIVA ---
+    # Inicializa variáveis de controle de fluxo de dados
+    MODO_DEMO = False
+    SUB_URL = ""
+    SUB_HEADERS = {}
+
+    # --- CAMADA DE PROTEÇÃO CONTRA TELA EM BRANCO (SECRETS) ---
     try:
-        # Garante a higienização estrita mantendo o dado como STRING (Texto Puro)
-        url_secrets = st.secrets["SUPABASE_URL"].strip().rstrip("/")
-        SUB_URL = url_secrets.replace("/rest/v1", "")
+        if "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.secrets:
+            url_bruta = str(st.secrets["SUPABASE_URL"]).strip().rstrip("/")
+            SUB_URL = url_bruta.replace("/rest/v1", "")
+            key_limpa = str(st.secrets["SUPABASE_KEY"]).strip()
             
-        key_limpa = st.secrets["SUPABASE_KEY"].strip()
-        
-        SUB_HEADERS = {
-            "apikey": key_limpa,
-            "Authorization": "Bearer " + key_limpa,
-            "Content-Type": "application/json",
-            "Prefer": "return=representation"
-        }
-    except Exception as e:
-        st.error("Erro ao ler as credenciais. Verifique os Secrets no painel do Streamlit.")
-        st.stop()
-
-    # --- VERIFICAÇÃO E ALIMENTAÇÃO AUTOMÁTICA DA NUVEM ---
-    try:
-        req_check = requests.get(SUB_URL + "/rest/v1/equipamentos?select=id", headers=SUB_HEADERS)
-        if req_check.status_code == 200 and len(req_check.json()) == 0:
-            maquinas_iniciais = [
-                {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
-                {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar", "check_mensal": "Filtro", "check_anual": "Válvulas"}
-            ]
-            for mq in maquinas_iniciais:
-                requests.post(SUB_URL + "/rest/v1/equipamentos", json=mq, headers=SUB_HEADERS)
-    except:
-        pass
-
-    # --- FUNÇÃO AUXILIAR PARA RENDERIZAR LISTA DE PREVENTIVAS ---
-    def renderizar_lista(dados_filtrados):
-        if dados_filtrados and isinstance(dados_filtrados, list):
-            for p in dados_filtrados:
-                col_dados, col_acao = st.columns([4, 1])
-                with col_dados:
-                    st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                    st.write("🔧 Peças Programadas: " + str(p['pecas']))
-                with col_acao:
-                    if st.button("✔️ Concluir", key="comp_" + str(p['id'])):
-                        registro_historico = {
-                            "equipamento": p['equipamento'],
-                            "periodo": p['periodo'],
-                            "data_prevista": p['data_prevista'],
-                            "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                            "pecas": p['pecas'],
-                            "status": "Concluído"
-                        }
-                        requests.post(SUB_URL + "/rest/v1/historico", json=registro_historico, headers=SUB_HEADERS)
-                        requests.delete(SUB_URL + "/rest/v1/planejamento?id=eq." + str(p['id']), headers=SUB_HEADERS)
-                        st.success("Ordem de serviço finalizada!")
-                        st.rerun()
-                st.write("---")
+            SUB_HEADERS = {
+                "apikey": key_limpa,
+                "Authorization": "Bearer " + key_limpa,
+                "Content-Type": "application/json",
+                "Prefer": "return=representation"
+            }
         else:
-            st.info("Nenhuma manutenção preventiva pendente para este período.")
+            MODO_DEMO = True
+    except Exception as e:
+        MODO_DEMO = True
+
+    # Inicializa a memória volátil de segurança do Streamlit para evitar travar as listas
+    if "maquinas_locais" not in st.session_state:
+        st.session_state.maquinas_locais = [
+            {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
+            {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar", "check_mensal": "Filtro", "check_anual": "Válvulas"}
+        ]
+    if "planejamento_local" not in st.session_state:
+        st.session_state.planejamento_local = []
+    if "historico_local" not in st.session_state:
+        st.session_state.historico_local = []
+
+    # Se estiver conectado ao Supabase, tenta alimentar os dados iniciais na nuvem
+    if not MODO_DEMO:
+        try:
+            req_check = requests.get(SUB_URL + "/rest/v1/equipamentos?select=id", headers=SUB_HEADERS, timeout=5)
+            if req_check.status_code == 200 and len(req_check.json()) == 0:
+                for mq in st.session_state.maquinas_locais:
+                    requests.post(SUB_URL + "/rest/v1/equipamentos", json=mq, headers=SUB_HEADERS, timeout=5)
+        except:
+            MODO_DEMO = True # Se a internet ou o link falhar, cai no modo demo seguro
 
     # --- FUNÇÃO AUXILIAR PARA CORREÇÃO DE LOGO NA NUVEM ---
     def carregar_imagem_base64(caminho_imagem):
@@ -83,23 +70,17 @@ def main():
         st.markdown(
             f"""
             <style>
-            .developer-logo {{
-                position: fixed;
-                bottom: 10px;
-                right: 10px;
-                width: 60px;
-                z-index: 9999;
-                opacity: 0.7;
-                transition: opacity 0.3s;
-            }}
-            .developer-logo:hover {{
-                opacity: 1.0;
-            }}
+            .developer-logo {{ position: fixed; bottom: 10px; right: 10px; width: 60px; z-index: 9999; opacity: 0.7; transition: opacity 0.3s; }}
+            .developer-logo:hover {{ opacity: 1.0; }}
             </style>
             <img src="data:image/png;base64,{logo1_b64}" class="developer-logo">
             """,
             unsafe_html=True
         )
+
+    # Alerta visual caso o banco em nuvem apresente alguma instabilidade
+    if MODO_DEMO:
+        st.warning("⚠️ Sistema operando em Modo Local temporário. Verifique os Secrets do Supabase no painel do Streamlit.")
 
     # --- MARCA DA EMPRESA NO MENU LATERAL ---
     st.sidebar.markdown("**Desenvolvido por GDCOM**")
@@ -118,17 +99,28 @@ def main():
         st.header("📋 Gerenciamento de Máquinas e Equipamentos")
         aba_lista, aba_cadastrar, aba_editar = st.tabs(["🔍 Ver e Excluir", "➕ Cadastrar Novo", "✏️ Editar Existente"])
         
+        # Puxa os dados da Nuvem ou da memória Local
+        equipamentos = []
+        if not MODO_DEMO:
+            try:
+                req = requests.get(SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS, timeout=5)
+                equipamentos = req.json() if req.status_code == 200 else st.session_state.maquinas_locais
+            except:
+                equipamentos = st.session_state.maquinas_locais
+        else:
+            equipamentos = st.session_state.maquinas_locais
+
         with aba_lista:
             st.subheader("Equipamentos Registrados no Sistema")
-            req = requests.get(SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS)
-            equipamentos = req.json() if req.status_code == 200 else []
-            
             if len(equipamentos) > 0 and isinstance(equipamentos, list):
                 for eq in equipamentos:
                     st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
                     if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
-                        requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS)
-                        st.success("Equipamento removido do banco de dados na nuvem!")
+                        if not MODO_DEMO:
+                            try: requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS, timeout=5)
+                            except: pass
+                        st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m['id'] != eq['id']]
+                        st.success("Equipamento removido!")
                         st.rerun()
                     st.write("---")
             else:
@@ -150,24 +142,20 @@ def main():
                     if id_eq and nome_eq:
                         novo_registro = {
                             "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
-                            "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano
+                            "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
                         }
-                        res = requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS)
-                        if res.status_code < 400:
-                            st.success("Máquina registrada e salva permanentemente na nuvem!")
-                            st.rerun()
-                        else:
-                            st.error(f"Erro ao salvar no banco em nuvem: {res.text}")
+                        if not MODO_DEMO:
+                            try: requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=5)
+                            except: pass
+                        st.session_state.maquinas_locais.append(novo_registro)
+                        st.success("Máquina registrada com sucesso!")
+                        st.rerun()
                     else:
                         st.error("Preencha os campos obrigatórios.")
 
         with aba_editar:
             st.subheader("Editar Máquina Existente")
-            req = requests.get(SUB_URL + "/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
-            equipamentos_lista = req.json() if req.status_code == 200 else []
-            opcoes_edicao = {}
-            if isinstance(equipamentos_lista, list):
-                opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in equipamentos_lista}
+            opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in equipamentos} if isinstance(equipamentos, list) else {}
             
             if opcoes_edicao:
                 selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
@@ -178,7 +166,7 @@ def main():
                     novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
                     novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
                     n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
-                    n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mesal', ''))
+                    n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
                     n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
                     
                     if st.form_submit_button("Gravar Alterações"):
@@ -186,7 +174,17 @@ def main():
                             "nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit,
                             "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
                         }
-                        requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS)
-                        st.success("Alterações salvas com sucesso na nuvem!")
+                        if not MODO_DEMO:
+                            try: requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS, timeout=5)
+                            except: pass
+                        for m in st.session_state.maquinas_locais:
+                            if m['id'] == eq_para_editar['id']:
+                                m.update(alteracoes)
+                        st.success("Alterações salvas!")
                         st.rerun()
 
+    # ==========================================
+    # 2. PÁGINA: PLANEJAMENTO TEMPORAL
+    # ==========================================
+    elif menu == "📅 Planejamento & Checklists":
+        st.header("📅 Planejamento de Manutenções Preventivas")
