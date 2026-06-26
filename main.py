@@ -45,8 +45,8 @@ def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_header
         for p in dados_filtrados:
             col_dados, col_acao = st.columns()
             with col_dados:
-                st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
-                st.write(f"🔧 Peças Programadas: {p['pecas']}")
+                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                st.write("🔧 Peças Programadas: " + str(p['pecas']))
             with col_acao:
                 if st.button("✔️ Concluir", key="comp_" + str(p.get('id', p.get('equipamento')))):
                     registro_historico = {
@@ -59,9 +59,9 @@ def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_header
                     }
                     if not modo_demo:
                         try:
-                            rota_hist_post = f"{sub_url}/rest/v1/historico" if "/rest/v1" not in sub_url else f"{sub_url}/historico"
+                            rota_hist_post = sub_url + "/historico" if "/rest/v1" in sub_url else sub_url + "/rest/v1/historico"
                             requests.post(rota_hist_post, json=registro_historico, headers=sub_headers, timeout=5)
-                            rota_plan_del = f"{sub_url}/rest/v1/planejamento?id=eq.{p['id']}" if "/rest/v1" not in sub_url else f"{sub_url}/planejamento?id=eq.{p['id']}"
+                            rota_plan_del = sub_url + "/planejamento?id=eq." + str(p['id']) if "/rest/v1" in sub_url else sub_url + "/rest/v1/planejamento?id=eq." + str(p['id'])
                             requests.delete(rota_plan_del, headers=sub_headers, timeout=5)
                         except:
                             pass
@@ -76,10 +76,10 @@ def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_header
 # --- INJEÇÃO AUTOMÁTICA DE DADOS SE O BANCO DA NUVEM ESTIVER VAZIO ---
 if not MODO_DEMO:
     try:
-        rota_check = f"{SUB_URL}/rest/v1/equipamentos?select=id" if "/rest/v1" not in SUB_URL else f"{SUB_URL}/equipamentos?select=id"
+        rota_check = SUB_URL + "/equipamentos?select=id" if "/rest/v1" in SUB_URL else SUB_URL + "/rest/v1/equipamentos?select=id"
         req_check = requests.get(rota_check, headers=SUB_HEADERS, timeout=5)
         if req_check.status_code == 200 and len(req_check.json()) == 0:
-            rota_insert = f"{SUB_URL}/rest/v1/equipamentos" if "/rest/v1" not in SUB_URL else f"{SUB_URL}/equipamentos"
+            rota_insert = SUB_URL + "/equipamentos" if "/rest/v1" in SUB_URL else SUB_URL + "/rest/v1/equipamentos"
             for mq in st.session_state.maquinas_locais:
                 requests.post(rota_insert, json=mq, headers=SUB_HEADERS, timeout=5)
     except:
@@ -114,7 +114,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     equipamentos = []
     if not MODO_DEMO:
         try:
-            rota_get = f"{SUB_URL}/rest/v1/equipamentos?select=*&order=id.asc" if "/rest/v1" not in SUB_URL else f"{SUB_URL}/equipamentos?select=*&order=id.asc"
+            rota_get = SUB_URL + "/equipamentos?select=*&order=id.asc" if "/rest/v1" in SUB_URL else SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc"
             req = requests.get(rota_get, headers=SUB_HEADERS, timeout=5)
             equipamentos = req.json() if req.status_code == 200 else st.session_state.maquinas_locais
         except:
@@ -126,11 +126,11 @@ if menu == "📋 Cadastro & Edição de Máquinas":
         st.subheader("Equipamentos Registrados no Sistema")
         if len(equipamentos) > 0 and isinstance(equipamentos, list):
             for eq in equipamentos:
-                st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
+                st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
                 if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
                     if not MODO_DEMO:
                         try:
-                            rota_del = f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq['id']}" if "/rest/v1" not in SUB_URL else f"{SUB_URL}/equipamentos?id=eq.{eq['id']}"
+                            rota_del = SUB_URL + "/equipamentos?id=eq." + str(eq['id']) if "/rest/v1" in SUB_URL else SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id'])
                             requests.delete(rota_del, headers=SUB_HEADERS, timeout=5)
                         except:
                             pass
@@ -161,7 +161,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     }
                     if not MODO_DEMO:
                         try:
-                            rota_post = f"{SUB_URL}/rest/v1/equipamentos" if "/rest/v1" not in SUB_URL else f"{SUB_URL}/equipamentos"
+                            rota_post = SUB_URL + "/equipamentos" if "/rest/v1" in SUB_URL else SUB_URL + "/rest/v1/equipamentos"
                             requests.post(rota_post, json=novo_registro, headers=SUB_HEADERS, timeout=5)
                         except:
                             pass
@@ -173,7 +173,11 @@ if menu == "📋 Cadastro & Edição de Máquinas":
 
     with aba_editar:
         st.subheader("Editar Máquina Existente")
-        opcoes_edicao = {f"{e['id']} - {e['nome']}": e for e in equipamentos if isinstance(e, dict) and 'id' in e}
+        opcoes_edicao = {}
+        if isinstance(equipamentos, list):
+            for e in equipamentos:
+                if isinstance(e, dict) and 'id' in e:
+                    opcoes_edicao[str(e['id']) + " - " + str(e['nome'])] = e
         
         if opcoes_edicao:
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
@@ -185,7 +189,3 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
                 n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
                 n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
-                n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
-                
-                if st.form_submit_button("Gravar Alterações"):
-                    alteracoes = {
