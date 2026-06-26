@@ -229,7 +229,7 @@ elif menu == "📅 Planejamento & Checklists":
                         "seguranca": "Uso de EPIs obrigatório. Verificar bloqueios elétricos."
                     }
                     res_plan = requests.post(f"{SUB_URL}/rest/v1/planejamento", json=novo_agendamento, headers=SUB_HEADERS)
-                    if res_plan.status_code in:
+                    if res_plan.status_code < 400:  # CORREÇÃO DA SINTAXE DO STATUS CODE
                         st.success("Manutenção agendada e guardada com sucesso na nuvem permanentemente!")
                         st.rerun()
                     else:
@@ -328,7 +328,6 @@ elif menu == "⚠️ Emissão de PT":
                     st.error("Por favor, preencha o nome do técnico executante para assinar a ordem.")
                 else:
                     id_print = "pt_print_" + str(os_dados['id'])
-                    cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
 
                     id_print = "pt_print_" + str(os_dados['id'])
                     cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
