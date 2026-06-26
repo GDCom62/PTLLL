@@ -195,7 +195,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL
+# 2. PÁGINA: PLANEJAMENTO TEMPORAL.
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
