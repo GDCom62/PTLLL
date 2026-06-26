@@ -226,11 +226,10 @@ elif menu == "📅 Planejamento & Checklists":
             for p in dados_filtrados:
                 col_dados, col_acao = st.columns([4, 1])
                 with col_dados:
-                    st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                    st.write("🔧 Peças Programadas: " + str(p['pecas']))
+                    st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
+                    st.write(f"🔧 Peças Programadas: {p['pecas']}")
                 with col_acao:
                     if st.button("✔️ Concluir", key="comp_" + str(p['id'])):
-                        # Insere o registro finalizado na tabela de historico via API
                         registro_historico = {
                             "equipamento": p['equipamento'],
                             "periodo": p['periodo'],
@@ -240,11 +239,8 @@ elif menu == "📅 Planejamento & Checklists":
                             "status": "Concluído"
                         }
                         requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_historico, headers=SUB_HEADERS)
-                        
-                        # Deleta a ordem pendente antiga via API
                         requests.delete(f"{SUB_URL}/rest/v1/planejamento?id=eq.{p['id']}", headers=SUB_HEADERS)
-                        
-                        st.success("Ordem de serviço finalizada e salva permanentemente no histórico!")
+                        st.success("Ordem de serviço finalizada!")
                         st.rerun()
                 st.write("---")
         else:
@@ -264,7 +260,6 @@ elif menu == "📅 Planejamento & Checklists":
     
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
-        # Busca as máquinas da API para o seletor
         req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=nome&order=nome.asc", headers=SUB_HEADERS)
         eq_data = req_eq.json() if req_eq.status_code == 200 else []
         lista_nomes = [row['nome'] for row in eq_data] if isinstance(eq_data, list) else []
@@ -288,25 +283,24 @@ elif menu == "📅 Planejamento & Checklists":
                     }
                     res_plan = requests.post(f"{SUB_URL}/rest/v1/planejamento", json=novo_agendamento, headers=SUB_HEADERS)
                     if res_plan.status_code < 400:
-                        st.success("Manutenção agendada e guardada com sucesso na nuvem permanentemente!")
+                        st.success("Manutenção agendada com sucesso!")
                         st.rerun()
                     else:
-                        st.error(f"Erro ao agendar manutenção no banco: {res_plan.text}")
+                        st.error(f"Erro ao agendar: {res_plan.text}")
 
 # ==========================================
 # 3. PÁGINA: HISTÓRICO DE TROCAS
 # ==========================================
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Trocas e Manutenções Concluídas")
-    # Busca os históricos finalizados na API
     req_hist = requests.get(f"{SUB_URL}/rest/v1/historico?select=*&order=id.desc", headers=SUB_HEADERS)
     historico_lista = req_hist.json() if req_hist.status_code == 200 else []
     
     if historico_lista and isinstance(historico_lista, list):
         for h in list(historico_lista):
-            st.write("✅ **" + str(h['equipamento']) + "** | Período: " + str(h['periodo']))
-            st.write("📅 **Planejado para:** " + str(h['data_prevista']) + " | ⏱️ **Encerrado em:** " + str(h.get('data_conclusao', 'N/A')))
-            st.write("🔧 Peças / Intervenções: " + str(h['pecas']))
+            st.write(f"✅ **{h['equipamento']}** | Período: {h['periodo']}")
+            st.write(f"📅 **Planejado para:** {h['data_prevista']} | ⏱️ **Encerrado em:** {h.get('data_conclusao', 'N/A')}")
+            st.write(f"🔧 Peças / Intervenções: {h['pecas']}")
             st.write("---")
     else:
         st.info("Nenhuma ordem de serviço foi finalizada no sistema ainda.")
@@ -317,19 +311,15 @@ elif menu == "📜 Histórico de Trocas":
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
     
-    if "pt_gerada_html" not in st.session_state:
-        st.session_state.pt_gerada_html = None
-    if "pt_gerada_txt" not in st.session_state:
-        st.session_state.pt_gerada_txt = None
-    if "pt_id_atual" not in st.session_state:
-        st.session_state.pt_id_atual = None
+    if "pt_gerada_html" not in st.session_state: st.session_state.pt_gerada_html = None
+    if "pt_gerada_txt" not in st.session_state: st.session_state.pt_gerada_txt = None
+    if "pt_id_atual" not in st.session_state: st.session_state.pt_id_atual = None
 
-    # Busca ordens ativas para gerar a PT
     req_pend = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
     ordens_pendentes = req_pend.json() if req_pend.status_code == 200 else []
     
     if not ordens_pendentes or not isinstance(ordens_pendentes, list):
-        st.warning("Não existem manutenções pendentes no momento para emitir uma PT. Agende uma preventiva primeiro!")
+        st.warning("Não existem manutenções pendentes no momento para emitir uma PT.")
     else:
         opcoes_os = {f"OS #{p['id']} - {p['equipamento']} ({p['periodo']})": p for p in ordens_pendentes}
         os_selecionada_str = str(st.selectbox("Selecione a Ordem de Serviço para vincular à PT:", list(opcoes_os.keys())))
@@ -345,47 +335,52 @@ elif menu == "⚠️ Emissão de PT":
         
         with st.form("form_emissao_pt"):
             col1, col2 = st.columns(2)
-            
             with col1:
                 emitente = st.text_input("Nome do Emitente / Supervisor:", value="Supervisor de Manutenção")
                 executante = st.text_input("Nome do Executante / Técnico:")
                 empresa_exec = st.selectbox("Empresa Executante:", ["Própria (Interna)", "Terceirizada / Contratada"])
-            
             with col2:
                 validade_data = st.date_input("Válido para o dia:", datetime.now())
                 hora_inicio = st.time_input("Horário de Início Autorizado:", value=datetime.strptime("08:00", "%H:%M").time())
                 hora_fim = st.time_input("Horário de Término Máximo:", value=datetime.strptime("17:00", "%H:%M").time())
             
-            st.markdown("##### 🚨 Análise de Riscos e Riscos Envolvidos")
+            st.markdown("##### 🚨 Análise de Riscos Envolvidos")
             col_r1, col_r2, col_r3 = st.columns(3)
             with col_r1:
                 r_altura = st.checkbox("Trabalho em Altura (NR-35)")
-                r_eletrico = st.checkbox("Risco Elétrico / Energias Vivas (NR-10)")
+                r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
             with col_r2:
                 r_confinado = st.checkbox("Espaço Confinado (NR-33)")
-                r_quimico = st.checkbox("Risco Químico (Gases/Vapores/Ácidos)")
+                r_quimico = st.checkbox("Risco Químico")
             with col_r3:
-                r_quente = st.checkbox("Trabalho a Quente (Solda/Esmeril/Corte)")
-                r_mecanico = st.checkbox("Risco Mecânico (Prensamento/Corte)")
+                r_quente = st.checkbox("Trabalho a Quente")
+                r_mecanico = st.checkbox("Risco Mecânico")
                 
             st.markdown("##### 🛡️ Medidas de Controle Obrigatórias")
             col_c1, col_c2 = st.columns(2)
             with col_c1:
-                c_loto = st.checkbox("Bloqueio e Etiquetagem executados (LOTO / Lockout Tagout)", value=True)
-                c_delim = st.checkbox("Área devidamente isolada e sinalizada", value=True)
+                c_loto = st.checkbox("Bloqueio e Etiquetagem (LOTO)", value=True)
+                c_delim = st.checkbox("Área isolada e sinalizada", value=True)
             with col_c2:
-                c_epi = st.checkbox("EPIs básicos e específicos verificados", value=True)
-                c_extintor = st.checkbox("Equipamento de combate a incêndio posicionado no local")
+                c_epi = st.checkbox("EPIs verificados", value=True)
+                c_extintor = st.checkbox("Combate a incêndio pronto")
 
-            observacoes_seg = st.text_area("Observações Adicionais de Segurança:", value=str(os_dados.get('seguranca', '')))
-            
+            observacoes_seg = st.text_area("Observações Adicionais:", value=str(os_dados.get('seguranca', '')))
             bt_gerar = st.form_submit_button("Validar e Gerar Documento de PT")
             
             if bt_gerar:
                 if not executante:
-                    st.error("Por favor, preencha o nome do técnico executante para assinar a ordem.")
+                    st.error("Preencha o nome do técnico executante.")
                 else:
-                    id_print = "pt_print_" + str(os_dados['id'])
+                    id_print = f"pt_print_{os_dados['id']}"
+                    cod_pt = f"PT-{os_dados['id']}{datetime.now().strftime('%M%S')}"
+                    
+                    html_corpo = f'<div id="{id_print}" style="border:3px double #FF0000; padding:20px; background-color:#FFF5F5; color:#000000; font-family:monospace; border-radius:5px; margin-bottom:20px;">'
+                    html_corpo += f'<h2 style="text-align:center; color:#FF0000; margin-bottom:20px;">⚠️ PERMISSÃO DE TRABALHO (PT)</h2>'
+                    html_corpo += f'<p><b>CÓDIGO PT:</b> {cod_pt} | <b>VINCULADO À:</b> OS #{os_dados["id"]}</p>'
+                    html_corpo += f'<p><b>EQUIPAMENTO:</b> {os_dados["equipamento"]} | <b>SERVIÇO:</b> {os_dados["pecas"]}</p>'
+                    html_corpo += "<hr style='border-top:1px dashed #FF0000;'>"
+                    html_corpo += f'<p><b>SUPERVISOR:</b> {emitente} | <b>EXECUTANTE:</b> {executante} ({empresa_exec})</p>'
 
                 else:
                     id_print = "pt_print_" + str(os_dados['id'])
