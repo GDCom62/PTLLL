@@ -50,7 +50,7 @@ def carregar_imagem_base64(caminho_imagem):
             return base64.b64encode(image_file.read()).decode()
     return None
 
-# --- ADIÇÃO DOS LOGOS (LOGO REDUZIDO PELA METADE) ---
+# --- ADIÇÃO DOS LOGOS ---
 if os.path.exists("logo.png"):
     st.image("logo.png", width=150)
 else:
@@ -169,7 +169,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL -
+# 2. PÁGINA: PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -181,7 +181,7 @@ elif menu == "📅 Planejamento & Checklists":
     def renderizar_lista_preventivas(dados_filtrados):
         if dados_filtrados and isinstance(dados_filtrados, list):
             for p in dados_filtrados:
-                col_dados, col_acao = st.columns()
+                col_dados, col_acao = st.columns([4, 1])
                 with col_dados:
                     st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
                     st.write(f"🔧 Peças Programadas: {p['pecas']}")
