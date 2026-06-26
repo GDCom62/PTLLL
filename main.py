@@ -211,9 +211,24 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             st.info("Nenhum equipamento cadastrado para edição.")
 
 # ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL
+# 2. PÁGINA: PLANEJAMENTO TEMPORAL (BLINDADO CONTRA NAMEERROR)
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
+    import requests # Injeção de segurança local
+    
+    # Reconecta localmente com os Secrets para evitar falha de escopo
+    SUB_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
+    if "/rest/v1" in SUB_URL:
+        SUB_URL = SUB_URL.split("/rest/v1")[0]
+        
+    SUB_KEY = st.secrets["SUPABASE_KEY"].strip()
+    SUB_HEADERS = {
+        "apikey": SUB_KEY,
+        "Authorization": f"Bearer {SUB_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+    }
+
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
@@ -292,6 +307,12 @@ elif menu == "📅 Planejamento & Checklists":
 # 3. PÁGINA: HISTÓRICO DE TROCAS
 # ==========================================
 elif menu == "📜 Histórico de Trocas":
+    import requests
+    SUB_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
+    if "/rest/v1" in SUB_URL: SUB_URL = SUB_URL.split("/rest/v1")[0]
+    SUB_KEY = st.secrets["SUPABASE_KEY"].strip()
+    SUB_HEADERS = {"apikey": SUB_KEY, "Authorization": f"Bearer {SUB_KEY}"}
+
     st.header("📜 Histórico de Trocas e Manutenções Concluídas")
     req_hist = requests.get(f"{SUB_URL}/rest/v1/historico?select=*&order=id.desc", headers=SUB_HEADERS)
     historico_lista = req_hist.json() if req_hist.status_code == 200 else []
@@ -309,6 +330,12 @@ elif menu == "📜 Histórico de Trocas":
 # 4. PÁGINA: EMISSÃO DE PT
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
+    import requests
+    SUB_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
+    if "/rest/v1" in SUB_URL: SUB_URL = SUB_URL.split("/rest/v1")[0]
+    SUB_KEY = st.secrets["SUPABASE_KEY"].strip()
+    SUB_HEADERS = {"apikey": SUB_KEY, "Authorization": f"Bearer {SUB_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
+
     st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
     
     if "pt_gerada_html" not in st.session_state: st.session_state.pt_gerada_html = None
@@ -366,17 +393,4 @@ elif menu == "⚠️ Emissão de PT":
                 c_extintor = st.checkbox("Combate a incêndio pronto")
 
             observacoes_seg = st.text_area("Observações Adicionais:", value=str(os_dados.get('seguranca', '')))
-            bt_gerar = st.form_submit_button("Validar e Gerar Documento de PT")
-            
-            if bt_gerar:
-                if not executante:
-                    st.error("Preencha o nome do técnico executante.")
-                else:
-                    id_print = "pt_print_" + str(os_dados['id'])
-                    cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
-                    
-                    # Strings concatenadas sem f-string tripla para evitar conflitos de sintaxe
-                    html_corpo = '<div id="' + id_print + '" style="border:3px double #FF0000; padding:20px; background-color:#FFF5F5; color:#000000; font-family:monospace; border-radius:5px; margin-bottom:20px;">'
-                    html_corpo += '<h2 style="text-align:center; color:#FF0000; margin-bottom:20px;">⚠️ PERMISSÃO DE TRABALHO (PT)</h2>'
-                    html_corpo += '<p><b>CÓDIGO PT:</b> ' + cod_pt + ' | <b>VINCULADO À:</b> OS #' + str(os_dados['id']) + '</p>'
-                    html_corpo += '<p><b>EQUIPAMENTO:</b> ' + str(os_dados['equipamento']) + ' | <b>SERVIÇO:</b> ' + str(os_dados['pecas']) + '</p>'
+
