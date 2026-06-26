@@ -27,7 +27,7 @@ def main():
         st.error("Erro ao ler credenciais. Verifique os Secrets do Streamlit.")
         st.stop()
 
-    # --- VERIFICAÇÃO AND ALIMENTAÇÃO AUTOMÁTICA DA NUVEM ---
+    # --- VERIFICAÇÃO E ALIMENTAÇÃO AUTOMÁTICA DA NUVEM ---
     try:
         req_check = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=id", headers=SUB_HEADERS)
         if req_check.status_code == 200 and len(req_check.json()) == 0:
