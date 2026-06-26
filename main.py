@@ -2,72 +2,47 @@ import streamlit as st
 from datetime import datetime
 import base64
 import os
-import sqlite3
+import requests
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- CONEXÃO E CRIAÇÃO DO BANCO DE DADOS (SQLITE) ---
-DB_FILE = "manutencao.db"
-
-def iniciar_banco():
-    """Cria as tabelas no banco de dados caso elas não existam"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    
-    # Tabela de Equipamentos
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS equipamentos (
-            id TEXT PRIMARY KEY,
-            nome TEXT NOT NULL,
-            localizacao TEXT,
-            criticidade TEXT,
-            check_semanal TEXT,
-            check_mensal TEXT,
-            check_anual TEXT
-        )
-    """)
-    
-    # Tabela de Planejamento (Preventivas)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS planejamento (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            equipamento TEXT NOT NULL,
-            periodo TEXT,
-            data_prevista TEXT,
-            pecas TEXT,
-            status TEXT DEFAULT 'Pendente',
-            seguranca TEXT
-        )
-    """)
-    
-    # Insere dados padrão se o banco de dados estiver totalmente vazio
-    cursor.execute("SELECT COUNT(*) FROM equipamentos")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute("""
-            INSERT INTO equipamentos VALUES 
-            ('EQ-001', 'Torno Mecânico Nardini', 'Oficina Central', 'Alta', 
-             'Verificar nível de óleo e lubrificação geral\nLimpeza de resíduos e cavacos\nTestar botão de emergência', 
-             'Trocar filtros de óleo\nVerificar tensão de correias', 
-             'Revisão do motor elétrico\nSubstituição do fluido hidráulico')
-        """)
-        cursor.execute("""
-            INSERT INTO equipamentos VALUES 
-            ('EQ-002', 'Compressor de Ar Schulz', 'Sala de Compressores', 'Média', 
-             'Drenar condensado do reservatório\nVerificar ruídos anormais', 
-             'Limpar filtro de ar\nVerificar nível de óleo', 
-             'Teste hidrostático do vaso\nTroca de válvulas de segurança')
-        """)
-        cursor.execute("""
-            INSERT INTO planejamento (equipamento, periodo, data_prevista, pecas, status, seguranca)
-            VALUES ('Torno Mecânico Nardini', 'Semanal', ?, 'Inspeção preventiva padrão', 'Pendente', 'Uso de EPIs obrigatório. Lockout/Tagout.')
-        """, (datetime.now().strftime("%d/%m/%Y"),))
+# --- CONEXÃO COM O BANCO DE DADOS EM NUVEM SUPABASE VIA API HTTP NATIVA ---
+@st.cache_resource
+def obter_credenciais_supabase():
+    """Busca as credenciais com segurança nos Secrets e monta os cabeçalhos padrão"""
+    url_base = st.secrets["SUPABASE_URL"].strip().rstrip("/")
+    if "/rest/v1" in url_base:
+        url_base = url_base.split("/rest/v1")[0]
         
-    conn.commit()
-    conn.close()
+    key = st.secrets["SUPABASE_KEY"].strip()
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+    }
+    return url_base, headers
 
-# Executa a inicialização do arquivo de banco de dados
-iniciar_banco()
+try:
+    SUB_URL, SUB_HEADERS = obter_credenciais_supabase()
+except Exception as e:
+    st.error("Erro ao ler credenciais. Verifique os Secrets do Streamlit.")
+    st.stop()
+
+# --- VERIFICAÇÃO E ALIMENTAÇÃO AUTOMÁTICA DA NUVEM ---
+# Força o cadastro das máquinas padrão no Supabase se o banco estiver vazio
+try:
+    req_check = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=id", headers=SUB_HEADERS)
+    if req_check.status_code == 200 and len(req_check.json()) == 0:
+        maquinas_iniciais = [
+            {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
+            {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar", "check_mensal": "Filtro", "check_anual": "Válvulas"}
+        ]
+        for mq in maquinas_iniciais:
+            requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=mq, headers=SUB_HEADERS)
+except:
+    pass
 
 # --- FUNÇÃO AUXILIAR PARA CORREÇÃO DE LOGO NA NUVEM ---
 def carregar_imagem_base64(caminho_imagem):
@@ -76,9 +51,9 @@ def carregar_imagem_base64(caminho_imagem):
             return base64.b64encode(image_file.read()).decode()
     return None
 
-# --- ADIÇÃO DOS LOGOS ---
+# --- ADIÇÃO DOS LOGOS (LOGO REDUZIDO PELA METADE) ---
 if os.path.exists("logo.png"):
-    st.image("logo.png", width=300)
+    st.image("logo.png", width=150)
 else:
     st.info("Insira o arquivo 'logo.png' na pasta do script para exibir o logo do topo.")
 
@@ -124,27 +99,19 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     
     with aba_lista:
         st.subheader("Equipamentos Registrados no Sistema")
+        req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS)
+        equipamentos = req.json() if req.status_code == 200 else []
         
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, nome, localizacao, criticidade FROM equipamentos")
-        equipamentos = cursor.fetchall()
-        conn.close()
-        
-        if equipamentos:
+        if len(equipamentos) > 0 and isinstance(equipamentos, list):
             for eq in equipamentos:
-                st.write(f"🔹 **[{eq[0]}] {eq[1]}** | Setor: {eq[2]} | Criticidade: {eq[3]}")
-                if st.button("🗑️ Remover " + str(eq[0]), key="del_" + str(eq[0])):
-                    conn = sqlite3.connect(DB_FILE)
-                    cursor = conn.cursor()
-                    cursor.execute("DELETE FROM equipamentos WHERE id = ?", (eq[0],))
-                    conn.commit()
-                    conn.close()
-                    st.success(f"Equipamento {eq[0]} removido do banco de dados!")
+                st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
+                if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
+                    requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq['id']}", headers=SUB_HEADERS)
+                    st.success("Equipamento removido do banco de dados na nuvem!")
                     st.rerun()
                 st.write("---")
         else:
-            st.info("Nenhum equipamento cadastrado no banco de dados.")
+            st.info("Nenhum equipamento cadastrado no sistema.")
                         
     with aba_cadastrar:
         st.subheader("Cadastrar Nova Máquina")
@@ -160,63 +127,53 @@ if menu == "📋 Cadastro & Edição de Máquinas":
             
             if st.form_submit_button("Salvar Equipamento"):
                 if id_eq and nome_eq:
-                    conn = sqlite3.connect(DB_FILE)
-                    cursor = conn.cursor()
-                    try:
-                        cursor.execute("INSERT INTO equipamentos VALUES (?, ?, ?, ?, ?, ?, ?)", 
-                                       (id_eq, nome_eq, local_eq, crit_eq, c_sem, c_mes, c_ano))
-                        conn.commit()
-                        st.success("Máquina registrada e salva com sucesso no banco de dados!")
-                    except sqlite3.IntegrityError:
-                        st.error("Este Código/Tag já está cadastrado!")
-                    conn.close()
+                    novo_registro = {
+                        "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
+                        "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
+                    }
+                    res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS)
+                    if res.status_code < 400:
+                        st.success("Máquina registrada e salva permanentemente na nuvem!")
+                        st.rerun()
+                    else:
+                        st.error(f"Erro ao salvar no banco em nuvem: {res.text}")
                 else:
                     st.error("Preencha os campos obrigatórios.")
 
     with aba_editar:
         st.subheader("Editar Máquina Existente")
+        req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
+        equipamentos_lista = req.json() if req.status_code == 200 else []
+        opcoes_edicao = {}
+        if isinstance(equipamentos_lista, list):
+            opcoes_edicao = {e['id'] + " - " + e['nome']: e for e in equipamentos_lista}
         
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, nome, localizacao, criticidade, check_semanal, check_mensal, check_anual FROM equipamentos")
-        lista_eq = cursor.fetchall()
-        conn.close()
-        
-        opcoes_edicao = {f"{e[0]} - {e[1]}": e for e in lista_eq}
         if opcoes_edicao:
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
-            eq_dados = opcoes_edicao[selecionado_edicao]
+            eq_para_editar = opcoes_edicao[selecionado_edicao]
             
             with st.form("form_edicao"):
-                novo_nome = st.text_input("Nome do Equipamento:", value=eq_dados[1])
-                novo_local = st.text_input("Localização / Setor:", value=eq_dados[2])
-                novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_dados[3]))
-                n_sem = st.text_area("Preventiva Semanal:", value=eq_dados[4])
-                n_mes = st.text_area("Preventiva Mensal:", value=eq_dados[5])
-                n_ano = st.text_area("Preventiva Anual:", value=eq_dados[6])
+                novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar['nome'])
+                novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
+                novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
+                n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
+                n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
+                n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
                 
                 if st.form_submit_button("Gravar Alterações"):
-                    conn = sqlite3.connect(DB_FILE)
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        UPDATE equipamentos 
-                        SET nome=?, localizacao=?, criticidade=?, check_semanal=?, check_mensal=?, check_anual=?
-                        WHERE id=?
-                    """, (novo_nome, novo_local, novo_crit, n_sem, n_mes, n_ano, eq_dados[0]))
-                    conn.commit()
-                    conn.close()
-                    st.success("Alterações gravadas no arquivo de banco de dados!")
+                    alteracoes = {
+                        "nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit,
+                        "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
+                    }
+                    requests.patch(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_para_editar['id']}", json=alteracoes, headers=SUB_HEADERS)
+                    st.success("Alterações salvas com sucesso na nuvem!")
                     st.rerun()
-        else:
-            st.info("Nenhum equipamento cadastrado para edição.")
-
 # ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL (CORREÇÃO DE SELETOR)
+# 2. PÁGINA: PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     import requests
     
-    # Conexão local estável com os Secrets
     SUB_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
     if "/rest/v1" in SUB_URL:
         SUB_URL = SUB_URL.split("/rest/v1")[0]
@@ -232,19 +189,20 @@ elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    # Busca planejamentos pendentes direto do Supabase
+    # Busca planejamentos pendentes direto da API do Supabase com rota limpa
     req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
     todos_agendamentos = req_plan.json() if req_plan.status_code == 200 else []
 
     def renderizar_lista_preventivas(dados_filtrados):
         if dados_filtrados and isinstance(dados_filtrados, list):
             for p in dados_filtrados:
-                col_dados, col_acao = st.columns()
+                col_dados, col_acao = st.columns([4, 1])
                 with col_dados:
                     st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
                     st.write(f"🔧 Peças Programadas: {p['pecas']}")
                 with col_acao:
                     if st.button("✔️ Concluir", key="comp_" + str(p['id'])):
+                        # Insere o registro finalizado na tabela de historico via API
                         registro_historico = {
                             "equipamento": p['equipamento'],
                             "periodo": p['periodo'],
@@ -254,7 +212,10 @@ elif menu == "📅 Planejamento & Checklists":
                             "status": "Concluído"
                         }
                         requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_historico, headers=SUB_HEADERS)
+                        
+                        # Deleta a ordem pendente antiga via API
                         requests.delete(f"{SUB_URL}/rest/v1/planejamento?id=eq.{p['id']}", headers=SUB_HEADERS)
+                        
                         st.success("Ordem de serviço finalizada!")
                         st.rerun()
                 st.write("---")
@@ -275,24 +236,10 @@ elif menu == "📅 Planejamento & Checklists":
     
     with aba_novo:
         st.subheader("📋 Agendar Nova Preventiva")
-        
-        # BUSCA CORRIGIDA: Puxa todos os dados das máquinas cadastrados na nuvem
-        req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
+        # Busca todas as máquinas registradas na tabela do Supabase de forma direta e sem filtros que limpem a tela
+        req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=nome&order=nome.asc", headers=SUB_HEADERS)
         eq_data = req_eq.json() if req_eq.status_code == 200 else []
         
-        # INJEÇÃO AUTOMÁTICA DE SEGURANÇA: Se o banco na nuvem estiver zerado, alimenta ele com os padrões
-        if not eq_data or not isinstance(eq_data, list) or len(eq_data) == 0:
-            maquinas_padrao = [
-                {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Nível de óleo", "check_mensal": "Filtros", "check_anual": "Motor"},
-                {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar", "check_mensal": "Filtro ar", "check_anual": "Válvulas"}
-            ]
-            for mq in maquinas_padrao:
-                requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=mq, headers=SUB_HEADERS)
-            # Refaz a busca para carregar o seletor atualizado
-            req_eq = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
-            eq_data = req_eq.json() if req_eq.status_code == 200 else []
-
-        # Extrai os nomes das máquinas de forma segura contra erros de dicionário
         lista_nomes = []
         if isinstance(eq_data, list):
             for row in eq_data:
@@ -330,11 +277,13 @@ elif menu == "📅 Planejamento & Checklists":
 elif menu == "📜 Histórico de Trocas":
     import requests
     SUB_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
-    if "/rest/v1" in SUB_URL: SUB_URL = SUB_URL.split("/rest/v1")[0]
+    if "/rest/v1" in SUB_URL: 
+        SUB_URL = SUB_URL.split("/rest/v1")[0]
     SUB_KEY = st.secrets["SUPABASE_KEY"].strip()
     SUB_HEADERS = {"apikey": SUB_KEY, "Authorization": f"Bearer {SUB_KEY}"}
 
     st.header("📜 Histórico de Trocas e Manutenções Concluídas")
+    # Busca os históricos finalizados na API ordenando do mais novo ao mais antigo
     req_hist = requests.get(f"{SUB_URL}/rest/v1/historico?select=*&order=id.desc", headers=SUB_HEADERS)
     historico_lista = req_hist.json() if req_hist.status_code == 200 else []
     
@@ -353,7 +302,8 @@ elif menu == "📜 Histórico de Trocas":
 elif menu == "⚠️ Emissão de PT":
     import requests
     SUB_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
-    if "/rest/v1" in SUB_URL: SUB_URL = SUB_URL.split("/rest/v1")[0]
+    if "/rest/v1" in SUB_URL: 
+        SUB_URL = SUB_URL.split("/rest/v1")[0]
     SUB_KEY = st.secrets["SUPABASE_KEY"].strip()
     SUB_HEADERS = {"apikey": SUB_KEY, "Authorization": f"Bearer {SUB_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
 
@@ -363,6 +313,7 @@ elif menu == "⚠️ Emissão de PT":
     if "pt_gerada_txt" not in st.session_state: st.session_state.pt_gerada_txt = None
     if "pt_id_atual" not in st.session_state: st.session_state.pt_id_atual = None
 
+    # Busca ordens ativas para gerar a PT
     req_pend = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
     ordens_pendentes = req_pend.json() if req_pend.status_code == 200 else []
     
@@ -392,5 +343,18 @@ elif menu == "⚠️ Emissão de PT":
                 hora_inicio = st.time_input("Horário de Início Autorizado:", value=datetime.strptime("08:00", "%H:%M").time())
                 hora_fim = st.time_input("Horário de Término Máximo:", value=datetime.strptime("17:00", "%H:%M").time())
             
-
-
+            st.markdown("##### 🚨 Análise de Riscos Envolvidos")
+            col_r1, col_r2, col_r3 = st.columns(3)
+            with col_r1:
+                r_altura = st.checkbox("Trabalho em Altura (NR-35)")
+                r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
+            with col_r2:
+                r_confinado = st.checkbox("Espaço Confinado (NR-33)")
+                r_quimico = st.checkbox("Risco Químico")
+            with col_r3:
+                r_quente = st.checkbox("Trabalho a Quente")
+                r_mecanico = st.checkbox("Risco Mecânico")
+                
+            st.markdown("##### 🛡️ Medidas de Controle Obrigatórias")
+            col_c1, col_c2 = st.columns(2)
+            with col_c1:
