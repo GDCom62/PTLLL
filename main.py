@@ -329,3 +329,6 @@ elif menu == "⚠️ Emissão de PT":
                 else:
                     id_print = "pt_print_" + str(os_dados['id'])
                     cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
+
+                    id_print = "pt_print_" + str(os_dados['id'])
+                    cod_pt = "PT-" + str(os_dados['id']) + datetime.now().strftime('%M%S')
