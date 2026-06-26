@@ -217,33 +217,6 @@ elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
     
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("SELECT equipamento, data_prevista, pecas, periodo FROM planejamento WHERE status='Pendente'")
-    todos_agendamentos = cursor.fetchall()
-    conn.close()
-    
-    with aba_sem:
-        dados_sem = [a for a in todos_agendamentos if a[3] == "Semanal"]
-        if dados_sem:
-            for p in dados_sem:
-                st.write(f"⚙️ **{p[0]}** | 📅 **Data:** {p[1]} | **Status:** Pendente")
-                st.write(f"🔧 Peças Programadas: {p[2]}")
-                st.write("---")
-        else:
-            st.info("Nenhuma preventiva semanal pendente.")
-
-    with aba_mes:
-        dados_mes = [a for a in todos_agendamentos if a[3] == "Mensal"]
-        if dados_mes:
-            for p in dados_mes:
-# ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL
-# ==========================================
-elif menu == "📅 Planejamento & Checklists":
-    st.header("📅 Planejamento de Manutenções Preventivas")
-    aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
-    
     # Busca planejamentos pendentes direto da API do Supabase com rota limpa
     req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
     todos_agendamentos = req_plan.json() if req_plan.status_code == 200 else []
@@ -251,7 +224,7 @@ elif menu == "📅 Planejamento & Checklists":
     def renderizar_lista_preventivas(dados_filtrados):
         if dados_filtrados and isinstance(dados_filtrados, list):
             for p in dados_filtrados:
-                col_dados, col_acao = st.columns()
+                col_dados, col_acao = st.columns([4, 1])
                 with col_dados:
                     st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
                     st.write("🔧 Peças Programadas: " + str(p['pecas']))
@@ -411,5 +384,8 @@ elif menu == "⚠️ Emissão de PT":
             if bt_gerar:
                 if not executante:
                     st.error("Por favor, preencha o nome do técnico executante para assinar a ordem.")
+                else:
+                    id_print = "pt_print_" + str(os_dados['id'])
+
                 else:
                     id_print = "pt_print_" + str(os_dados['id'])
