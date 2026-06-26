@@ -10,12 +10,9 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 def main():
     # --- CONEXÃO COM O BANCO DE DADOS EM NUVEM SUPABASE VIA API HTTP NATIVA ---
     try:
-        # Correção da URL: garante o tratamento rigoroso como String (Texto)
-        url_bruta = st.secrets["SUPABASE_URL"].strip().rstrip("/")
-        if "/rest/v1" in url_bruta:
-            SUB_URL = url_bruta.split("/rest/v1")[0]
-        else:
-            SUB_URL = url_bruta
+        # Garante a higienização estrita mantendo o dado como STRING (Texto Puro)
+        url_secrets = st.secrets["SUPABASE_URL"].strip().rstrip("/")
+        SUB_URL = url_secrets.replace("/rest/v1", "")
             
         key_limpa = st.secrets["SUPABASE_KEY"].strip()
         
@@ -26,7 +23,7 @@ def main():
             "Prefer": "return=representation"
         }
     except Exception as e:
-        st.error("Erro ao ler credenciais. Verifique os Secrets do Streamlit.")
+        st.error("Erro ao ler as credenciais. Verifique os Secrets no painel do Streamlit.")
         st.stop()
 
     # --- VERIFICAÇÃO E ALIMENTAÇÃO AUTOMÁTICA DA NUVEM ---
@@ -46,7 +43,7 @@ def main():
     def renderizar_lista(dados_filtrados):
         if dados_filtrados and isinstance(dados_filtrados, list):
             for p in dados_filtrados:
-                col_dados, col_acao = st.columns()
+                col_dados, col_acao = st.columns([4, 1])
                 with col_dados:
                     st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
                     st.write("🔧 Peças Programadas: " + str(p['pecas']))
@@ -153,7 +150,7 @@ def main():
                     if id_eq and nome_eq:
                         novo_registro = {
                             "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
-                            "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
+                            "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano
                         }
                         res = requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS)
                         if res.status_code < 400:
@@ -181,7 +178,7 @@ def main():
                     novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
                     novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
                     n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
-                    n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
+                    n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mesal', ''))
                     n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
                     
                     if st.form_submit_button("Gravar Alterações"):
@@ -191,3 +188,5 @@ def main():
                         }
                         requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS)
                         st.success("Alterações salvas com sucesso na nuvem!")
+                        st.rerun()
+
