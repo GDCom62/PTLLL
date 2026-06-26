@@ -10,33 +10,33 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 def main():
     # --- CONEXÃO COM O BANCO DE DADOS EM NUVEM SUPABASE VIA API HTTP NATIVA ---
     try:
-        url_base = st.secrets["SUPABASE_URL"].strip().rstrip("/")
-        if "/rest/v1" in url_base:
-            url_base = url_base.split("/rest/v1")[0]
+        url_limpa = st.secrets["SUPABASE_URL"].strip().rstrip("/")
+        if "/rest/v1" in url_limpa:
+            url_limpa = url_limpa.split("/rest/v1")[0]
             
-        key = st.secrets["SUPABASE_KEY"].strip()
-        headers = {
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
+        key_limpa = st.secrets["SUPABASE_KEY"].strip()
+        
+        SUB_URL = url_limpa
+        SUB_HEADERS = {
+            "apikey": key_limpa,
+            "Authorization": "Bearer " + key_limpa,
             "Content-Type": "application/json",
             "Prefer": "return=representation"
         }
-        SUB_URL = url_base
-        SUB_HEADERS = headers
     except Exception as e:
         st.error("Erro ao ler credenciais. Verifique os Secrets do Streamlit.")
         st.stop()
 
     # --- VERIFICAÇÃO E ALIMENTAÇÃO AUTOMÁTICA DA NUVEM ---
     try:
-        req_check = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=id", headers=SUB_HEADERS)
+        req_check = requests.get(SUB_URL + "/rest/v1/equipamentos?select=id", headers=SUB_HEADERS)
         if req_check.status_code == 200 and len(req_check.json()) == 0:
             maquinas_iniciais = [
                 {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
                 {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar", "check_mensal": "Filtro", "check_anual": "Válvulas"}
             ]
             for mq in maquinas_iniciais:
-                requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=mq, headers=SUB_HEADERS)
+                requests.post(SUB_URL + "/rest/v1/equipamentos", json=mq, headers=SUB_HEADERS)
     except:
         pass
 
@@ -95,14 +95,14 @@ def main():
         
         with aba_lista:
             st.subheader("Equipamentos Registrados no Sistema")
-            req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS)
+            req = requests.get(SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS)
             equipamentos = req.json() if req.status_code == 200 else []
             
             if len(equipamentos) > 0 and isinstance(equipamentos, list):
                 for eq in equipamentos:
                     st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
                     if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id'])):
-                        requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq['id']}", headers=SUB_HEADERS)
+                        requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS)
                         st.success("Equipamento removido do banco de dados na nuvem!")
                         st.rerun()
                     st.write("---")
@@ -127,7 +127,7 @@ def main():
                             "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
                             "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano
                         }
-                        res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS)
+                        res = requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS)
                         if res.status_code < 400:
                             st.success("Máquina registrada e salva permanentemente na nuvem!")
                             st.rerun()
@@ -138,7 +138,7 @@ def main():
 
         with aba_editar:
             st.subheader("Editar Máquina Existente")
-            req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
+            req = requests.get(SUB_URL + "/rest/v1/equipamentos?select=*", headers=SUB_HEADERS)
             equipamentos_lista = req.json() if req.status_code == 200 else []
             opcoes_edicao = {}
             if isinstance(equipamentos_lista, list):
@@ -161,7 +161,7 @@ def main():
                             "nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit,
                             "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
                         }
-                        requests.patch(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_para_editar['id']}", json=alteracoes, headers=SUB_HEADERS)
+                        requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS)
                         st.success("Alterações salvas com sucesso na nuvem!")
                         st.rerun()
 
@@ -172,7 +172,7 @@ def main():
         st.header("📅 Planejamento de Manutenções Preventivas")
         aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
         
-        req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
+        req_plan = requests.get(SUB_URL + "/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS)
         todos_agendamentos = req_plan.json() if req_plan.status_code == 200 else []
 
         def renderizar_lista(dados_filtrados):
@@ -190,4 +190,3 @@ def main():
                                 "data_prevista": p['data_prevista'],
                                 "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"),
                                 "pecas": p['pecas'],
-                                "status": "Concluído"
