@@ -47,7 +47,7 @@ except:
 def renderizar_lista_preventivas(dados_filtrados):
     if dados_filtrados and isinstance(dados_filtrados, list):
         for p in dados_filtrados:
-            col_dados, col_acao = st.columns([4, 1])
+            col_dados, col_acao = st.columns()
             with col_dados:
                 st.write(f"⚙️ **{p['equipamento']}** | 📅 **Data Prevista:** {p.get('data_prevista')} | **Status:** {p['status']}")
                 st.write(f"🔧 Peças Programadas: {p['pecas']}")
@@ -195,7 +195,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL.
+# 2. PÁGINA: PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -205,4 +205,3 @@ elif menu == "📅 Planejamento & Checklists":
     todos_agendamentos = req_plan.json() if req_plan.status_code == 200 else []
 
     with aba_sem:
-        if isinstance(todos_agendamentos, list):
