@@ -62,8 +62,11 @@ def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_header
                     "status": "Concluído"
                 }
                 if not modo_demo:
-                    requests.post(sub_url + "/rest/v1/historico", json=registro_historico, headers=sub_headers, timeout=15)
-                    requests.delete(sub_url + "/rest/v1/planejamento?id=eq." + str(p['id']), headers=sub_headers, timeout=15)
+                    try:
+                        requests.post(sub_url + "/rest/v1/historico", json=registro_historico, headers=sub_headers, timeout=15)
+                        requests.delete(sub_url + "/rest/v1/planejamento?id=eq." + str(p['id']), headers=sub_headers, timeout=15)
+                    except:
+                        pass
                 st.session_state.historico_local.append(registro_historico)
                 st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
                 st.success("Ordem de serviço finalizada!")
@@ -119,7 +122,10 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
                 if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id']) + "_" + str(idx)):
                     if not MODO_DEMO:
-                        requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS, timeout=15)
+                        try:
+                            requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS, timeout=15)
+                        except:
+                            pass
                     st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m['id'] != eq['id']]
                     st.success("Equipamento removido!")
                     st.rerun()
@@ -146,7 +152,10 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                         "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano
                     }
                     if not MODO_DEMO:
-                        requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=15)
+                        try:
+                            requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=15)
+                        except:
+                            pass
                     st.session_state.maquinas_locais.append(novo_registro)
                     st.success("Máquina registrada com sucesso!")
                     st.rerun()
@@ -179,7 +188,10 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                         "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
                     }
                     if not MODO_DEMO:
-                        requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS, timeout=15)
+                        try:
+                            requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS, timeout=15)
+                        except:
+                            pass
                     for m in st.session_state.maquinas_locais:
                         if m['id'] == eq_para_editar['id']:
                             m.update(alteracoes)
@@ -187,11 +199,3 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                     st.rerun()
 
 # ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL
-# ==========================================
-elif menu == "📅 Planejamento & Checklists":
-    st.header("📅 Planejamento de Manutenções Preventivas")
-    aba_sem, aba_mes, aba_ano, aba_novo = st.tabs(["🗓️ Semanal", "📅 Mensal", "⏳ Anual", "➕ Agendar Preventiva"])
-    
-    todos_agendamentos = st.session_state.planejamento_local
-    if not MODO_DEMO:
