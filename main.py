@@ -68,7 +68,7 @@ menu = st.sidebar.radio("Navegar para:", [
 ])
 
 # --- PUXA DADOS DA NUVEM OU LOCAL ---
-equipamentos = st.session_state.maquinas_locais
+equipamentos = []
 if not MODO_DEMO:
     try:
         req = requests.get(SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS, timeout=15)
@@ -76,6 +76,10 @@ if not MODO_DEMO:
             equipamentos = req.json()
     except:
         pass
+
+# Rota de fuga: garante que a lista de equipamentos nunca fique nula para o planejamento
+if not equipamentos or len(equipamentos) == 0:
+    equipamentos = st.session_state.maquinas_locais
 
 # ==========================================
 # PAGE 1: LISTA DE MÁQUINAS
@@ -175,7 +179,7 @@ elif menu == "📅 Planejamento & Checklists":
         except:
             pass
 
-    col_lista, col_formulario = st.columns([2, 1])
+    col_lista, col_formulario = st.columns(2)
     
     with col_lista:
         st.subheader("🗓️ Filtros de Período")
@@ -194,4 +198,3 @@ elif menu == "📅 Planejamento & Checklists":
                             requests.post(SUB_URL + "/rest/v1/historico", json=registro_historico, headers=SUB_HEADERS, timeout=15)
                             requests.delete(SUB_URL + "/rest/v1/planejamento?id=eq." + str(p['id']), headers=SUB_HEADERS, timeout=15)
                         except: pass
-                    st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
