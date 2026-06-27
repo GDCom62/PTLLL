@@ -163,7 +163,7 @@ elif menu == "✏️ Editar Máquina":
         st.info("Nenhum equipamento disponível para edição.")
 
 # ==========================================
-# PAGE 4: PLANEJAMENTO TEMPORAL (CORRIGIDO)
+# PAGE 4: PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -178,7 +178,6 @@ elif menu == "📅 Planejamento & Checklists":
         except:
             pass
 
-    # BLOCO 1: FORMULÁRIO DE AGENDAMENTO (EM LINHA INTEIRA NO TOPO)
     st.subheader("📋 Nova Agenda Preventiva")
     lista_nomes = [row['nome'] for row in equipamentos if isinstance(row, dict) and 'nome' in row]
     opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
@@ -206,3 +205,4 @@ elif menu == "📅 Planejamento & Checklists":
                     "seguranca": "Uso de EPIs obrigatório."
                 }
                 st.session_state.planejamento_local.append(novo_agendamento)
+                if not MODO_DEMO:
