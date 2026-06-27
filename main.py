@@ -77,7 +77,6 @@ if not MODO_DEMO:
     except:
         pass
 
-# Rota de fuga: garante que a lista de equipamentos nunca fique nula para o planejamento
 if not equipamentos or len(equipamentos) == 0:
     equipamentos = st.session_state.maquinas_locais
 
@@ -164,7 +163,7 @@ elif menu == "✏️ Editar Máquina":
         st.info("Nenhum equipamento disponível para edição.")
 
 # ==========================================
-# PAGE 4: PLANEJAMENTO TEMPORAL
+# PAGE 4: PLANEJAMENTO TEMPORAL (CORRIGIDO)
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
@@ -179,22 +178,31 @@ elif menu == "📅 Planejamento & Checklists":
         except:
             pass
 
-    col_lista, col_formulario = st.columns(2)
+    # BLOCO 1: FORMULÁRIO DE AGENDAMENTO (EM LINHA INTEIRA NO TOPO)
+    st.subheader("📋 Nova Agenda Preventiva")
+    lista_nomes = [row['nome'] for row in equipamentos if isinstance(row, dict) and 'nome' in row]
+    opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
     
-    with col_lista:
-        st.subheader("🗓️ Filtros de Período")
-        filtro_per = st.selectbox("Visualizar Ordens de Período:", ["Semanal", "Mensal", "Anual"])
-        dados_filtrados = [a for a in todos_agendamentos if str(a.get('periodo')).lower() == filtro_per.lower()]
+    with st.form("form_novo_planejamento_topo"):
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", opcoes_selecao)
+        with col_f2:
+            periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
+        with col_f3:
+            data_planejada = st.date_input("Selecione a Data:", datetime.now())
+            
+        pecas_necessarias = st.text_area("Descrição das Peças / Ferramentas necessárias:", value="Inspeção preventiva padrão")
         
-        if dados_filtrados:
-            for idx, p in enumerate(dados_filtrados):
-                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-                st.write("🔧 Peças: " + str(p['pecas']))
-                if st.button("✔️ Concluir OS", key="comp_" + str(p.get('id', 'os')) + "_" + str(idx)):
-                    registro_historico = {"equipamento": p['equipamento'], "periodo": p['periodo'], "data_prevista": p['data_prevista'], "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"), "pecas": p['pecas'], "status": "Concluído"}
-                    st.session_state.historico_local.append(registro_historico)
-                    if not MODO_DEMO:
-                        try:
-                            requests.post(SUB_URL + "/rest/v1/historico", json=registro_historico, headers=SUB_HEADERS, timeout=15)
-                            requests.delete(SUB_URL + "/rest/v1/planejamento?id=eq." + str(p['id']), headers=SUB_HEADERS, timeout=15)
-                        except: pass
+        if st.form_submit_button("💾 Gravar e Agendar Manutenção"):
+            if eq_escolhido != "Nenhum equipamento cadastrado":
+                novo_agendamento = {
+                    "id": len(todos_agendamentos) + 1,
+                    "equipamento": eq_escolhido,
+                    "periodo": periodo_escolhido,
+                    "data_prevista": data_planejada.strftime("%d/%m/%Y"),
+                    "pecas": pecas_necessarias,
+                    "status": "Pendente",
+                    "seguranca": "Uso de EPIs obrigatório."
+                }
+                st.session_state.planejamento_local.append(novo_agendamento)
