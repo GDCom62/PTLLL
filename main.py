@@ -29,7 +29,7 @@ try:
 except Exception as e:
     MODO_DEMO = True
 
-# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL (FALLBACK CONTRA ABAS VAZIAS) ---
+# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL ---
 if "maquinas_locais" not in st.session_state:
     st.session_state.maquinas_locais = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
@@ -47,7 +47,7 @@ def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_header
         return
 
     for idx, p in enumerate(dados_filtrados):
-        col_dados, col_acao = st.columns([4, 1])
+        col_dados, col_acao = st.columns()
         with col_dados:
             st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
             st.write("🔧 Peças Programadas: " + str(p['pecas']))
@@ -63,8 +63,8 @@ def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_header
                 }
                 if not modo_demo:
                     try:
-                        requests.post(sub_url + "/rest/v1/historico", json=registro_historico, headers=sub_headers, timeout=5)
-                        requests.delete(sub_url + "/rest/v1/planejamento?id=eq." + str(p['id']), headers=sub_headers, timeout=5)
+                        requests.post(sub_url + "/rest/v1/historico", json=registro_historico, headers=sub_headers, timeout=15)
+                        requests.delete(sub_url + "/rest/v1/planejamento?id=eq." + str(p['id']), headers=sub_headers, timeout=15)
                     except:
                         pass
                 st.session_state.historico_local.append(registro_historico)
@@ -76,10 +76,10 @@ def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_header
 # --- INJEÇÃO AUTOMÁTICA DE DADOS SE O BANCO DA NUVEM ESTIVER VAZIO ---
 if not MODO_DEMO:
     try:
-        req_check = requests.get(SUB_URL + "/rest/v1/equipamentos?select=id", headers=SUB_HEADERS, timeout=5)
+        req_check = requests.get(SUB_URL + "/rest/v1/equipamentos?select=id", headers=SUB_HEADERS, timeout=15)
         if req_check.status_code == 200 and len(req_check.json()) == 0:
             for mq in st.session_state.maquinas_locais:
-                requests.post(SUB_URL + "/rest/v1/equipamentos", json=mq, headers=SUB_HEADERS, timeout=5)
+                requests.post(SUB_URL + "/rest/v1/equipamentos", json=mq, headers=SUB_HEADERS, timeout=15)
     except:
         MODO_DEMO = True
 
@@ -109,7 +109,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     equipamentos = st.session_state.maquinas_locais
     if not MODO_DEMO:
         try:
-            req = requests.get(SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS, timeout=5)
+            req = requests.get(SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS, timeout=15)
             if req.status_code == 200:
                 equipamentos = req.json()
         except:
@@ -122,8 +122,10 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
                 if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id']) + "_" + str(idx)):
                     if not MODO_DEMO:
-                        try: requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS, timeout=5)
-                        except: pass
+                        try:
+                            requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS, timeout=15)
+                        except:
+                            pass
                     st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m['id'] != eq['id']]
                     st.success("Equipamento removido!")
                     st.rerun()
@@ -150,8 +152,10 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                         "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano
                     }
                     if not MODO_DEMO:
-                        try: requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=5)
-                        except: pass
+                        try:
+                            requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=15)
+                        except:
+                            pass
                     st.session_state.maquinas_locais.append(novo_registro)
                     st.success("Máquina registrada com sucesso!")
                     st.rerun()
@@ -184,15 +188,13 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                         "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
                     }
                     if not MODO_DEMO:
-                        try: requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS, timeout=5)
-                        except: pass
+                        try:
+                            requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS, timeout=15)
+                        except:
+                            pass
                     for m in st.session_state.maquinas_locais:
                         if m['id'] == eq_para_editar['id']:
                             m.update(alteracoes)
                     st.success("Alterações salvas!")
                     st.rerun()
-
-# ==========================================
-# 2. PÁGINA: PLANEJAMENTO TEMPORAL
-# ==========================================
-elif menu == "📅 Planejamento & Checklists":
+        else:
