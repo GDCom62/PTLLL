@@ -7,7 +7,7 @@ import requests
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- CONEXÃO SEGURA E DIRETA COM O SUPABASE ---
+# --- CONEXÃO COM O BANCO DE DADOS EM NUVEM SUPABASE VIA API HTTP ---
 SUB_URL = ""
 SUB_HEADERS = {}
 MODO_DEMO = False
@@ -17,7 +17,6 @@ try:
         url_bruta = str(st.secrets["SUPABASE_URL"]).strip().rstrip("/")
         SUB_URL = url_bruta.replace("/rest/v1", "")
         key_limpa = str(st.secrets["SUPABASE_KEY"]).strip()
-        
         SUB_HEADERS = {
             "apikey": key_limpa,
             "Authorization": "Bearer " + key_limpa,
@@ -29,7 +28,7 @@ try:
 except Exception as e:
     MODO_DEMO = True
 
-# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL ---
+# --- MEMÓRIA LOCAL DE SEGURANÇA CONTRA ERROS DE CONEXÃO ---
 if "maquinas_locais" not in st.session_state:
     st.session_state.maquinas_locais = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
@@ -40,40 +39,7 @@ if "planejamento_local" not in st.session_state:
 if "historico_local" not in st.session_state:
     st.session_state.historico_local = []
 
-# --- FUNÇÃO AUXILIAR PARA RENDERIZAR LISTA DE PREVENTIVAS ---
-def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_headers):
-    if not dados_filtrados or not isinstance(dados_filtrados, list):
-        st.info("Nenhuma manutenção preventiva pendente para este período.")
-        return
-
-    for idx, p in enumerate(dados_filtrados):
-        col_dados, col_acao = st.columns()
-        with col_dados:
-            st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
-            st.write("🔧 Peças Programadas: " + str(p['pecas']))
-        with col_acao:
-            if st.button("✔️ Concluir", key="comp_" + str(p.get('id', 'os')) + "_" + str(idx)):
-                registro_historico = {
-                    "equipamento": p['equipamento'],
-                    "periodo": p['periodo'],
-                    "data_prevista": p['data_prevista'],
-                    "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    "pecas": p['pecas'],
-                    "status": "Concluído"
-                }
-                if not modo_demo:
-                    try:
-                        requests.post(sub_url + "/rest/v1/historico", json=registro_historico, headers=sub_headers, timeout=15)
-                        requests.delete(sub_url + "/rest/v1/planejamento?id=eq." + str(p['id']), headers=sub_headers, timeout=15)
-                    except:
-                        pass
-                st.session_state.historico_local.append(registro_historico)
-                st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
-                st.success("Ordem de serviço finalizada!")
-                st.rerun()
-        st.write("---")
-
-# --- INJEÇÃO AUTOMÁTICA DE DADOS SE O BANCO DA NUVEM ESTIVER VAZIO ---
+# --- INJEÇÃO DE DADOS SE O BANCO DA NUVEM ESTIVER VAZIO ---
 if not MODO_DEMO:
     try:
         req_check = requests.get(SUB_URL + "/rest/v1/equipamentos?select=id", headers=SUB_HEADERS, timeout=15)
@@ -83,119 +49,149 @@ if not MODO_DEMO:
     except:
         MODO_DEMO = True
 
-# --- EXIBIÇÃO DOS LOGOS NO TOPO ---
+# --- EXIBIÇÃO DO LOGO NO TOPO ---
 if os.path.exists("logo.png"):
     st.image("logo.png", width=150)
 else:
     st.info("Insira o arquivo 'logo.png' na pasta do script para exibir o logo do topo.")
 
-# --- MARCA DA EMPRESA NO MENU LATERAL ---
+# --- MENU LATERAL DE NAVEGAÇÃO COMPACTO ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
-    "📋 Cadastro & Edição de Máquinas", 
-    "📅 Planejamento & Checklists", 
-    "📜 Histórico de Trocas", 
+    "🔍 Lista de Máquinas",
+    "➕ Cadastrar Nova Máquina",
+    "✏️ Editar Máquina",
+    "📅 Planejamento & Checklists",
+    "📜 Histórico de Trocas",
     "⚠️ Emissão de PT"
 ])
 
+# --- PUXA DADOS DA NUVEM OU LOCAL ---
+equipamentos = st.session_state.maquinas_locais
+if not MODO_DEMO:
+    try:
+        req = requests.get(SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS, timeout=15)
+        if req.status_code == 200:
+            equipamentos = req.json()
+    except:
+        pass
+
 # ==========================================
-# 1. PÁGINA: CADASTRO E EDIÇÃO
+# PAGE 1: LISTA DE MÁQUINAS
 # ==========================================
-if menu == "📋 Cadastro & Edição de Máquinas":
-    st.header("📋 Gerenciamento de Máquinas e Equipamentos")
-    aba_lista, aba_cadastrar, aba_editar = st.tabs(["🔍 Ver e Excluir", "➕ Cadastrar Novo", "✏️ Editar Existente"])
+if menu == "🔍 Lista de Máquinas":
+    st.header("🔍 Equipamentos Registrados no Sistema")
+    if equipamentos and isinstance(equipamentos, list):
+        for idx, eq in enumerate(equipamentos):
+            st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
+            if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id']) + "_" + str(idx)):
+                if not MODO_DEMO:
+                    try: requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS, timeout=15)
+                    except: pass
+                st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m['id'] != eq['id']]
+                st.success("Equipamento removido!")
+                st.rerun()
+            st.write("---")
+    else:
+        st.info("Nenhum equipamento cadastrado no sistema.")
+
+# ==========================================
+# PAGE 2: CADASTRAR MÁQUINA
+# ==========================================
+elif menu == "➕ Cadastrar Nova Máquina":
+    st.header("➕ Cadastrar Nova Máquina")
+    with st.form("form_cadastro"):
+        id_eq = st.text_input("Código/Tag do Equipamento (Ex: EQ-003):")
+        nome_eq = st.text_input("Nome do Equipamento:")
+        local_eq = st.text_input("Localização / Setor:")
+        crit_eq = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"])
+        st.markdown("---")
+        c_sem = st.text_area("Itens da Preventiva Semanal:", "Verificar nível de óleo\nLimpeza geral")
+        c_mes = st.text_area("Itens da Preventiva Mensal:", "Trocar filtros\nConferir correias")
+        c_ano = st.text_area("Itens da Preventiva Anual:", "Revisão geral do motor")
+        
+        if st.form_submit_button("Salvar Equipamento"):
+            if id_eq and nome_eq:
+                novo_registro = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano}
+                st.session_state.maquinas_locais.append(novo_registro)
+                if not MODO_DEMO:
+                    try: requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=15)
+                    except: pass
+                st.success("Máquina registrada com sucesso!")
+                st.rerun()
+            else:
+                st.error("Preencha os campos obrigatórios.")
+
+# ==========================================
+# PAGE 3: EDITAR MÁQUINA
+# ==========================================
+elif menu == "✏️ Editar Máquina":
+    st.header("✏️ Editar Máquina Existente")
+    opcoes_edicao = {}
+    if equipamentos and isinstance(equipamentos, list):
+        for e in equipamentos:
+            if isinstance(e, dict) and 'id' in e:
+                opcoes_edicao[str(e['id']) + " - " + str(e['nome'])] = e
     
-    equipamentos = st.session_state.maquinas_locais
+    if opcoes_edicao:
+        selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
+        eq_para_editar = opcoes_edicao[selecionado_edicao]
+        
+        with st.form("form_edicao"):
+            novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar['nome'])
+            novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
+            novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
+            n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
+            n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
+            n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
+            
+            if st.form_submit_button("Gravar Alterações"):
+                alteracoes = {"nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit, "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano}
+                if not MODO_DEMO:
+                    try: requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS, timeout=15)
+                    except: pass
+                for m in st.session_state.maquinas_locais:
+                    if m['id'] == eq_para_editar['id']:
+                        m.update(alteracoes)
+                st.success("Alterações salvas!")
+                st.rerun()
+    else:
+        st.info("Nenhum equipamento disponível para edição.")
+
+# ==========================================
+# PAGE 4: PLANEJAMENTO TEMPORAL
+# ==========================================
+elif menu == "📅 Planejamento & Checklists":
+    st.header("📅 Planejamento de Manutenções Preventivas")
+    
+    todos_agendamentos = list(st.session_state.planejamento_local)
     if not MODO_DEMO:
         try:
-            req = requests.get(SUB_URL + "/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS, timeout=15)
-            if req.status_code == 200:
-                equipamentos = req.json()
+            req_plan = requests.get(SUB_URL + "/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS, timeout=15)
+            if req_plan.status_code == 200:
+                for d in req_plan.json():
+                    if d not in todos_agendamentos: todos_agendamentos.append(d)
         except:
             pass
 
-    with aba_lista:
-        st.subheader("Equipamentos Registrados no Sistema")
-        if equipamentos and isinstance(equipamentos, list):
-            for idx, eq in enumerate(equipamentos):
-                st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
-                if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id']) + "_" + str(idx)):
-                    if not MODO_DEMO:
-                        try:
-                            requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS, timeout=15)
-                        except:
-                            pass
-                    st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m['id'] != eq['id']]
-                    st.success("Equipamento removido!")
-                    st.rerun()
-                st.write("---")
-        else:
-            st.info("Nenhum equipamento cadastrado no sistema.")
-                        
-    with aba_cadastrar:
-        st.subheader("Cadastrar Nova Máquina")
-        with st.form("form_cadastro"):
-            id_eq = st.text_input("Código/Tag do Equipamento (Ex: EQ-003):")
-            nome_eq = st.text_input("Nome do Equipamento:")
-            local_eq = st.text_input("Localização / Setor:")
-            crit_eq = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"])
-            st.markdown("---")
-            c_sem = st.text_area("Itens da Preventiva Semanal:", "Verificar nível de óleo\nLimpeza geral")
-            c_mes = st.text_area("Itens da Preventiva Mensal:", "Trocar filtros\nConferir correias")
-            c_ano = st.text_area("Itens da Preventiva Anual:", "Revisão geral do motor")
-            
-            if st.form_submit_button("Salvar Equipamento"):
-                if id_eq and nome_eq:
-                    novo_registro = {
-                        "id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq,
-                        "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano
-                    }
-                    if not MODO_DEMO:
-                        try:
-                            requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=15)
-                        except:
-                            pass
-                    st.session_state.maquinas_locais.append(novo_registro)
-                    st.success("Máquina registrada com sucesso!")
-                    st.rerun()
-                else:
-                    st.error("Preencha os campos obrigatórios.")
-
-    with aba_editar:
-        st.subheader("Editar Máquina Existente")
-        opcoes_edicao = {}
-        if equipamentos and isinstance(equipamentos, list):
-            for e in equipamentos:
-                if isinstance(e, dict) and 'id' in e:
-                    opcoes_edicao[str(e['id']) + " - " + str(e['nome'])] = e
+    col_lista, col_formulario = st.columns([2, 1])
+    
+    with col_lista:
+        st.subheader("🗓️ Filtros de Período")
+        filtro_per = st.selectbox("Visualizar Ordens de Período:", ["Semanal", "Mensal", "Anual"])
+        dados_filtrados = [a for a in todos_agendamentos if str(a.get('periodo')).lower() == filtro_per.lower()]
         
-        if opcoes_edicao:
-            selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
-            eq_para_editar = opcoes_edicao[selecionado_edicao]
-            
-            with st.form("form_edicao"):
-                novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar['nome'])
-                novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
-                novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
-                n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
-                n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
-                n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
-                
-                if st.form_submit_button("Gravar Alterações"):
-                    alteracoes = {
-                        "nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit,
-                        "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
-                    }
+        if dados_filtrados:
+            for idx, p in enumerate(dados_filtrados):
+                st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
+                st.write("🔧 Peças: " + str(p['pecas']))
+                if st.button("✔️ Concluir OS", key="comp_" + str(p.get('id', 'os')) + "_" + str(idx)):
+                    registro_historico = {"equipamento": p['equipamento'], "periodo": p['periodo'], "data_prevista": p['data_prevista'], "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"), "pecas": p['pecas'], "status": "Concluído"}
+                    st.session_state.historico_local.append(registro_historico)
                     if not MODO_DEMO:
                         try:
-                            requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS, timeout=15)
-                        except:
-                            pass
-                    for m in st.session_state.maquinas_locais:
-                        if m['id'] == eq_para_editar['id']:
-                            m.update(alteracoes)
-                    st.success("Alterações salvas!")
-                    st.rerun()
-
-# ==========================================
+                            requests.post(SUB_URL + "/rest/v1/historico", json=registro_historico, headers=SUB_HEADERS, timeout=15)
+                            requests.delete(SUB_URL + "/rest/v1/planejamento?id=eq." + str(p['id']), headers=SUB_HEADERS, timeout=15)
+                        except: pass
+                    st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
