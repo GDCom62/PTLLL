@@ -1,6 +1,5 @@
 import streamlit as st
 from datetime import datetime
-import base64
 import os
 import requests
 
@@ -13,7 +12,7 @@ SUB_HEADERS = {}
 MODO_DEMO = False
 
 try:
-    if "st.secrets" in globals() or "SUPABASE_URL" in st.secrets:
+    if "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.secrets:
         url_bruta = str(st.secrets["SUPABASE_URL"]).strip().rstrip("/")
         SUB_URL = url_bruta.replace("/rest/v1", "")
         key_limpa = str(st.secrets["SUPABASE_KEY"]).strip()
@@ -88,8 +87,6 @@ if menu == "🔍 Lista de Máquinas":
     if equipamentos and isinstance(equipamentos, list):
         for idx, eq in enumerate(equipamentos):
             st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
-            
-            # Botão de remoção com fluxo limpo e plano para evitar o IndentationError
             if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id']) + "_" + str(idx)):
                 if not MODO_DEMO:
                     try:
@@ -120,7 +117,7 @@ elif menu == "➕ Cadastrar Nova Máquina":
         
         if st.form_submit_button("Salvar Equipamento"):
             if id_eq and nome_eq:
-                novo_registro = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano}
+                novo_registro = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
                 st.session_state.maquinas_locais.append(novo_registro)
                 if not MODO_DEMO:
                     try:
@@ -182,7 +179,8 @@ elif menu == "📅 Planejamento & Checklists":
             req_plan = requests.get(SUB_URL + "/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS, timeout=15)
             if req_plan.status_code == 200:
                 for d in req_plan.json():
-                    if d not in todos_agendamentos: todos_agendamentos.append(d)
+                    if d not in todos_agendamentos:
+                        todos_agendamentos.append(d)
         except:
             pass
 
@@ -210,3 +208,5 @@ elif menu == "📅 Planejamento & Checklists":
                     "data_prevista": data_planejada.strftime("%d/%m/%Y"),
                     "pecas": pecas_necessarias,
                     "status": "Pendente",
+                    "seguranca": "Uso de EPIs obrigatório."
+                }
