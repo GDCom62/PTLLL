@@ -1,4 +1,4 @@
-import streamlit st
+import streamlit as st
 from datetime import datetime
 import base64
 import os
@@ -13,7 +13,7 @@ SUB_HEADERS = {}
 MODO_DEMO = False
 
 try:
-    if "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.secrets:
+    if "st.secrets" in globals() or "SUPABASE_URL" in st.secrets:
         SUB_URL = str(st.secrets["SUPABASE_URL"]).strip().rstrip("/")
         key_limpa = str(st.secrets["SUPABASE_KEY"]).strip()
         
@@ -39,7 +39,7 @@ if "planejamento_local" not in st.session_state:
 if "historico_local" not in st.session_state:
     st.session_state.historico_local = []
 
-# --- FUNÇÃO AUXILIAR PARA RENDERIZAR LISTA DE PREVENTIVAS (BLINDADA CONTRA CHAVES DUPLICADAS) ---
+# --- FUNÇÃO AUXILIAR PARA RENDERIZAR LISTA DE PREVENTIVAS ---
 def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_headers):
     if dados_filtrados and isinstance(dados_filtrados, list):
         for idx, p in enumerate(dados_filtrados):
@@ -48,7 +48,6 @@ def renderizar_lista_preventivas(dados_filtrados, modo_demo, sub_url, sub_header
                 st.write("⚙️ **" + str(p['equipamento']) + "** | 📅 **Data Prevista:** " + str(p.get('data_prevista')) + " | **Status:** " + str(p['status']))
                 st.write("🔧 Peças Programadas: " + str(p['pecas']))
             with col_acao:
-                # Chave combinada com index garante exclusividade total na tela
                 if st.button("✔️ Concluir", key="comp_" + str(p.get('id', 'os')) + "_" + str(idx)):
                     registro_historico = {
                         "equipamento": p['equipamento'],
@@ -123,7 +122,6 @@ if menu == "📋 Cadastro & Edição de Máquinas":
     with aba_lista:
         st.subheader("Equipamentos Registrados no Sistema")
         if len(equipamentos) > 0 and isinstance(equipamentos, list):
-            # Enumerate adicionado aqui para evitar o erro de chaves duplicadas (StreamlitDuplicateElementKey)
             for idx, eq in enumerate(equipamentos):
                 st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
                 if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id']) + "_" + str(idx)):
@@ -193,3 +191,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 if st.form_submit_button("Gravar Alterações"):
                     alteracoes = {
                         "nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit,
+                        "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano
+                    }
+                    if not MODO_DEMO:
+                        try:
