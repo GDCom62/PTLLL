@@ -88,10 +88,14 @@ if menu == "🔍 Lista de Máquinas":
     if equipamentos and isinstance(equipamentos, list):
         for idx, eq in enumerate(equipamentos):
             st.write("🔹 **[" + str(eq['id']) + "] " + str(eq['nome']) + "** | Setor: " + str(eq['localizacao']) + " | Criticidade: " + str(eq['criticidade']))
+            
+            # Botão de remoção com fluxo limpo e plano para evitar o IndentationError
             if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id']) + "_" + str(idx)):
                 if not MODO_DEMO:
-                    try: requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS, timeout=15)
-                    except: pass
+                    try:
+                        requests.delete(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq['id']), headers=SUB_HEADERS, timeout=15)
+                    except:
+                        pass
                 st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m['id'] != eq['id']]
                 st.success("Equipamento removido!")
                 st.rerun()
@@ -119,8 +123,10 @@ elif menu == "➕ Cadastrar Nova Máquina":
                 novo_registro = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano}
                 st.session_state.maquinas_locais.append(novo_registro)
                 if not MODO_DEMO:
-                    try: requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=15)
-                    except: pass
+                    try:
+                        requests.post(SUB_URL + "/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=15)
+                    except:
+                        pass
                 st.success("Máquina registrada com sucesso!")
                 st.rerun()
             else:
@@ -152,8 +158,10 @@ elif menu == "✏️ Editar Máquina":
             if st.form_submit_button("Gravar Alterações"):
                 alteracoes = {"nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit, "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano}
                 if not MODO_DEMO:
-                    try: requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS, timeout=15)
-                    except: pass
+                    try:
+                        requests.patch(SUB_URL + "/rest/v1/equipamentos?id=eq." + str(eq_para_editar['id']), json=alteracoes, headers=SUB_HEADERS, timeout=15)
+                    except:
+                        pass
                 for m in st.session_state.maquinas_locais:
                     if m['id'] == eq_para_editar['id']:
                         m.update(alteracoes)
@@ -202,7 +210,3 @@ elif menu == "📅 Planejamento & Checklists":
                     "data_prevista": data_planejada.strftime("%d/%m/%Y"),
                     "pecas": pecas_necessarias,
                     "status": "Pendente",
-                    "seguranca": "Uso de EPIs obrigatório."
-                }
-                st.session_state.planejamento_local.append(novo_agendamento)
-                if not MODO_DEMO:
