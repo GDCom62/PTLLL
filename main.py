@@ -170,7 +170,7 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                 if isinstance(e, dict) and 'id' in e:
                     opcoes_edicao[str(e['id']) + " - " + str(e['nome'])] = e
         
-        if len(opcoes_edicao) > 0:
+        if opcoes_edicao:
             selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
             eq_para_editar = opcoes_edicao[selecionado_edicao]
             
@@ -197,4 +197,5 @@ if menu == "📋 Cadastro & Edição de Máquinas":
                             m.update(alteracoes)
                     st.success("Alterações salvas!")
                     st.rerun()
-        else:
+
+# ==========================================
