@@ -31,7 +31,7 @@ except Exception as e:
     MODO_DEMO = True
     STATUS_CONEXAO = f"Erro crítico ao ler Secrets: {e}"
 
-# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL CONTRA APAGÃO ---
+# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL ---
 if "maquinas_locais" not in st.session_state or not st.session_state.maquinas_locais:
     st.session_state.maquinas_locais = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
@@ -194,7 +194,7 @@ elif menu == "✏️ Editar Máquina":
         st.info("Nenhum equipamento disponível para edição.")
 
 # ==========================================
-# PAGE 4: PLANEJAMENTO TEMPORAL
+# PAGE 4: PLANEJAMENTO TEMPORAL (VISUALIZAÇÃO COMPLETA SEM TRAVA DE FILTRO)
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
