@@ -69,7 +69,7 @@ if not MODO_DEMO:
             equipamentos = req.json()
     except:
         pass
-if not equipamentos:
+if not equipamentos or len(equipamentos) == 0:
     equipamentos = list(st.session_state.maquinas_locais)
 
 # --- PUXA AGENDAMENTOS DA NUVEM OU BACKUP ---
@@ -81,7 +81,9 @@ if not MODO_DEMO:
             todos_agendamentos = req_plan.json()
     except:
         pass
-if not todos_agendamentos:
+
+# AJUSTE SEGURO DEFINITIVO: Se a nuvem estiver vazia, obriga o preenchimento com o backup local
+if not todos_agendamentos or len(todos_agendamentos) == 0:
     todos_agendamentos = list(st.session_state.planejamento_local)
 
 # --- PUXA HISTÓRICO DA NUVEM OU BACKUP ---
@@ -93,7 +95,7 @@ if not MODO_DEMO:
             historico_lista = req_hist.json()
     except:
         pass
-if not historico_lista:
+if not historico_lista or len(historico_lista) == 0:
     historico_lista = list(st.session_state.historico_local)
 
 # ==========================================
@@ -120,7 +122,8 @@ elif menu == "➕ Cadastrar Nova Máquina":
         
     if botao_salvar and id_eq and nome_eq:
         payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
-        st.session_state.maquinas_locais.append(payload)
+        if payload not in st.session_state.maquinas_locais:
+            st.session_state.maquinas_locais.append(payload)
         if not MODO_DEMO:
             try:
                 headers_g = SUB_HEADERS.copy()
@@ -185,7 +188,3 @@ elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Serviços Concluídos")
     st.subheader("📊 Gráfico de Evolução dos Serviços por Período")
     p_semanal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'semanal')
-    p_mensal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'mensal')
-    p_anual = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'anual')
-    
-    c_semanal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'semanal')
