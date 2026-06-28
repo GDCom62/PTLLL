@@ -58,7 +58,7 @@ menu = st.sidebar.radio("Navegar para:", [
     "🛠️ Diagnóstico de Conexão"
 ])
 
-# --- CARREGAMENTO ADAPTATIVO DE EQUIPAMENTOS ---
+# --- CARREGAMENTO ISOLADO DE EQUIPAMENTOS ---
 equipamentos = []
 if not MODO_DEMO:
     try:
@@ -67,10 +67,10 @@ if not MODO_DEMO:
             equipamentos = req.json()
     except:
         pass
-if not equipamentos:
+if not equipamentos or len(equipamentos) == 0:
     equipamentos = list(st.session_state.maquinas_locais)
 
-# --- CARREGAMENTO ADAPTATIVO DE AGENDAMENTOS ---
+# --- CARREGAMENTO ISOLADO DE AGENDAMENTOS ---
 todos_agendamentos = []
 if not MODO_DEMO:
     try:
@@ -79,7 +79,6 @@ if not MODO_DEMO:
             todos_agendamentos = req_plan.json()
     except:
         pass
-
 if not todos_agendamentos or len(todos_agendamentos) == 0:
     todos_agendamentos = list(st.session_state.planejamento_local)
 
@@ -88,7 +87,7 @@ if not todos_agendamentos or len(todos_agendamentos) == 0:
 # ==========================================
 if menu == "🛠️ Diagnóstico de Conexão":
     st.header("🛠️ Painel Analítico de Conexão com o Supabase")
-    st.code(f"URL Alvo: {SUB_URL}\nModo Local Ativo: {MODO_DEMO}\nDiagnóstico: {STATUS_CONEXAO}")
+    st.code(f"URL Alvo: {SUB_URL}\nMeteoro Local Ativo: {MODO_DEMO}\nDiagnóstico: {STATUS_CONEXAO}")
     
     if st.button("⚡ Executar Teste de Gravação Forçado"):
         id_dinamica = "TST-" + datetime.now().strftime("%M%S")
@@ -108,22 +107,21 @@ if menu == "🛠️ Diagnóstico de Conexão":
 # ==========================================
 elif menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados no Sistema")
-    if equipamentos:
-        for idx, eq in enumerate(equipamentos):
-            eq_id = eq.get('id', eq.get('tag', f"REG-{idx}"))
-            eq_nome = eq.get('nome', eq.get('equipamento', 'Sem Nome'))
-            eq_local = eq.get('localizacao', eq.get('setor', 'Não Definido'))
-            eq_crit = eq.get('criticidade', 'Média')
-            
-            st.write(f"🔹 **[{eq_id}] {eq_nome}** | Setor: {eq_local} | Criticidade: {eq_crit}")
-            if st.button("🗑️ Remover " + str(eq_id), key="del_" + str(eq_id) + "_" + str(idx)):
-                if not MODO_DEMO:
-                    try: requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_id}", headers=SUB_HEADERS, timeout=5)
-                    except: pass
-                st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m.get('id') != eq_id]
-                st.success("Equipamento removido!")
-                st.rerun()
-            st.write("---")
+    for idx, eq in enumerate(equipamentos):
+        eq_id = eq.get('id', eq.get('tag', f"REG-{idx}"))
+        eq_nome = eq.get('nome', eq.get('equipamento', 'Sem Nome'))
+        eq_local = eq.get('localizacao', eq.get('setor', 'Não Definido'))
+        eq_crit = eq.get('criticidade', 'Média')
+        
+        st.write(f"🔹 **[{eq_id}] {eq_nome}** | Setor: {eq_local} | Criticidade: {eq_crit}")
+        if st.button("🗑️ Remover " + str(eq_id), key="del_" + str(eq_id) + "_" + str(idx)):
+            if not MODO_DEMO:
+                try: requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_id}", headers=SUB_HEADERS, timeout=5)
+                except: pass
+            st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m.get('id') != eq_id]
+            st.success("Equipamento removido!")
+            st.rerun()
+        st.write("---")
 
 # ==========================================
 # PAGE 2: CADASTRAR MÁQUINA
@@ -199,3 +197,4 @@ elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     st.subheader("📋 Nova Agenda Preventiva")
     
+    lista_nomes = [row.get('nome', row.get('equipamento', 'Máquina')) for row in equipamentos if isinstance(row, dict)]
