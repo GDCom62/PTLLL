@@ -31,8 +31,7 @@ except Exception as e:
     MODO_DEMO = True
     STATUS_CONEXAO = f"Erro crítico ao ler Secrets: {e}"
 
-# --- MOTOR DE FORÇAMENTO DE MEMÓRIA (LIMPA O CACHE TRAVADO DO STREAMLIT) ---
-# Se as variáveis locais sumiram ou viraram listas vazias, este bloco reconstrói do zero
+# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL CONTRA APAGÃO ---
 if "maquinas_locais" not in st.session_state or not st.session_state.maquinas_locais:
     st.session_state.maquinas_locais = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
@@ -61,7 +60,7 @@ menu = st.sidebar.radio("Navegar para:", [
     "🛠️ Diagnóstico de Conexão"
 ])
 
-# --- CARREGAMENTO INTEGRADO DE EQUIPAMENTOS ---
+# --- CARREGAMENTO INTEGRADO E SEGURO DE EQUIPAMENTOS ---
 equipamentos = []
 if not MODO_DEMO:
     try:
@@ -73,7 +72,7 @@ if not MODO_DEMO:
 if not equipamentos or len(equipamentos) == 0:
     equipamentos = list(st.session_state.maquinas_locais)
 
-# --- CARREGAMENTO INTEGRADO DE AGENDAMENTOS ---
+# --- CARREGAMENTO INTEGRADO E SEGURO DE AGENDAMENTOS ---
 todos_agendamentos = []
 if not MODO_DEMO:
     try:
@@ -82,8 +81,6 @@ if not MODO_DEMO:
             todos_agendamentos = req_plan.json()
     except:
         pass
-
-# Casamento forçado de segurança: se a nuvem não trouxe listas válidas, injeta o backup local
 if not todos_agendamentos or len(todos_agendamentos) == 0:
     todos_agendamentos = list(st.session_state.planejamento_local)
 
@@ -149,16 +146,14 @@ elif menu == "➕ Cadastrar Nova Máquina":
         if id_eq and nome_eq:
             payload_completo = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
             payload_simplificado = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq}
-            
-            if payload_completo not in st.session_state.maquinas_locais:
-                st.session_state.maquinas_locais.append(payload_completo)
+            st.session_state.maquinas_locais.append(payload_completo)
             
             if not MODO_DEMO:
                 try:
                     headers_gravacao = SUB_HEADERS.copy()
                     headers_gravacao["Prefer"] = "resolution=merge-duplicates"
                     res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_completo, headers=headers_gravacao, timeout=10)
-                    if res.status_code != 201 and res.status_code == 400:
+                    if res.status_code != 201 and res.status_code != 200:
                         requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_simplificado, headers=headers_gravacao, timeout=10)
                     st.success("🎉 Gravado com sucesso no Supabase!")
                 except:
@@ -196,3 +191,10 @@ elif menu == "✏️ Editar Máquina":
             st.success("Alterações salvas!")
             st.rerun()
     else:
+        st.info("Nenhum equipamento disponível para edição.")
+
+# ==========================================
+# PAGE 4: PLANEJAMENTO TEMPORAL
+# ==========================================
+elif menu == "📅 Planejamento & Checklists":
+    st.header("📅 Planejamento de Manutenções Preventivas")
