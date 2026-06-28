@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import datetime
+import os
 import requests
 import pandas as pd
 
@@ -35,7 +36,7 @@ if "maquinas_locais" not in st.session_state or not st.session_state.maquinas_lo
 
 if "planejamento_local" not in st.session_state or not st.session_state.planejamento_local:
     st.session_state.planejamento_local = [
-        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Inspeção padrão", "status": "Pendente"}
+        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Inspeção preventiva padrão", "status": "Pendente"}
     ]
 
 if "historico_local" not in st.session_state or not st.session_state.historico_local:
@@ -43,7 +44,7 @@ if "historico_local" not in st.session_state or not st.session_state.historico_l
         {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluído"}
     ]
 
-# --- MENU LATERAL E EXIBIÇÃO DO LOGO ---
+# --- MENU LATERAL AND LOGO GENERATION ---
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_column_width=True)
 else:
@@ -118,7 +119,7 @@ elif menu == "➕ Cadastrar Nova Máquina":
         botao_salvar = st.form_submit_button("Salvar Equipamento")
         
     if botao_salvar and id_eq and nome_eq:
-        payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano}
+        payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
         st.session_state.maquinas_locais.append(payload)
         if not MODO_DEMO:
             try:
@@ -132,7 +133,6 @@ elif menu == "➕ Cadastrar Nova Máquina":
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     
-    # ---- SEÇÃO: LISTA DE AÇÕES PREVENTIVAS CADASTRADAS ----
     st.subheader("📋 Consulta Rápida de Ações Preventivas")
     opcoes_lista = {eq.get('nome', 'Máquina'): eq for eq in equipamentos}
     maquina_selecionada = st.selectbox("Selecione uma máquina para ver suas ações preventivas padrão:", list(opcoes_lista.keys()))
@@ -143,7 +143,7 @@ elif menu == "📅 Planejamento & Checklists":
         with col_c1:
             st.info(f"**Semanal:**\n{dados_mq.get('check_semanal', 'Não configurado.')}")
         with col_c2:
-            st.warning(f"**Mensal:**\n{dados_mq.get('check_mensal', 'Não configurado.')}")
+            st.warning(f"**Mensal:**\n{dados_mq.get('check_mes', 'Não configurado.')}")
         with col_c3:
             st.error(f"**Anual:**\n{dados_mq.get('check_anual', 'Não configurado.')}")
             
@@ -180,15 +180,15 @@ elif menu == "📅 Planejamento & Checklists":
                     requests.delete(f"{SUB_URL}/rest/v1/planejamento?id=eq.{p.get('id')}", headers=SUB_HEADERS, timeout=5)
                 except: pass
             st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
-            st.success("Ordem finalizada fisicamente e salva na nuvem!")
+            st.success("Ordem finalizada!")
             st.rerun()
         st.write("---")
 
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Serviços Concluídos")
     
-    # ---- SEÇÃO: GRÁFICO DE EVOLUÇÃO POR PERÍODO ----
     st.subheader("📊 Gráfico de Evolução dos Serviços por Período")
-    
-    # Estruturação e contagem das Ordens de Serviço por tipo (Pendente vs Concluído)
     p_semanal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'semanal')
+    p_mensal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'mensal')
+    p_anual = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'anual')
+    
