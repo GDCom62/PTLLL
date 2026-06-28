@@ -96,7 +96,7 @@ if menu == "🛠️ Diagnóstico de Conexão":
         
         try:
             res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=teste_payload, headers=SUB_HEADERS, timeout=5)
-            if res.status_code in:
+            if res.status_code == 201 or res.status_code == 200:
                 st.success(f"🎉 SUCESSO ABSOLUTO! O Supabase aceitou a gravação da ID {id_dinamica}.")
                 requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{id_dinamica}", headers=SUB_HEADERS, timeout=5)
             else:
@@ -112,7 +112,6 @@ elif menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados no Sistema")
     if equipamentos:
         for idx, eq in enumerate(equipamentos):
-            # Normalização de chaves para evitar quebras por diferença de colunas na leitura
             eq_id = eq.get('id', eq.get('tag', f"REG-{idx}"))
             eq_nome = eq.get('nome', eq.get('equipamento', 'Sem Nome'))
             eq_local = eq.get('localizacao', eq.get('setor', 'Não Definido'))
@@ -133,7 +132,7 @@ elif menu == "🔍 Lista de Máquinas":
         st.info("Nenhum equipamento cadastrado no sistema.")
 
 # ==========================================
-# PAGE 2: CADASTRAR MÁQUINA (MODO ADAPTATIVO COMPLETO)
+# PAGE 2: CADASTRAR MÁQUINA
 # ==========================================
 elif menu == "➕ Cadastrar Nova Máquina":
     st.header("➕ Cadastrar Nova Máquina")
@@ -149,26 +148,23 @@ elif menu == "➕ Cadastrar Nova Máquina":
         
         if st.form_submit_button("Salvar Equipamento"):
             if id_eq and nome_eq:
-                # Criação dos pacotes de dados alternativos para blindar o salvamento
                 payload_completo = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
                 payload_simplificado = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq}
                 
-                # Salva localmente na sessão de segurança
-                st.session_state.maquinas_locais.append(payload_completo)
+                if payload_completo not in st.session_state.maquinas_locais:
+                    st.session_state.maquinas_locais.append(payload_completo)
                 
                 if not MODO_DEMO:
                     headers_gravacao = SUB_HEADERS.copy()
                     headers_gravacao["Prefer"] = "resolution=merge-duplicates"
                     
-                    # Tentativa 1: Envia com todas as colunas
                     res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_completo, headers=headers_gravacao, timeout=10)
                     
-                    if res.status_code in:
+                    if res.status_code == 201 or res.status_code == 200:
                         st.success("🎉 Gravado com sucesso no Supabase com todas as colunas!")
                     else:
-                        # Tentativa 2: Fallback Automático Essencial (Ignora colunas extras de checklist ausentes no banco)
                         res_fallback = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_simplificado, headers=headers_gravacao, timeout=10)
-                        if res_fallback.status_code in:
+                        if res_fallback.status_code == 201 or res_fallback.status_code == 200:
                             st.success("🎉 Gravado permanentemente no Supabase (Modo Essencial Adaptativo Ativo)!")
                         else:
                             st.error(f"Erro ao tentar gravar: Código {res_fallback.status_code}")
@@ -198,3 +194,8 @@ elif menu == "✏️ Editar Máquina":
             novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar.get('nome', ''))
             novo_local = st.text_input("Localização / Setor:", value=eq_para_editar.get('localizacao', ''))
             novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar.get('criticidade', 'Média')))
+            n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
+            n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mes', ''))
+            n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
+            
+            if st.form_submit_button("Gravar Alterações"):
