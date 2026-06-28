@@ -149,10 +149,8 @@ elif menu == "➕ Cadastrar Nova Máquina":
                 if not MODO_DEMO:
                     try:
                         res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=5)
-                        if res.status_code == 201 or res.status_code == 200:
-                            st.success("Gravado com sucesso no Supabase!")
-                        else:
-                            st.error(f"Supabase recusou: {res.status_code} - {res.text}")
+                        if res.status_code != 201 and res.status_code != 200:
+                            st.error(f"Supabase recusou cadastro: {res.status_code} - {res.text}")
                     except Exception as e:
                         st.error(f"Falha de rede: {e}")
                 st.rerun()
@@ -193,3 +191,5 @@ elif menu == "✏️ Editar Máquina":
 # PAGE 4: PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
+    st.header("📅 Planejamento de Manutenções Preventivas")
+    
