@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit st
 from datetime import datetime
 import os
 import requests
@@ -90,24 +90,22 @@ if menu == "🛠️ Diagnóstico de Conexão":
     st.code(f"URL Alvo: {SUB_URL}\nHeaders Carregados: {len(SUB_HEADERS) > 0}\nModo Local Ativo: {MODO_DEMO}\nDiagnóstico: {STATUS_CONEXAO}")
     
     if st.button("⚡ Executar Teste de Gravação Forçado"):
-        st.write("Enviando registro de teste para a tabela `equipamentos`...")
-        teste_payload = {"id": "TESTE-999", "nome": "Equipamento Teste Conexão", "localizacao": "Laboratório", "criticidade": "Baixa"}
+        # Usa ID dinâmica baseada no tempo para nunca mais dar conflito 409 de chave duplicada
+        id_dinamica = "TST-" + datetime.now().strftime("%M%S")
+        st.write(f"Enviando registro de teste com ID única [{id_dinamica}] para a tabela `equipamentos`...")
+        teste_payload = {"id": id_dinamica, "nome": "Equipamento Teste Dinâmico", "localizacao": "Laboratório", "criticidade": "Baixa"}
         
         try:
             res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=teste_payload, headers=SUB_HEADERS, timeout=5)
             if res.status_code == 201 or res.status_code == 200:
-                st.success("🎉 SUCESSO! O Supabase aceitou a gravação direta. A conexão está perfeita.")
-                requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.TESTE-999", headers=SUB_HEADERS, timeout=5)
+                st.success(f"🎉 SUCESSO ABSOLUTO! O Supabase aceitou a gravação da ID {id_dinamica}.")
+                requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{id_dinamica}", headers=SUB_HEADERS, timeout=5)
             else:
                 st.error("❌ O Supabase RECUSOU a gravação externa.")
                 st.error(f"Código do Erro HTTP: {res.status_code}")
-                st.markdown("**Possíveis causas para este código:**")
-                st.write("- **401/403**: Suas chaves de Secrets do Streamlit estão erradas ou expiraram.")
-                st.write("- **404**: A tabela com o nome exato `equipamentos` não existe no seu painel do Supabase.")
-                st.write("- **400**: Os nomes de colunas no seu banco (ex: id, nome, localizacao) estão diferentes do código Python.")
                 st.code(res.text)
         except Exception as e:
-            st.error(f"❌ Erro de rede intransponível: {e}")
+            st.error(f"❌ Erro de rede: {e}")
 
 # ==========================================
 # PAGE 1: LISTA DE MÁQUINAS
@@ -152,10 +150,8 @@ elif menu == "➕ Cadastrar Nova Máquina":
                 if not MODO_DEMO:
                     try:
                         res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=5)
-                        if res.status_code == 201 or res.status_code == 200:
-                            st.success("Gravado com sucesso no Supabase!")
-                        else:
-                            st.error(f"Supabase recusou: {res.status_code} - {res.text}")
+                        if res.status_code != 201 and res.status_code != 200:
+                            st.error(f"Supabase recusou cadastro: {res.status_code} - {res.text}")
                     except Exception as e:
                         st.error(f"Falha de rede: {e}")
                 st.rerun()
@@ -187,3 +183,12 @@ elif menu == "✏️ Editar Máquina":
                             st.error(f"Erro Supabase: {res.status_code} - {res.text}")
                     except Exception as e:
                         st.error(f"Falha de rede: {e}")
+                for m in st.session_state.maquinas_locais:
+                    if m['id'] == eq_para_editar['id']: m.update(alteracoes)
+                st.success("Alterações salvas!")
+                st.rerun()
+
+# ==========================================
+# PAGE 4: PLANEJAMENTO TEMPORAL (SEM ID FORÇADA)
+# ==========================================
+elif menu == "📅 Planejamento & Checklists":
