@@ -155,20 +155,24 @@ elif menu == "➕ Cadastrar Nova Máquina":
                     st.session_state.maquinas_locais.append(payload_completo)
                 
                 if not MODO_DEMO:
-                    headers_gravacao = SUB_HEADERS.copy()
-                    headers_gravacao["Prefer"] = "resolution=merge-duplicates"
-                    
-                    res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_completo, headers=headers_gravacao, timeout=10)
-                    
-                    if res.status_code == 201 or res.status_code == 200:
-                        st.success("🎉 Gravado com sucesso no Supabase com todas as colunas!")
-                    else:
-                        res_fallback = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_simplificado, headers=headers_gravacao, timeout=10)
-                        if res_fallback.status_code == 201 or res_fallback.status_code == 200:
-                            st.success("🎉 Gravado permanentemente no Supabase (Modo Essencial Adaptativo Ativo)!")
+                    try:
+                        headers_gravacao = SUB_HEADERS.copy()
+                        headers_gravacao["Prefer"] = "resolution=merge-duplicates"
+                        res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_completo, headers=headers_gravacao, timeout=10)
+                        
+                        if res.status_code == 201 or res.status_code == 200:
+                            st.success("🎉 Gravado com sucesso no Supabase com todas as colunas!")
+                        elif res.status_code == 400:
+                            st.warning("⚠️ Colunas incompatíveis no banco. Ativando modo adaptativo essencial...")
+                            res_fallback = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_simplificado, headers=headers_gravacao, timeout=10)
+                            if res_fallback.status_code == 201 or res_fallback.status_code == 200:
+                                st.success("🎉 Gravado permanentemente no Supabase (Modo Essencial)!")
+                            else:
+                                st.error(f"Erro no modo essencial: {res_fallback.status_code} - {res_fallback.text}")
                         else:
-                            st.error(f"Erro ao tentar gravar: Código {res_fallback.status_code}")
-                            st.code(res_fallback.text)
+                            st.error(f"Erro de gravação {res.status_code}: {res.text}")
+                    except Exception as e:
+                        st.error(f"Falha física de rede: {e}")
                 st.rerun()
             else:
                 st.error("Preencha os campos obrigatórios.")
@@ -194,8 +198,3 @@ elif menu == "✏️ Editar Máquina":
             novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar.get('nome', ''))
             novo_local = st.text_input("Localização / Setor:", value=eq_para_editar.get('localizacao', ''))
             novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar.get('criticidade', 'Média')))
-            n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
-            n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mes', ''))
-            n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
-            
-            if st.form_submit_button("Gravar Alterações"):
