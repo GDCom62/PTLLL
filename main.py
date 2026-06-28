@@ -163,8 +163,7 @@ elif menu == "✏️ Editar Máquina":
             n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
             n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
             if st.form_submit_button("Gravar Alterações"):
-                alteracoes = {"nome": Regulatory_name if (Regulatory_name := novo_nome) else eq_para_editar['nome'], "localizacao": novo_local, "criticidade": novo_crit, "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano}
-                alteracoes["nome"] = novo_nome
+                alteracoes = {"nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit, "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano}
                 
                 if not MODO_DEMO:
                     try:
@@ -199,3 +198,6 @@ elif menu == "📅 Planejamento & Checklists":
         except: pass
 
     st.subheader("📋 Nova Agenda Preventiva")
+    lista_nomes = [row['nome'] for row in equipamentos if isinstance(row, dict) and 'nome' in row]
+    opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
+    
