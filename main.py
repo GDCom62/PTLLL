@@ -107,7 +107,7 @@ if menu == "🛠️ Diagnóstico de Conexão":
                 st.write("- **400**: Os nomes de colunas no seu banco (ex: id, nome, localizacao) estão diferentes do código Python.")
                 st.code(res.text)
         except Exception as e:
-            st.error(f"❌ Erro de rede intransponível: {e}. Verifique se a URL do Supabase não possui espaços ou erros de digitação.")
+            st.error(f"❌ Erro de rede intransponível: {e}")
 
 # ==========================================
 # PAGE 1: LISTA DE MÁQUINAS
@@ -186,3 +186,4 @@ elif menu == "✏️ Editar Máquina":
                         if res.status_code != 200 and res.status_code != 204:
                             st.error(f"Erro Supabase: {res.status_code} - {res.text}")
                     except Exception as e:
+                        st.error(f"Falha de rede: {e}")
