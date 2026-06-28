@@ -30,7 +30,7 @@ except Exception as e:
 # --- GARANTIA DA ESTRUTURA DE MEMÓRIA LOCAL DE BACKUP ---
 if "maquinas_locais" not in st.session_state or not st.session_state.maquinas_locais:
     st.session_state.maquinas_locais = [
-        {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Verificar nível de óleo, limpar barramento e lubrificar guias.", "check_mensal": "Trocar filtros de fluido, conferir tensão das correias.", "check_anual": "Revisão geral do motor elétrico e alinhamento geométrico."},
+        {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Verificar nível de óleo, limpar barramento e lubrificar guias.", "check_mensal": "Trocar filters de fluido, conferir tensão das correias.", "check_anual": "Revisão geral do motor elétrico e alinhamento geométrico."},
         {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar condensado do reservatório e checar ruídos estranhos.", "check_mensal": "Limpar/trocar filtro de ar, verificar vazamentos em conexões.", "check_anual": "Aferição do manômetro, teste de válvula de segurança e troca de óleo."}
     ]
 
@@ -112,7 +112,7 @@ elif menu == "➕ Cadastrar Nova Máquina":
         nome_eq = st.text_input("Nome do Equipamento:")
         local_eq = st.text_input("Localização / Setor:")
         crit_eq = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"])
-        st.markdown("##### 📜 Ações Preventivas Recomendadas")
+        st.markdown("##### 🚨 Ações Preventivas Recomendadas")
         c_sem = st.text_area("Checklist Semanal:", "Verificar nível de óleo\nLimpeza geral")
         c_mes = st.text_area("Checklist Mensal:", "Trocar filtros\nConferir correias")
         c_ano = st.text_area("Checklist Anual:", "Revisão geral do motor")
@@ -140,12 +140,9 @@ elif menu == "📅 Planejamento & Checklists":
     if maquina_selecionada:
         dados_mq = opcoes_lista[maquina_selecionada]
         col_c1, col_c2, col_c3 = st.columns(3)
-        with col_c1:
-            st.info(f"**Semanal:**\n{dados_mq.get('check_semanal', 'Não configurado.')}")
-        with col_c2:
-            st.warning(f"**Mensal:**\n{dados_mq.get('check_mes', 'Não configurado.')}")
-        with col_c3:
-            st.error(f"**Anual:**\n{dados_mq.get('check_anual', 'Não configurado.')}")
+        with col_c1: st.info(f"**Semanal:**\n{dados_mq.get('check_semanal', 'Não configurado.')}")
+        with col_c2: st.warning(f"**Mensal:**\n{dados_mq.get('check_mes', 'Não configurado.')}")
+        with col_c3: st.error(f"**Anual:**\n{dados_mq.get('check_anual', 'Não configurado.')}")
             
     st.markdown("---")
     st.subheader("📅 Agendar Nova Intervenção")
@@ -186,9 +183,9 @@ elif menu == "📅 Planejamento & Checklists":
 
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Serviços Concluídos")
-    
     st.subheader("📊 Gráfico de Evolução dos Serviços por Período")
     p_semanal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'semanal')
     p_mensal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'mensal')
     p_anual = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'anual')
     
+    c_semanal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'semanal')
