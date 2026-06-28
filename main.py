@@ -63,7 +63,7 @@ menu = st.sidebar.radio("Navegar para:", [
     "🛠️ Diagnóstico de Conexão"
 ])
 
-# --- CARREGAMENTO GLOBAL DE DADOS ---
+# --- CARREGAMENTO GLOBAL DE DADOS (EQUIPAMENTOS) ---
 equipamentos = []
 if not MODO_DEMO:
     try:
@@ -128,7 +128,7 @@ elif menu == "🔍 Lista de Máquinas":
             st.write("---")
 
 # ==========================================
-# PAGE 2: CADASTRAR MÁQUINA
+# PAGE 2: CADASTRAR MÁQUINA (EXPOSIÇÃO DE FALHA ATIVA)
 # ==========================================
 elif menu == "➕ Cadastrar Nova Máquina":
     st.header("➕ Cadastrar Nova Máquina")
@@ -145,15 +145,27 @@ elif menu == "➕ Cadastrar Nova Máquina":
         if st.form_submit_button("Salvar Equipamento"):
             if id_eq and nome_eq:
                 novo_registro = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
-                st.session_state.maquinas_locais.append(novo_registro)
+                
+                # Prepara o salvamento local na sessão caso a rede rejeite
+                if novo_registro not in st.session_state.maquinas_locais:
+                    st.session_state.maquinas_locais.append(novo_registro)
+                
                 if not MODO_DEMO:
                     try:
-                        res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=5)
-                        if res.status_code != 201 and res.status_code != 200:
-                            st.error(f"Supabase recusou cadastro: {res.status_code} - {res.text}")
+                        # Cabeçalho adaptativo para forçar a aceitação de registros repetidos ou travados
+                        headers_gravacao = SUB_HEADERS.copy()
+                        headers_gravacao["Prefer"] = "resolution=merge-duplicates"
+                        
+                        res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=headers_gravacao, timeout=10)
+                        
+                        if res.status_code == 201 or res.status_code == 200:
+                            st.success("🎉 Gravado com total sucesso no banco de dados do Supabase!")
+                        else:
+                            st.error(f"⚠️ O Supabase recusou o salvamento físico (Status {res.status_code}).")
+                            st.info("O equipamento ficará salvo apenas de forma temporária nesta sessão.")
+                            st.code(res.text)  # Revela se falta coluna ou se a RLS está ativa
                     except Exception as e:
-                        st.error(f"Falha de rede: {e}")
-                st.rerun()
+                        st.error(f"Falha física de rede: {e}")
             else:
                 st.error("Preencha os campos obrigatórios.")
 
@@ -171,25 +183,9 @@ elif menu == "✏️ Editar Máquina":
             novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
             novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
             n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
-            n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
+            n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mes', ''))
             n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
             if st.form_submit_button("Gravar Alterações"):
                 alteracoes = {"nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit, "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano}
                 if not MODO_DEMO:
                     try:
-                        res = requests.patch(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_para_editar['id']}", json=alteracoes, headers=SUB_HEADERS, timeout=5)
-                        if res.status_code != 200 and res.status_code != 204:
-                            st.error(f"Erro Supabase: {res.status_code} - {res.text}")
-                    except Exception as e:
-                        st.error(f"Falha de rede: {e}")
-                for m in st.session_state.maquinas_locais:
-                    if m['id'] == eq_para_editar['id']: m.update(alteracoes)
-                st.success("Alterações salvas!")
-                st.rerun()
-
-# ==========================================
-# PAGE 4: PLANEJAMENTO TEMPORAL
-# ==========================================
-elif menu == "📅 Planejamento & Checklists":
-    st.header("📅 Planejamento de Manutenções Preventivas")
-    
