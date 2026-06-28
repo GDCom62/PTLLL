@@ -31,19 +31,16 @@ except Exception as e:
     MODO_DEMO = True
     STATUS_CONEXAO = f"Erro crítico ao ler Secrets: {e}"
 
-# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL (SISTEMA ANTI-APAGÃO) ---
+# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL ---
 if "maquinas_locais" not in st.session_state:
     st.session_state.maquinas_locais = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
         {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar", "check_mensal": "Filtro", "check_anual": "Válvulas"}
     ]
-
-# OS #1 embutida diretamente na sessão de segurança para garantir exibição na PT
 if "planejamento_local" not in st.session_state or len(st.session_state.planejamento_local) == 0:
     st.session_state.planejamento_local = [
-        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Inspeção preventiva padrão e lubrificação", "status": "Pendente"}
+        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Inspeção preventiva padrão", "status": "Pendente"}
     ]
-
 if "historico_local" not in st.session_state:
     st.session_state.historico_local = []
 
@@ -73,7 +70,7 @@ if not MODO_DEMO:
 if not equipamentos:
     equipamentos = list(st.session_state.maquinas_locais)
 
-# --- CARREGAMENTO ADAPTATIVO DE AGENDAMENTOS (BLINDADO CONTRA LISTAS VAZIAS) ---
+# --- CARREGAMENTO ADAPTATIVO DE AGENDAMENTOS ---
 todos_agendamentos = []
 if not MODO_DEMO:
     try:
@@ -83,7 +80,6 @@ if not MODO_DEMO:
     except:
         pass
 
-# Fusão inteligente: Se a nuvem retornar vazia, o backup local assume o controle imediato
 if not todos_agendamentos or len(todos_agendamentos) == 0:
     todos_agendamentos = list(st.session_state.planejamento_local)
 
@@ -193,8 +189,13 @@ elif menu == "✏️ Editar Máquina":
                 except: pass
             st.success("Alterações salvas!")
             st.rerun()
+    else:
+        st.info("Nenhum equipamento disponível para edição.")
 
 # ==========================================
-# PAGE 4: PLANEJAMENTO TEMPORAL (BLINDAGEM ADAPTATIVA)
+# PAGE 4: PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
+    st.header("📅 Planejamento de Manutenções Preventivas")
+    st.subheader("📋 Nova Agenda Preventiva")
+    
