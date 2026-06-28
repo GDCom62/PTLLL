@@ -67,12 +67,12 @@ menu = st.sidebar.radio("Navegar para:", [
 equipamentos = []
 if not MODO_DEMO:
     try:
-        req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS, timeout=5)
+        req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS, timeout=5)
         if req.status_code == 200:
             equipamentos = req.json()
-            STATUS_CONEXAO = "Conectado e sincronizado com a tabela 'equipamentos'!"
+            STATUS_CONEXAO = "Conectado e sincronizado com a nuvem!"
         else:
-            STATUS_CONEXAO = f"Erro HTTP {req.status_code} ao ler equipamentos. Tabela existe?"
+            STATUS_CONEXAO = f"Erro HTTP {req.status_code} ao ler equipamentos."
     except Exception as e:
         STATUS_CONEXAO = f"Falha de conexão com a URL do Supabase: {e}"
 
@@ -91,17 +91,16 @@ if menu == "🛠️ Diagnóstico de Conexão":
     
     if st.button("⚡ Executar Teste de Gravação Forçado"):
         id_dinamica = "TST-" + datetime.now().strftime("%M%S")
-        st.write(f"Enviando registro de teste com ID única [{id_dinamica}] para a tabela `equipamentos`...")
+        st.write(f"Enviando registro de teste com ID única [{id_dinamica}]...")
         teste_payload = {"id": id_dinamica, "nome": "Equipamento Teste Dinâmico", "localizacao": "Laboratório", "criticidade": "Baixa"}
         
         try:
             res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=teste_payload, headers=SUB_HEADERS, timeout=5)
-            if res.status_code == 201 or res.status_code == 200:
+            if res.status_code in:
                 st.success(f"🎉 SUCESSO ABSOLUTO! O Supabase aceitou a gravação da ID {id_dinamica}.")
                 requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{id_dinamica}", headers=SUB_HEADERS, timeout=5)
             else:
-                st.error("❌ O Supabase RECUSOU a gravação externa.")
-                st.error(f"Código do Erro HTTP: {res.status_code}")
+                st.error(f"❌ O Supabase RECUSOU a gravação. Código: {res.status_code}")
                 st.code(res.text)
         except Exception as e:
             st.error(f"❌ Erro de rede: {e}")
@@ -113,22 +112,28 @@ elif menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados no Sistema")
     if equipamentos:
         for idx, eq in enumerate(equipamentos):
-            st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
-            if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id']) + "_" + str(idx)):
+            # Normalização de chaves para evitar quebras por diferença de colunas na leitura
+            eq_id = eq.get('id', eq.get('tag', f"REG-{idx}"))
+            eq_nome = eq.get('nome', eq.get('equipamento', 'Sem Nome'))
+            eq_local = eq.get('localizacao', eq.get('setor', 'Não Definido'))
+            eq_crit = eq.get('criticidade', 'Média')
+            
+            st.write(f"🔹 **[{eq_id}] {eq_nome}** | Setor: {eq_local} | Criticidade: {eq_crit}")
+            if st.button("🗑️ Remover " + str(eq_id), key="del_" + str(eq_id) + "_" + str(idx)):
                 if not MODO_DEMO:
                     try:
-                        res = requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq['id']}", headers=SUB_HEADERS, timeout=5)
-                        if res.status_code != 200 and res.status_code != 204:
-                            st.error(f"Erro Supabase: {res.status_code} - {res.text}")
+                        requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_id}", headers=SUB_HEADERS, timeout=5)
                     except Exception as e:
-                        st.error(f"Falha de rede: {e}")
-                st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m['id'] != eq['id']]
+                        st.error(f"Falha ao deletar da nuvem: {e}")
+                st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m.get('id') != eq_id]
                 st.success("Equipamento removido!")
                 st.rerun()
             st.write("---")
+    else:
+        st.info("Nenhum equipamento cadastrado no sistema.")
 
 # ==========================================
-# PAGE 2: CADASTRAR MÁQUINA
+# PAGE 2: CADASTRAR MÁQUINA (MODO ADAPTATIVO COMPLETO)
 # ==========================================
 elif menu == "➕ Cadastrar Nova Máquina":
     st.header("➕ Cadastrar Nova Máquina")
@@ -144,31 +149,30 @@ elif menu == "➕ Cadastrar Nova Máquina":
         
         if st.form_submit_button("Salvar Equipamento"):
             if id_eq and nome_eq:
+                # Criação dos pacotes de dados alternativos para blindar o salvamento
                 payload_completo = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
                 payload_simplificado = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq}
                 
-                if payload_completo not in st.session_state.maquinas_locais:
-                    st.session_state.maquinas_locais.append(payload_completo)
+                # Salva localmente na sessão de segurança
+                st.session_state.maquinas_locais.append(payload_completo)
                 
                 if not MODO_DEMO:
-                    try:
-                        headers_gravacao = SUB_HEADERS.copy()
-                        headers_gravacao["Prefer"] = "resolution=merge-duplicates"
-                        res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_completo, headers=headers_gravacao, timeout=10)
-                        
-                        if res.status_code == 201 or res.status_code == 200:
-                            st.success("🎉 Gravado com sucesso no Supabase com todas as colunas!")
-                        elif res.status_code == 400:
-                            st.warning("⚠️ Colunas incompatíveis no banco. Ativando modo adaptativo essencial...")
-                            res_fallback = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_simplificado, headers=headers_gravacao, timeout=10)
-                            if res_fallback.status_code == 201 or res_fallback.status_code == 200:
-                                st.success("🎉 Gravado permanentemente no Supabase (Modo Essencial)!")
-                            else:
-                                st.error(f"Erro no modo essencial: {res_fallback.status_code} - {res_fallback.text}")
+                    headers_gravacao = SUB_HEADERS.copy()
+                    headers_gravacao["Prefer"] = "resolution=merge-duplicates"
+                    
+                    # Tentativa 1: Envia com todas as colunas
+                    res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_completo, headers=headers_gravacao, timeout=10)
+                    
+                    if res.status_code in:
+                        st.success("🎉 Gravado com sucesso no Supabase com todas as colunas!")
+                    else:
+                        # Tentativa 2: Fallback Automático Essencial (Ignora colunas extras de checklist ausentes no banco)
+                        res_fallback = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_simplificado, headers=headers_gravacao, timeout=10)
+                        if res_fallback.status_code in:
+                            st.success("🎉 Gravado permanentemente no Supabase (Modo Essencial Adaptativo Ativo)!")
                         else:
-                            st.error(f"Erro de gravação {res.status_code}: {res.text}")
-                    except Exception as e:
-                        st.error(f"Falha física de rede: {e}")
+                            st.error(f"Erro ao tentar gravar: Código {res_fallback.status_code}")
+                            st.code(res_fallback.text)
                 st.rerun()
             else:
                 st.error("Preencha os campos obrigatórios.")
@@ -178,13 +182,19 @@ elif menu == "➕ Cadastrar Nova Máquina":
 # ==========================================
 elif menu == "✏️ Editar Máquina":
     st.header("✏️ Editar Máquina Existente")
-    opcoes_edicao = {str(e['id']) + " - " + str(e['nome']): e for e in equipamentos if isinstance(e, dict) and 'id' in e}
+    opcoes_edicao = {}
+    for e in equipamentos:
+        if isinstance(e, dict):
+            e_id = e.get('id', e.get('tag'))
+            e_nome = e.get('nome', e.get('equipamento', 'Sem Nome'))
+            if e_id:
+                opcoes_edicao[f"{e_id} - {e_nome}"] = e
+                
     if opcoes_edicao:
         selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
         eq_para_editar = opcoes_edicao[selecionado_edicao]
+        
         with st.form("form_edicao"):
-            novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar['nome'])
-            novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
-            novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
-            n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
-            n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
+            novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar.get('nome', ''))
+            novo_local = st.text_input("Localização / Setor:", value=eq_para_editar.get('localizacao', ''))
+            novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar.get('criticidade', 'Média')))
