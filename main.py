@@ -94,7 +94,7 @@ if menu == "🛠️ Diagnóstico de Conexão":
         try:
             teste_payload = {"id": id_dinamica, "nome": "Equipamento Teste Dinâmico", "localizacao": "Laboratório", "criticidade": "Baixa"}
             res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=teste_payload, headers=SUB_HEADERS, timeout=5)
-            if res.status_code in:
+            if res.status_code == 201 or res.status_code == 200:
                 st.success("🎉 Conexão ativa!")
                 requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{id_dinamica}", headers=SUB_HEADERS, timeout=5)
             else:
@@ -150,7 +150,7 @@ elif menu == "➕ Cadastrar Nova Máquina":
                         headers_gravacao = SUB_HEADERS.copy()
                         headers_gravacao["Prefer"] = "resolution=merge-duplicates"
                         res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_completo, headers=headers_gravacao, timeout=10)
-                        if res.status_code not in:
+                        if res.status_code != 201 and res.status_code != 200:
                             requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_simplificado, headers=headers_gravacao, timeout=10)
                         st.success("🎉 Gravado com sucesso no Supabase!")
                     except:
@@ -186,7 +186,7 @@ elif menu == "✏️ Editar Máquina":
                 st.rerun()
 
 # ==========================================
-# PAGE 4: PLANEJAMENTO TEMPORAL (BLINDAGEM ADAPTATIVA)
+# PAGE 4: PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
