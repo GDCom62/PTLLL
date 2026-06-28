@@ -6,10 +6,11 @@ import requests
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- CONEXÃO COM O BANCO DE DADOS EM NUVEM SUPABASE VIA API HTTP ---
+# --- CONEXÃO AVANÇADA COM DIAGNÓSTICO SUPABASE ---
 SUB_URL = ""
 SUB_HEADERS = {}
 MODO_DEMO = False
+STATUS_CONEXAO = "Não configurado"
 
 try:
     if "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.secrets:
@@ -22,12 +23,15 @@ try:
             "Content-Type": "application/json",
             "Prefer": "return=representation"
         }
+        STATUS_CONEXAO = "Chaves carregadas. Prontos para testar rotas."
     else:
         MODO_DEMO = True
+        STATUS_CONEXAO = "Secrets 'SUPABASE_URL' ou 'SUPABASE_KEY' ausentes no Streamlit Cloud."
 except Exception as e:
     MODO_DEMO = True
+    STATUS_CONEXAO = f"Erro crítico ao ler Secrets: {e}"
 
-# --- MEMÓRIA LOCAL DE SEGURANÇA CONTRA ERROS DE CONEXÃO ---
+# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL ---
 if "maquinas_locais" not in st.session_state:
     st.session_state.maquinas_locais = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
@@ -38,67 +42,94 @@ if "planejamento_local" not in st.session_state:
 if "historico_local" not in st.session_state:
     st.session_state.historico_local = []
 
-# --- INJEÇÃO DE DADOS SE O BANCO DA NUVEM ESTIVER VAZIO ---
-if not MODO_DEMO:
-    try:
-        req_check = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=id", headers=SUB_HEADERS, timeout=5)
-        if req_check.status_code == 200 and len(req_check.json()) == 0:
-            for mq in st.session_state.maquinas_locais:
-                requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=mq, headers=SUB_HEADERS, timeout=5)
-    except:
-        pass
-
-# --- EXIBIÇÃO DO LOGO NO TOPO ---
-if os.path.exists("logo.png"):
-    st.image("logo.png", width=150)
-else:
-    st.info("Insira o arquivo 'logo.png' na pasta do script para exibir o logo do topo.")
-
-# --- MENU LATERAL DE NAVEGAÇÃO COMPACTO ---
+# --- MARCA DA EMPRESA E STATUS NO MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
+
+# Painel visual de diagnóstico de rede
+st.sidebar.subheader("📡 Status da Nuvem")
+if MODO_DEMO:
+    st.sidebar.error("🔴 Rodando em MODO LOCAL (Sem nuvem)")
+else:
+    st.sidebar.success("🟢 Configurações de Nuvem Ativas")
+
 menu = st.sidebar.radio("Navegar para:", [
     "🔍 Lista de Máquinas",
     "➕ Cadastrar Nova Máquina",
     "✏️ Editar Máquina",
     "📅 Planejamento & Checklists",
     "📜 Histórico de Trocas",
-    "⚠️ Emissão de PT"
+    "⚠️ Emissão de PT",
+    "🛠️ Diagnóstico de Conexão"
 ])
 
-# --- PUXA DADOS DA NUVEM EM TEMPO REAL ---
+# --- CARREGAMENTO GLOBAL DE DADOS ---
 equipamentos = []
 if not MODO_DEMO:
     try:
         req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*&order=id.asc", headers=SUB_HEADERS, timeout=5)
         if req.status_code == 200:
             equipamentos = req.json()
-    except:
-        pass
+            STATUS_CONEXAO = "Conectado e sincronizado com a tabela 'equipamentos'!"
+        else:
+            STATUS_CONEXAO = f"Erro HTTP {req.status_code} ao ler equipamentos. Tabela existe?"
+    except Exception as e:
+        STATUS_CONEXAO = f"Falha de conexão com a URL do Supabase: {e}"
 
 if not equipamentos:
     equipamentos = st.session_state.maquinas_locais
 
 # ==========================================
+# PAGE: DIAGNÓSTICO DE CONEXÃO
+# ==========================================
+if menu == "🛠️ Diagnóstico de Conexão":
+    st.header("🛠️ Painel Analítico de Conexão com o Supabase")
+    st.write("Use esta tela para entender exatamente por que o banco de dados está recusando as gravações.")
+    
+    st.markdown("### 📊 Relatório Técnico Atual")
+    st.code(f"URL Alvo: {SUB_URL}\nHeaders Carregados: {len(SUB_HEADERS) > 0}\nModo Local Ativo: {MODO_DEMO}\nDiagnóstico: {STATUS_CONEXAO}")
+    
+    if st.button("⚡ Executar Teste de Gravação Forçado"):
+        st.write("Enviando registro de teste para a tabela `equipamentos`...")
+        teste_payload = {"id": "TESTE-999", "nome": "Equipamento Teste Conexão", "localizacao": "Laboratório", "criticidade": "Baixa"}
+        
+        try:
+            res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=teste_payload, headers=SUB_HEADERS, timeout=5)
+            if res.status_code in:
+                st.success("🎉 SUCESSO! O Supabase aceitou a gravação direta. A conexão está perfeita.")
+                # Limpa o teste imediatamente
+                requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.TESTE-999", headers=SUB_HEADERS, timeout=5)
+            else:
+                st.error(f"❌ O Supabase RECUSOU a gravação externa.")
+                st.error(f"Código do Erro HTTP: {res.status_code}")
+                st.markdown("**Possíveis causas para este código:**")
+                st.write("- **401/403**: Suas chaves de Secrets do Streamlit estão erradas ou expiraram.")
+                st.write("- **404**: A tabela com o nome exato `equipamentos` não existe no seu painel do Supabase.")
+                st.write("- **400**: Os nomes de colunas no seu banco (ex: id, nome, localizacao) estão diferentes do código Python.")
+                st.code(res.text)
+        except Exception as e:
+            st.error(f"❌ Erro de rede intransponível: {e}. Verifique se a URL do Supabase não possui espaços ou erros de digitação.")
+
+# ==========================================
 # PAGE 1: LISTA DE MÁQUINAS
 # ==========================================
-if menu == "🔍 Lista de Máquinas":
+elif menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados no Sistema")
-    if equipamentos and isinstance(equipamentos, list):
+    if equipamentos:
         for idx, eq in enumerate(equipamentos):
             st.write(f"🔹 **[{eq['id']}] {eq['nome']}** | Setor: {eq['localizacao']} | Criticidade: {eq['criticidade']}")
             if st.button("🗑️ Remover " + str(eq['id']), key="del_" + str(eq['id']) + "_" + str(idx)):
                 if not MODO_DEMO:
                     try:
-                        requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq['id']}", headers=SUB_HEADERS, timeout=5)
-                    except:
-                        pass
+                        res = requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq['id']}", headers=SUB_HEADERS, timeout=5)
+                        if res.status_code not in:
+                            st.error(f"Erro Supabase: {res.status_code} - {res.text}")
+                    except Exception as e:
+                        st.error(f"Falha de rede: {e}")
                 st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m['id'] != eq['id']]
                 st.success("Equipamento removido!")
                 st.rerun()
             st.write("---")
-    else:
-        st.info("Nenhum equipamento cadastrado no sistema.")
 
 # ==========================================
 # PAGE 2: CADASTRAR MÁQUINA
@@ -121,10 +152,13 @@ elif menu == "➕ Cadastrar Nova Máquina":
                 st.session_state.maquinas_locais.append(novo_registro)
                 if not MODO_DEMO:
                     try:
-                        requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=5)
-                    except:
-                        pass
-                st.success("Máquina gravada no Supabase com sucesso!")
+                        res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=5)
+                        if res.status_code in:
+                            st.success("Gravado com sucesso no Supabase!")
+                        else:
+                            st.error(f"Supabase recusou: {res.status_code} - {res.text}")
+                    except Exception as e:
+                        st.error(f"Falha de rede: {e}")
                 st.rerun()
             else:
                 st.error("Preencha os campos obrigatórios.")
@@ -143,63 +177,13 @@ elif menu == "✏️ Editar Máquina":
             novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
             novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
             n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
-            n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mes', ''))
+            n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
             n_ano = st.text_area("Preventiva Anual:", value=eq_para_editar.get('check_anual', ''))
             if st.form_submit_button("Gravar Alterações"):
                 alteracoes = {"nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit, "check_semanal": n_sem, "check_mensal": n_mes, "check_anual": n_ano}
                 if not MODO_DEMO:
                     try:
-                        requests.patch(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_para_editar['id']}", json=alteracoes, headers=SUB_HEADERS, timeout=5)
-                    except:
-                        pass
-                for m in st.session_state.maquinas_locais:
-                    if m['id'] == eq_para_editar['id']: m.update(alteracoes)
-                st.success("Alterações salvas na nuvem!")
-                st.rerun()
-    else:
-        st.info("Nenhum equipamento disponível para edição.")
-
-# ==========================================
-# PAGE 4: PLANEJAMENTO TEMPORAL
-# ==========================================
-elif menu == "📅 Planejamento & Checklists":
-    st.header("📅 Planejamento de Manutenções Preventivas")
-    
-    todos_agendamentos = []
-    if not MODO_DEMO:
-        try:
-            req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente&select=*&order=id.asc", headers=SUB_HEADERS, timeout=5)
-            if req_plan.status_code == 200:
-                todos_agendamentos = req_plan.json()
-        except:
-            pass
-            
-    if not todos_agendamentos:
-        todos_agendamentos = st.session_state.planejamento_local
-
-    st.subheader("📋 Nova Agenda Preventiva")
-    lista_nomes = [row['nome'] for row in equipamentos if isinstance(row, dict) and 'nome' in row]
-    opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
-    
-    with st.form("form_novo_planejamento_topo"):
-        col_f1, col_f2, col_f3 = st.columns(3)
-        with col_f1: eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", opcoes_selecao)
-        with col_f2: periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
-        with col_f3: data_planejada = st.date_input("Selecione a Data:", datetime.now())
-        pecas_necessarias = st.text_area("Descrição das Peças / Ferramentas necessárias:", value="Inspeção preventiva padrão")
-        
-        if st.form_submit_button("💾 Gravar e Agendar Manutenção"):
-            if eq_escolhido != "Nenhum equipamento cadastrado":
-                nova_id = len(todos_agendamentos) + 1
-                novo_agendamento = {"id": nova_id, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": "Uso de EPIs obrigatório."}
-                st.session_state.planejamento_local.append(novo_agendamento)
-                if not MODO_DEMO:
-                    try:
-                        requests.post(f"{SUB_URL}/rest/v1/planejamento", json=novo_agendamento, headers=SUB_HEADERS, timeout=5)
-                    except:
-                        pass
-                st.success("Agendamento gravado com sucesso no Supabase!")
-                st.rerun()
-
-    st.markdown("---")
-    st.subheader("🔍 Ordens de Serviço Pendentes")
+                        res = requests.patch(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_para_editar['id']}", json=alteracoes, headers=SUB_HEADERS, timeout=5)
+                        if res.status_code not in:
+                            st.error(f"Erro Supabase: {res.status_code} - {res.text}")
+                    except Exception as e:
