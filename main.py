@@ -128,7 +128,7 @@ elif menu == "🔍 Lista de Máquinas":
             st.write("---")
 
 # ==========================================
-# PAGE 2: CADASTRAR MÁQUINA (BLINDAGEM ADAPTATIVA CONTRA ERRO DE COLUNAS)
+# PAGE 2: CADASTRAR MÁQUINA
 # ==========================================
 elif menu == "➕ Cadastrar Nova Máquina":
     st.header("➕ Cadastrar Nova Máquina")
@@ -144,38 +144,29 @@ elif menu == "➕ Cadastrar Nova Máquina":
         
         if st.form_submit_button("Salvar Equipamento"):
             if id_eq and nome_eq:
-                # Payload 1: Tentativa Completa com todos os campos estruturados
                 payload_completo = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
-                
-                # Payload 2: Fallback Simplificado (Garante gravação caso o banco de dados não possua as colunas de checklist criadas)
                 payload_simplificado = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq}
                 
-                st.session_state.maquinas_locais.append(payload_completo)
+                if payload_completo not in st.session_state.maquinas_locais:
+                    st.session_state.maquinas_locais.append(payload_completo)
                 
                 if not MODO_DEMO:
                     try:
-                        # Força o Supabase a mesclar duplicatas se a ID já existir
                         headers_gravacao = SUB_HEADERS.copy()
                         headers_gravacao["Prefer"] = "resolution=merge-duplicates"
-                        
-                        # Tentativa A: Envia estrutura completa
                         res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_completo, headers=headers_gravacao, timeout=10)
                         
-                        if res.status_code in:
-                            st.success("🎉 Gravado com sucesso no Supabase com todas as colunas de preventivas!")
+                        if res.status_code == 201 or res.status_code == 200:
+                            st.success("🎉 Gravado com sucesso no Supabase com todas as colunas!")
                         elif res.status_code == 400:
-                            st.warning("⚠️ Colunas incompatíveis detectadas no seu Supabase. Ativando gravação em modo de compatibilidade adaptativo...")
-                            
-                            # Tentativa B: Envia apenas os dados essenciais para contornar erro de estrutura de colunas do banco
+                            st.warning("⚠️ Colunas incompatíveis no banco. Ativando modo adaptativo essencial...")
                             res_fallback = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_simplificado, headers=headers_gravacao, timeout=10)
-                            if res_fallback.status_code in:
-                                st.success("🎉 Gravado permanentemente no Supabase (Modo Essencial Ativo)!")
+                            if res_fallback.status_code == 201 or res_fallback.status_code == 200:
+                                st.success("🎉 Gravado permanentemente no Supabase (Modo Essencial)!")
                             else:
-                                st.error(f"Erro no Modo de Compatibilidade: {res_fallback.status_code}")
-                                st.code(res_fallback.text)
+                                st.error(f"Erro no modo essencial: {res_fallback.status_code} - {res_fallback.text}")
                         else:
-                            st.error(f"Erro de Gravação {res.status_code}")
-                            st.code(res.text)
+                            st.error(f"Erro de gravação {res.status_code}: {res.text}")
                     except Exception as e:
                         st.error(f"Falha física de rede: {e}")
                 st.rerun()
@@ -191,3 +182,9 @@ elif menu == "✏️ Editar Máquina":
     if opcoes_edicao:
         selecionado_edicao = st.selectbox("Selecione qual máquina deseja alterar:", list(opcoes_edicao.keys()))
         eq_para_editar = opcoes_edicao[selecionado_edicao]
+        with st.form("form_edicao"):
+            novo_nome = st.text_input("Nome do Equipamento:", value=eq_para_editar['nome'])
+            novo_local = st.text_input("Localização / Setor:", value=eq_para_editar['localizacao'])
+            novo_crit = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"], index=["Baixa", "Média", "Alta"].index(eq_para_editar['criticidade']))
+            n_sem = st.text_area("Preventiva Semanal:", value=eq_para_editar.get('check_semanal', ''))
+            n_mes = st.text_area("Preventiva Mensal:", value=eq_para_editar.get('check_mensal', ''))
