@@ -95,7 +95,7 @@ if menu == "🛠️ Diagnóstico de Conexão":
         
         try:
             res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=teste_payload, headers=SUB_HEADERS, timeout=5)
-            if res.status_code in:
+            if res.status_code == 201 or res.status_code == 200:
                 st.success("🎉 SUCESSO! O Supabase aceitou a gravação direta. A conexão está perfeita.")
                 requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.TESTE-999", headers=SUB_HEADERS, timeout=5)
             else:
@@ -121,7 +121,7 @@ elif menu == "🔍 Lista de Máquinas":
                 if not MODO_DEMO:
                     try:
                         res = requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq['id']}", headers=SUB_HEADERS, timeout=5)
-                        if res.status_code not in:
+                        if res.status_code != 200 and res.status_code != 204:
                             st.error(f"Erro Supabase: {res.status_code} - {res.text}")
                     except Exception as e:
                         st.error(f"Falha de rede: {e}")
@@ -152,7 +152,7 @@ elif menu == "➕ Cadastrar Nova Máquina":
                 if not MODO_DEMO:
                     try:
                         res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=5)
-                        if res.status_code in:
+                        if res.status_code == 201 or res.status_code == 200:
                             st.success("Gravado com sucesso no Supabase!")
                         else:
                             st.error(f"Supabase recusou: {res.status_code} - {res.text}")
@@ -183,7 +183,6 @@ elif menu == "✏️ Editar Máquina":
                 if not MODO_DEMO:
                     try:
                         res = requests.patch(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_para_editar['id']}", json=alteracoes, headers=SUB_HEADERS, timeout=5)
-                        if res.status_code not in:
+                        if res.status_code != 200 and res.status_code != 204:
                             st.error(f"Erro Supabase: {res.status_code} - {res.text}")
                     except Exception as e:
-                        st.error(f"Falha de rede: {e}")
