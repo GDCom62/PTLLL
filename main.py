@@ -125,7 +125,7 @@ elif menu == "🔍 Lista de Máquinas":
             st.write("---")
 
 # ==========================================
-# PAGE 2: CADASTRAR MÁQUINA
+# PAGE 2: CADASTRAR MÁQUINA (CORRIGIDO)
 # ==========================================
 elif menu == "➕ Cadastrar Nova Máquina":
     st.header("➕ Cadastrar Nova Máquina")
@@ -139,23 +139,28 @@ elif menu == "➕ Cadastrar Nova Máquina":
         c_mes = st.text_area("Itens da Preventiva Mensal:", "Trocar filtros\nConferir correias")
         c_ano = st.text_area("Itens da Preventiva Anual:", "Revisão geral do motor")
         
-        if st.form_submit_button("Salvar Equipamento"):
-            if id_eq and nome_eq:
-                payload_completo = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
-                payload_simplificado = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq}
-                st.session_state.maquinas_locais.append(payload_completo)
-                
-                if not MODO_DEMO:
-                    try:
-                        headers_gravacao = SUB_HEADERS.copy()
-                        headers_gravacao["Prefer"] = "resolution=merge-duplicates"
-                        res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_completo, headers=headers_gravacao, timeout=10)
-                        if res.status_code != 201 and res.status_code != 200:
-                            requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_simplificado, headers=headers_gravacao, timeout=10)
-                        st.success("🎉 Gravado com sucesso no Supabase!")
-                    except:
-                        pass
-                st.rerun()
+        # O botão de submit precisa ficar fora de checagens lógicas complexas
+        botao_salvar = st.form_submit_button("Salvar Equipamento")
+        
+    if botao_salvar:
+        if id_eq and nome_eq:
+            payload_completo = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
+            payload_simplificado = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq}
+            st.session_state.maquinas_locais.append(payload_completo)
+            
+            if not MODO_DEMO:
+                try:
+                    headers_gravacao = SUB_HEADERS.copy()
+                    headers_gravacao["Prefer"] = "resolution=merge-duplicates"
+                    res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_completo, headers=headers_gravacao, timeout=10)
+                    if res.status_code != 201 and res.status_code != 200:
+                        requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload_simplificado, headers=headers_gravacao, timeout=10)
+                    st.success("🎉 Gravado com sucesso no Supabase!")
+                except:
+                    pass
+            st.rerun()
+        else:
+            st.error("Preencha os campos obrigatórios.")
 
 # ==========================================
 # PAGE 3: EDITAR MÁQUINA
@@ -175,15 +180,17 @@ elif menu == "✏️ Editar Máquina":
             n_mes = st.text_area("Mensal:", value=eq_para_editar.get('check_mes', ''))
             n_ano = st.text_area("Anual:", value=eq_para_editar.get('check_anual', ''))
             
-            if st.form_submit_button("Gravar Alterações"):
-                alteracoes = {"nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit, "check_semanal": n_sem, "check_mes": n_mes, "check_anual": n_ano}
-                if not MODO_DEMO:
-                    try:
-                        eq_id_alvo = eq_para_editar.get('id', eq_para_editar.get('tag', '0'))
-                        requests.patch(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_id_alvo}", json=alteracoes, headers=SUB_HEADERS, timeout=5)
-                    except: pass
-                st.success("Alterações salvas!")
-                st.rerun()
+            botao_editar = st.form_submit_button("Gravar Alterações")
+            
+        if botao_editar:
+            alteracoes = {"nome": novo_nome, "localizacao": novo_local, "criticidade": novo_crit, "check_semanal": n_sem, "check_mes": n_mes, "check_anual": n_ano}
+            if not MODO_DEMO:
+                try:
+                    eq_id_alvo = eq_para_editar.get('id', eq_para_editar.get('tag', '0'))
+                    requests.patch(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_id_alvo}", json=alteracoes, headers=SUB_HEADERS, timeout=5)
+                except: pass
+            st.success("Alterações salvas!")
+            st.rerun()
 
 # ==========================================
 # PAGE 4: PLANEJAMENTO TEMPORAL
@@ -194,6 +201,3 @@ elif menu == "📅 Planejamento & Checklists":
     
     lista_nomes = [row.get('nome', row.get('equipamento', 'Máquina')) for row in equipamentos if isinstance(row, dict)]
     opcoes_selecao = lista_nomes if lista_nomes else ["Nenhum equipamento cadastrado"]
-    
-    with st.form("form_novo_planejamento_topo"):
-        col_f1, col_f2, col_f3 = st.columns(3)
