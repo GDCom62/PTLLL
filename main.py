@@ -1,4 +1,4 @@
-import streamlit st
+import streamlit as st
 from datetime import datetime
 import os
 import requests
@@ -90,7 +90,6 @@ if menu == "🛠️ Diagnóstico de Conexão":
     st.code(f"URL Alvo: {SUB_URL}\nHeaders Carregados: {len(SUB_HEADERS) > 0}\nModo Local Ativo: {MODO_DEMO}\nDiagnóstico: {STATUS_CONEXAO}")
     
     if st.button("⚡ Executar Teste de Gravação Forçado"):
-        # Usa ID dinâmica baseada no tempo para nunca mais dar conflito 409 de chave duplicada
         id_dinamica = "TST-" + datetime.now().strftime("%M%S")
         st.write(f"Enviando registro de teste com ID única [{id_dinamica}] para a tabela `equipamentos`...")
         teste_payload = {"id": id_dinamica, "nome": "Equipamento Teste Dinâmico", "localizacao": "Laboratório", "criticidade": "Baixa"}
@@ -150,8 +149,10 @@ elif menu == "➕ Cadastrar Nova Máquina":
                 if not MODO_DEMO:
                     try:
                         res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=novo_registro, headers=SUB_HEADERS, timeout=5)
-                        if res.status_code != 201 and res.status_code != 200:
-                            st.error(f"Supabase recusou cadastro: {res.status_code} - {res.text}")
+                        if res.status_code == 201 or res.status_code == 200:
+                            st.success("Gravado com sucesso no Supabase!")
+                        else:
+                            st.error(f"Supabase recusou: {res.status_code} - {res.text}")
                     except Exception as e:
                         st.error(f"Falha de rede: {e}")
                 st.rerun()
@@ -189,6 +190,6 @@ elif menu == "✏️ Editar Máquina":
                 st.rerun()
 
 # ==========================================
-# PAGE 4: PLANEJAMENTO TEMPORAL (SEM ID FORÇADA)
+# PAGE 4: PLANEJAMENTO TEMPORAL
 # ==========================================
 elif menu == "📅 Planejamento & Checklists":
