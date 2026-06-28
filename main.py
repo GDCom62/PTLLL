@@ -31,16 +31,19 @@ except Exception as e:
     MODO_DEMO = True
     STATUS_CONEXAO = f"Erro crítico ao ler Secrets: {e}"
 
-# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL ---
-if "maquinas_locais" not in st.session_state:
+# --- MOTOR DE FORÇAMENTO DE MEMÓRIA (LIMPA O CACHE TRAVADO DO STREAMLIT) ---
+# Se as variáveis locais sumiram ou viraram listas vazias, este bloco reconstrói do zero
+if "maquinas_locais" not in st.session_state or not st.session_state.maquinas_locais:
     st.session_state.maquinas_locais = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Óleo e limpeza", "check_mensal": "Filtros", "check_anual": "Motor"},
         {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar", "check_mensal": "Filtro", "check_anual": "Válvulas"}
     ]
-if "planejamento_local" not in st.session_state or len(st.session_state.planejamento_local) == 0:
+
+if "planejamento_local" not in st.session_state or not st.session_state.planejamento_local:
     st.session_state.planejamento_local = [
-        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Inspeção preventiva padrão", "status": "Pendente"}
+        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Inspeção preventiva padrão e lubrificação", "status": "Pendente"}
     ]
+
 if "historico_local" not in st.session_state:
     st.session_state.historico_local = []
 
@@ -58,7 +61,7 @@ menu = st.sidebar.radio("Navegar para:", [
     "🛠️ Diagnóstico de Conexão"
 ])
 
-# --- CARREGAMENTO ISOLADO DE EQUIPAMENTOS ---
+# --- CARREGAMENTO INTEGRADO DE EQUIPAMENTOS ---
 equipamentos = []
 if not MODO_DEMO:
     try:
@@ -70,7 +73,7 @@ if not MODO_DEMO:
 if not equipamentos or len(equipamentos) == 0:
     equipamentos = list(st.session_state.maquinas_locais)
 
-# --- CARREGAMENTO ISOLADO DE AGENDAMENTOS ---
+# --- CARREGAMENTO INTEGRADO DE AGENDAMENTOS ---
 todos_agendamentos = []
 if not MODO_DEMO:
     try:
@@ -79,6 +82,8 @@ if not MODO_DEMO:
             todos_agendamentos = req_plan.json()
     except:
         pass
+
+# Casamento forçado de segurança: se a nuvem não trouxe listas válidas, injeta o backup local
 if not todos_agendamentos or len(todos_agendamentos) == 0:
     todos_agendamentos = list(st.session_state.planejamento_local)
 
@@ -87,7 +92,7 @@ if not todos_agendamentos or len(todos_agendamentos) == 0:
 # ==========================================
 if menu == "🛠️ Diagnóstico de Conexão":
     st.header("🛠️ Painel Analítico de Conexão com o Supabase")
-    st.code(f"URL Alvo: {SUB_URL}\nMeteoro Local Ativo: {MODO_DEMO}\nDiagnóstico: {STATUS_CONEXAO}")
+    st.code(f"URL Alvo: {SUB_URL}\nModo Local Ativo: {MODO_DEMO}\nDiagnóstico: {STATUS_CONEXAO}")
     
     if st.button("⚡ Executar Teste de Gravação Forçado"):
         id_dinamica = "TST-" + datetime.now().strftime("%M%S")
@@ -107,21 +112,22 @@ if menu == "🛠️ Diagnóstico de Conexão":
 # ==========================================
 elif menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados no Sistema")
-    for idx, eq in enumerate(equipamentos):
-        eq_id = eq.get('id', eq.get('tag', f"REG-{idx}"))
-        eq_nome = eq.get('nome', eq.get('equipamento', 'Sem Nome'))
-        eq_local = eq.get('localizacao', eq.get('setor', 'Não Definido'))
-        eq_crit = eq.get('criticidade', 'Média')
-        
-        st.write(f"🔹 **[{eq_id}] {eq_nome}** | Setor: {eq_local} | Criticidade: {eq_crit}")
-        if st.button("🗑️ Remover " + str(eq_id), key="del_" + str(eq_id) + "_" + str(idx)):
-            if not MODO_DEMO:
-                try: requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_id}", headers=SUB_HEADERS, timeout=5)
-                except: pass
-            st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m.get('id') != eq_id]
-            st.success("Equipamento removido!")
-            st.rerun()
-        st.write("---")
+    if equipamentos:
+        for idx, eq in enumerate(equipamentos):
+            eq_id = eq.get('id', eq.get('tag', f"REG-{idx}"))
+            eq_nome = eq.get('nome', eq.get('equipamento', 'Sem Nome'))
+            eq_local = eq.get('localizacao', eq.get('setor', 'Não Definido'))
+            eq_crit = eq.get('criticidade', 'Média')
+            
+            st.write(f"🔹 **[{eq_id}] {eq_nome}** | Setor: {eq_local} | Criticidade: {eq_crit}")
+            if st.button("🗑️ Remover " + str(eq_id), key="del_" + str(eq_id) + "_" + str(idx)):
+                if not MODO_DEMO:
+                    try: requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.{eq_id}", headers=SUB_HEADERS, timeout=5)
+                    except: pass
+                st.session_state.maquinas_locais = [m for m in st.session_state.maquinas_locais if m.get('id') != eq_id]
+                st.success("Equipamento removido!")
+                st.rerun()
+            st.write("---")
 
 # ==========================================
 # PAGE 2: CADASTRAR MÁQUINA
@@ -143,7 +149,9 @@ elif menu == "➕ Cadastrar Nova Máquina":
         if id_eq and nome_eq:
             payload_completo = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
             payload_simplificado = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq}
-            st.session_state.maquinas_locais.append(payload_completo)
+            
+            if payload_completo not in st.session_state.maquinas_locais:
+                st.session_state.maquinas_locais.append(payload_completo)
             
             if not MODO_DEMO:
                 try:
@@ -188,13 +196,3 @@ elif menu == "✏️ Editar Máquina":
             st.success("Alterações salvas!")
             st.rerun()
     else:
-        st.info("Nenhum equipamento disponível para edição.")
-
-# ==========================================
-# PAGE 4: PLANEJAMENTO TEMPORAL
-# ==========================================
-elif menu == "📅 Planejamento & Checklists":
-    st.header("📅 Planejamento de Manutenções Preventivas")
-    st.subheader("📋 Nova Agenda Preventiva")
-    
-    lista_nomes = [row.get('nome', row.get('equipamento', 'Máquina')) for row in equipamentos if isinstance(row, dict)]
