@@ -140,12 +140,9 @@ elif menu == "📅 Planejamento & Checklists":
     if maquina_selecionada:
         dados_mq = opcoes_lista[maquina_selecionada]
         col_c1, col_c2, col_c3 = st.columns(3)
-        with col_c1:
-            st.info(f"**Semanal:**\n{dados_mq.get('check_semanal', 'Não configurado.')}")
-        with col_c2:
-            st.warning(f"**Mensal:**\n{dados_mq.get('check_mes', 'Não configurado.')}")
-        with col_c3:
-            st.error(f"**Anual:**\n{dados_mq.get('check_anual', 'Não configurado.')}")
+        with col_c1: st.info(f"**Semanal:**\n{dados_mq.get('check_semanal', 'Não configurado.')}")
+        with col_c2: st.warning(f"**Mensal:**\n{dados_mq.get('check_mes', 'Não configurado.')}")
+        with col_c3: st.error(f"**Anual:**\n{dados_mq.get('check_anual', 'Não configurado.')}")
             
     st.markdown("---")
     st.subheader("📅 Agendar Nova Intervenção")
@@ -186,8 +183,9 @@ elif menu == "📅 Planejamento & Checklists":
 
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Serviços Concluídos")
-    
     st.subheader("📊 Gráfico de Evolução dos Serviços por Período")
     p_semanal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'semanal')
     p_mensal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'mensal')
     p_anual = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'anual')
+    
+    c_semanal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'semanal')
