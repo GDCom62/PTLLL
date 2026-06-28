@@ -42,7 +42,7 @@ if "planejamento_local" not in st.session_state:
 if "historico_local" not in st.session_state:
     st.session_state.historico_local = []
 
-# --- MARCA DA EMPRESA E STATUS NO MENU LATERAL ---
+# --- MARCA DA EMPRESA EM NUVEM NO MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
 
@@ -97,10 +97,9 @@ if menu == "🛠️ Diagnóstico de Conexão":
             res = requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=teste_payload, headers=SUB_HEADERS, timeout=5)
             if res.status_code in:
                 st.success("🎉 SUCESSO! O Supabase aceitou a gravação direta. A conexão está perfeita.")
-                # Limpa o teste imediatamente
                 requests.delete(f"{SUB_URL}/rest/v1/equipamentos?id=eq.TESTE-999", headers=SUB_HEADERS, timeout=5)
             else:
-                st.error(f"❌ O Supabase RECUSOU a gravação externa.")
+                st.error("❌ O Supabase RECUSOU a gravação externa.")
                 st.error(f"Código do Erro HTTP: {res.status_code}")
                 st.markdown("**Possíveis causas para este código:**")
                 st.write("- **401/403**: Suas chaves de Secrets do Streamlit estão erradas ou expiraram.")
@@ -187,3 +186,4 @@ elif menu == "✏️ Editar Máquina":
                         if res.status_code not in:
                             st.error(f"Erro Supabase: {res.status_code} - {res.text}")
                     except Exception as e:
+                        st.error(f"Falha de rede: {e}")
