@@ -29,9 +29,6 @@ if "historico_local" not in st.session_state:
         {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluído"}
     ]
 
-if "pt_emitida_html" not in st.session_state:
-    st.session_state.pt_emitida_html = ""
-
 # --- MENU LATERAL E LOGO ---
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_column_width=True)
@@ -154,27 +151,30 @@ elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Permissão de Trabalho (PT)")
     
     if not todos_agendamentos or len(todos_agendamentos) == 0:
-        todos_agendamentos = [{"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "pecas": "Inspeção padrão de segurança"}]
-    
-    opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
-    os_selecionada = st.selectbox("Selecione a Ordem de Serviço Alvo:", list(opcoes_os.keys()))
-    os_dados = opcoes_os[os_selecionada]
-    
-    with st.form("form_pt_direto"):
+        st.warning("Não existem manutenções pendentes no momento.")
+    else:
+        opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
+        os_selecionada = st.selectbox("Selecione a Ordem de Serviço:", list(opcoes_os.keys()))
+        os_dados = opcoes_os[os_selecionada]
+        
+        # REMOVIDO ST.FORM PARA GARANTIR REATIVIDADE INSTANTÂNEA AO CLIQUE
         executante = st.text_input("Técnico Executante:")
         emitente = st.text_input("Supervisor responsável:", value="Supervisor de Manutenção")
-        r_altura = st.checkbox("Trabalho em Altura (NR-35)")
-        r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
-        bt_gerar = st.form_submit_button("🚨 Gerar Documento de PT")
         
-    if bt_gerar:
-        if not executante:
-            st.error("Erro: Preencha o nome do técnico executante.")
-        else:
-            cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
-            riscos_str = ""
-            if r_altura: riscos_str += "[X] Altura (NR-35) "
-            if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
-            if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
+        col_r1, col_r2 = st.columns(2)
+        with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
+        with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
+        
+        bt_gerar = st.button("🚨 Gerar Documento de PT")
             
-            # TEXTO CONCATENADO EM LINHA PLANA PARA ELIMINAR QUALQUER ERRO DE SINTAXE
+        if bt_gerar:
+            if not executante:
+                st.error("Erro: Preencha o nome do técnico executante.")
+            else:
+                cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
+                riscos_str = ""
+                if r_altura: riscos_str += "[X] Altura (NR-35) "
+                if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
+                if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
+                
+                l1 = '<div style="border:3px double #FF4B4B; padding:20px; background-color:#FFF5F5; font-family:monospace; color:#000000; border-radius:5px; margin-top:15px;">'
