@@ -14,29 +14,29 @@ if "maquinas_locais" not in st.session_state:
             "nome": "Torno Mecânico Nardini", 
             "localizacao": "Oficina Central", 
             "criticidade": "Alta", 
-            "check_semanal": "1. Verificar nível de óleo lubrificante;\n2. Limpar os barramentos;\n3. Lubrificar as guias lineares;\n4. Remover cavacos acumulados.", 
-            "check_mensal": "1. Trocar filtros de fluido refrigerante;\n2. Conferir tensão das correias do motor;\n3. Verificar folgas nos eixos X e Z;\n4. Testar botões de emergência.", 
-            "check_anual": "1. Revisão geral do motor elétrico;\n2. Alinhamento geométrico completo;\n3. Troca total do óleo da caixa de engrenagens;\n4. Megagem de isolamento elétrico."
+            "check_semanal": "1. Verificar nivel de oleo lubrificante;\\n2. Limpar os barramentos;\\n3. Lubrificar as guias lineares;\\n4. Remover cavacos acumulados.", 
+            "check_mensal": "1. Trocar filtros de fluido refrigerante;\\n2. Conferir tensao das correias do motor;\\n3. Verificar folgas nos eixos X e Z;\\n4. Testar botoes de emergencia.", 
+            "check_anual": "1. Revisao geral do motor eletrico;\\n2. Alinhamento geometrico completo;\\n3. Troca total do oleo da caixa de engrenagens;\\n4. Megagem de isolamento eletrico."
         },
         {
             "id": "EQ-002", 
             "nome": "Compressor de Ar Schulz", 
             "localizacao": "Sala de Compressores", 
             "criticidade": "Média", 
-            "check_semanal": "1. Drenar condensado do reservatório;\n2. Verificar nível de óleo do cárter;\n3. Checar ruídos ou vibrações estranhas;\n4. Verificar pressão de operação.", 
-            "check_mensal": "1. Limpar e inspecionar o filtro de ar;\n2. Verificar vazamentos em conexões e tubulações;\n3. Conferir alinhamento das polias e correias;\n4. Testar pressostato.", 
-            "check_anual": "1. Troca completa do óleo lubrificante;\n2. Substituição do elemento do filtro de ar;\n3. Teste hidrostático e calibração da válvula de segurança;\n4. Limpeza interna das serpentinas."
+            "check_semanal": "1. Drenar condensado do reservatorio;\\n2. Verificar nivel de oleo do carter;\\n3. Checar ruidos ou vibracoes estranhas;\\n4. Verificar pressao de operacao.", 
+            "check_mensal": "1. Limpar e inspecionar o filtro de ar;\\n2. Verificar vazamentos em conexoes e tubulacoes;\\n3. Conferir alinhamento das polias e correias;\\n4. Testar pressostato.", 
+            "check_anual": "1. Troca completa do oleo lubrificante;\\n2. Substituicao do elemento do filtro de ar;\\n3. Teste hidrostatico e calibracao da valvula de seguranca;\\n4. Limpeza interna das serpentinas."
         }
     ]
 
 if "planejamento_local" not in st.session_state:
     st.session_state.planejamento_local = [
-        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de óleo das guias e limpeza dos barramentos", "status": "Pendente"}
+        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente"}
     ]
 
 if "historico_local" not in st.session_state:
     st.session_state.historico_local = [
-        {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluído"}
+        {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
     ]
 
 # --- MENU LATERAL E LOGO ---
@@ -76,9 +76,9 @@ elif menu == "➕ Cadastrar Nova Máquina":
         local_eq = st.text_input("Localização / Setor:")
         crit_eq = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"])
         st.markdown("##### 📜 Ações Preventivas Recomendadas")
-        c_sem = st.text_area("Checklist Semanal:", "1. Verificar nível de óleo\n2. Limpeza geral")
-        c_mes = st.text_area("Checklist Mensal:", "1. Trocar filtros\n2. Conferir correias")
-        c_ano = st.text_area("Checklist Anual:", "1. Revisão geral do motor")
+        c_sem = st.text_area("Checklist Semanal:", "1. Verificar nivel de oleo\\n2. Limpeza geral")
+        c_mes = st.text_area("Checklist Mensal:", "1. Trocar filtros\\n2. Conferir correias")
+        c_ano = st.text_area("Checklist Anual:", "1. Revisao geral do motor")
         botao_salvar = st.form_submit_button("Salvar Equipamento")
         
     if botao_salvar and id_eq and nome_eq:
@@ -96,9 +96,9 @@ elif menu == "📅 Planejamento & Checklists":
     if maquina_selecionada:
         dados_mq = opcoes_lista[maquina_selecionada]
         col_c1, col_c2, col_c3 = st.columns(3)
-        with col_c1: st.info(f"**Semanal:**\n{dados_mq.get('check_semanal', 'Não configurado.')}")
-        with col_c2: st.warning(f"**Mensal:**\n{dados_mq.get('check_mes', 'Não configurado.')}")
-        with col_c3: st.error(f"**Anual:**\n{dados_mq.get('check_anual', 'Não configurado.')}")
+        with col_c1: st.info(f"**Semanal:**\\n{dados_mq.get('check_semanal', 'Nao configurado.')}")
+        with col_c2: st.warning(f"**Mensal:**\\n{dados_mq.get('check_mes', 'Nao configurado.')}")
+        with col_c3: st.error(f"**Anual:**\\n{dados_mq.get('check_anual', 'Nao configurado.')}")
             
     st.markdown("---")
     st.subheader("📅 Agendar Nova Intervenção")
@@ -107,7 +107,7 @@ elif menu == "📅 Planejamento & Checklists":
         eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes if lista_nomes else ["Nenhum cadastrado"])
         periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
         data_planejada = st.date_input("Selecione a Data:", datetime.now())
-        pecas_necessarias = st.text_area("Descrição das Peças / Ferramentas / Escopo:", value="Realizar rotina padrão de preventiva.")
+        pecas_necessarias = st.text_area("Descrição das Peças / Ferramentas / Escopo:", value="Realizar rotina padrao de preventiva.")
         botao_agenda = st.form_submit_button("💾 Gravar e Agendar Manutenção")
         
     if botao_agenda and eq_escolhido != "Nenhum cadastrado":
@@ -122,7 +122,7 @@ elif menu == "📅 Planejamento & Checklists":
         st.write(f"⚙️ **{p.get('equipamento')}** | Período: **{p.get('periodo')}** | 📅 **Prevista:** {p.get('data_prevista')}")
         st.write(f"🔧 Peças/Ferramentas: {p.get('pecas')}")
         if st.button("✔️ Concluir OS e Enviar para Histórico", key=f"comp_{idx}"):
-            registro_h = {"equipamento": p.get('equipamento'), "periodo": p.get('periodo'), "data_prevista": p.get('data_prevista'), "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"), "pecas": p.get('pecas'), "status": "Concluído"}
+            registro_h = {"equipamento": p.get('equipamento'), "periodo": p.get('periodo'), "data_prevista": p.get('data_prevista'), "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"), "pecas": p.get('pecas'), "status": "Concluido"}
             st.session_state.historico_local.append(registro_h)
             st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
             st.success("Ordem finalizada!")
@@ -160,17 +160,18 @@ elif menu == "📜 Histórico de Trocas":
 # PAGE: EMISSÃO DE PT COMPLETA E NORMATIVA
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
-    st.header("⚠️ Permissão de Trabalho (PT) & Análise de Riscos")
-    st.write("Emita o documento obrigatório de segurança cruzando os dados da OS com as recomendações de manutenção.")
+    st.header("⚠️ Permissão de Trabalho (PT) & Segurança Industrial")
     
     if not todos_agendamentos or len(todos_agendamentos) == 0:
         st.warning("Não existem manutenções preventivas pendentes abertas para gerar PT.")
     else:
         opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')} ({p.get('periodo')})": p for idx, p in enumerate(todos_agendamentos)}
-        os_selecionada = st.selectbox("Selecione a Ordem de Serviço Pendente:", list(opcoes_os.keys()))
+        os_selecionada = st.selectbox("Selecione a Ordem de Serviço Alvo:", list(opcoes_os.keys()))
         os_dados = opcoes_os[os_selecionada]
         
-        # Busca segura da máquina correspondente usando next() para blindar contra IndentationError
         mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
         
-        # Filtro de período direto e seguro
+        periodo_os = str(os_dados.get('periodo', '')).lower()
+        if "semanal" in periodo_os:
+            checklist_manutencao = mac_dados.get("check_semanal", "Realizar rotina de inspecao semanal.")
+        elif "mensal" in periodo_os:
