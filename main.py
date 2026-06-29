@@ -129,6 +129,36 @@ elif menu == "📅 Planejamento & Checklists":
             st.rerun()
         st.write("---")
 
+elif menu == "📜 Histórico de Trocas":
+    st.header("📜 Histórico de Serviços Concluídos")
+    st.subheader("📊 Gráfico de Evolução dos Serviços por Período")
+    
+    p_semanal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'semanal')
+    p_mensal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'mensal')
+    p_anual = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'anual')
+    
+    c_semanal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'semanal')
+    c_mensal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'mensal')
+    c_anual = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'anual')
+    
+    dados_grafico = {
+        "Período": ["Semanal", "Mensal", "Anual"],
+        "Pendentes (Abertas)": [p_semanal, p_mensal, p_anual],
+        "Concluídos (Histórico)": [c_semanal, c_mensal, c_anual]
+    }
+    df = pd.DataFrame(dados_grafico).set_index("Período")
+    st.bar_chart(df)
+    
+    st.markdown("---")
+    st.subheader("📋 Listagem Completa de Ordens Fechadas")
+    for h in historico_lista:
+        st.write(f"✅ **{h.get('equipamento')}** | Período: **{h.get('periodo')}**")
+        st.write(f"⏱️ **Concluído em:** {h.get('data_conclusao', 'N/A')} | Intervenção realizada: {h.get('pecas')}")
+        st.write("---")
+
+# ==========================================
+# PAGE: EMISSÃO DE PT COMPLETA E NORMATIVA
+# ==========================================
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Permissão de Trabalho (PT) & Segurança Industrial")
     
@@ -141,31 +171,7 @@ elif menu == "⚠️ Emissão de PT":
         
         mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
         
-        # MAPEAMENTO DIRETO VIA DICIONÁRIO (Evita completamente estruturas 'if/elif' e erros de indentação)
         periodo_chave = str(os_dados.get('periodo', '')).strip().lower()
         mapa_checklists = {
             "semanal": mac_dados.get("check_semanal", "Realizar rotina de inspecao semanal."),
             "mensal": mac_dados.get("check_mensal", "Realizar rotina de inspecao mensal."),
-            "anual": mac_dados.get("check_anual", "Realizar rotina de inspecao anual.")
-        }
-        checklist_manutencao = mapa_checklists.get(periodo_chave, "Realizar rotina de inspecao padrao.")
-
-        st.markdown("### 📝 Dados da Emissão")
-        executante = st.text_input("Nome do Técnico Executante:", value="", placeholder="Digite o nome completo do técnico")
-        emitente = st.text_input("Supervisor Emitente / Autorizador:", value="Supervisor de Manutenção")
-        
-        st.markdown("### 🚨 Análise Preliminar de Risco (APR)")
-        col_s1, col_s2, col_s3 = st.columns(3)
-        with col_s1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
-        with col_s2: r_eletrico = st.checkbox("Risco Elétrico / Painéis (NR-10)")
-        with col_s3: r_quente = st.checkbox("Trabalho a Quente / Solda e Centelha")
-        
-        st.markdown("---")
-        
-        # Montagem dinâmica do bloco de NRs recomendadas
-        recomendacoes_seguranca = "Seguir regras gerais de seguranca da planta operacional."
-        if r_altura or r_eletrico or r_quente:
-            recomendacoes_seguranca = ""
-            if r_altura: 
-                recomendacoes_seguranca += "• RECOMENDAÇÃO NR-35: Uso obrigatorio de cinto tipo paraquedista com duplo talabarte ancorado em linha de vida física. "
-            if r_eletrico: 
