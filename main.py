@@ -34,7 +34,6 @@ if "maquinas_locais" not in st.session_state or not st.session_state.maquinas_lo
         {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar condensado do reservatório e checar ruídos estranhos.", "check_mensal": "Limpar/trocar filtro de ar, verificar vazamentos em conexões.", "check_anual": "Aferição do manômetro, teste de válvula de segurança e troca de óleo."}
     ]
 
-# Força a criação do agendamento local para a PT nunca ficar vazia
 if "planejamento_local" not in st.session_state or not st.session_state.planejamento_local:
     st.session_state.planejamento_local = [
         {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Inspeção preventiva padrão e lubrificação geral", "status": "Pendente"}
@@ -130,8 +129,10 @@ elif menu == "📅 Planejamento & Checklists":
         novo_agendamento = {"id": len(todos_agendamentos) + 1, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente"}
         st.session_state.planejamento_local.append(novo_agendamento)
         if not MODO_DEMO:
-            try: requests.post(f"{SUB_URL}/rest/v1/planejamento", json=novo_agendamento, headers=SUB_HEADERS, timeout=5)
-            except: pass
+            try: 
+                requests.post(f"{SUB_URL}/rest/v1/planejamento", json=novo_agendamento, headers=SUB_HEADERS, timeout=5)
+            except: 
+                pass
         st.success("🎉 Agendamento registrado!")
         st.rerun()
 
@@ -144,8 +145,10 @@ elif menu == "📅 Planejamento & Checklists":
             registro_h = {"equipamento": p.get('equipamento'), "periodo": p.get('periodo'), "data_prevista": p.get('data_prevista'), "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"), "pecas": p.get('pecas'), "status": "Concluído"}
             st.session_state.historico_local.append(registro_h)
             if not MODO_DEMO:
-                try: requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_h, headers=SUB_HEADERS, timeout=5)
-                except: pass
+                try: 
+                    requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_h, headers=SUB_HEADERS, timeout=5)
+                except: 
+                    pass
             st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
             st.success("Ordem finalizada!")
             st.rerun()
@@ -181,7 +184,7 @@ elif menu == "📜 Histórico de Trocas":
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Permissão de Trabalho (PT)")
     
-    # Validação rigorosa para impedir que a tela suma se a lista local estiver ativa
     if not todos_agendamentos or len(todos_agendamentos) == 0:
         st.warning("Não existem manutenções pendentes no momento.")
     else:
+        opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
