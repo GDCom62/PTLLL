@@ -150,7 +150,8 @@ elif menu == "⚠️ Emissão de PT":
         os_selecionada = st.selectbox("Selecione a Ordem de Serviço:", list(opcoes_os.keys()))
         os_dados = opcoes_os[os_selecionada]
         
-        executante = st.text_input("Nome do Técnico Executante:")
+        # INPUTS DIRETOS E REATIVOS EM TEMPO REAL (SEM BOTÕES)
+        executante = st.text_input("Nome do Técnico Executante:", value="Digite o nome do técnico aqui")
         emitente = st.text_input("Supervisor Emitente:", value="Supervisor de Manutenção")
         
         col_r1, col_r2 = st.columns(2)
@@ -158,18 +159,15 @@ elif menu == "⚠️ Emissão de PT":
         with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
         
         st.markdown("---")
-        # Grafia corrigida para evitar o erro de NameError
-        ativar_pt = st.checkbox("🚨 Confirmar e Gerar Documento de PT")
+        st.subheader("📄 Documento de PT Gerado Automaticamente")
         
-        if ativar_pt:
-            if not executante:
-                st.error("❌ Digite o nome do técnico executante no campo acima para gerar o documento.")
-            else:
-                cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
-                riscos_str = ""
-                if r_altura: riesgos_str = "[X] Altura (NR-35) "
-                if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
-                if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
-                
-                l1 = '<div style="border:3px double #FF4B4B; padding:20px; background-color:#FFF5F5; font-family:monospace; color:#000000; border-radius:5px; margin-top:15px;">'
-                l2 = '<h3 style="text-align:center; color:#FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO EMITIDA</h3>'
+        # Lógica de riscos calculada instantaneamente
+        riscos_str = ""
+        if r_altura: riscos_str += "[X] Altura (NR-35) "
+        if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
+        if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
+        
+        # Documento montado direto na raiz da página, livre de qualquer trava de clique
+        l1 = '<div style="border:3px double #FF4B4B; padding:20px; background-color:#FFF5F5; font-family:monospace; color:#000000; border-radius:5px; margin-top:15px;">'
+        l2 = '<h3 style="text-align:center; color:#FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO (HOMOLOGADA)</h3>'
+        l3 = '<p><b>CÓDIGO DOC:</b> PT-00' + str(os_dados.get('id', '1')) + ' | <b>STATUS:</b> Liberado para Execução</p>'
