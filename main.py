@@ -154,12 +154,10 @@ elif menu == "📜 Histórico de Trocas":
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Permissão de Trabalho (PT)")
     
-    # BLINDAGEM MÁXIMA: Se por acaso a lista sumir da sessão, recria um item fixo imediatamente
     if not todos_agendamentos or len(todos_agendamentos) == 0:
         todos_agendamentos = [{"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "pecas": "Inspeção padrão de segurança"}]
     
-    opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento', 'Equipamento')}" : p for idx, p in enumerate(todos_agendamentos)}
-    
+    opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento', 'Equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
     os_selecionada = st.selectbox("Selecione a Ordem de Serviço Alvo:", list(opcoes_os.keys()))
     os_dados = opcoes_os[os_selecionada]
     
@@ -177,3 +175,4 @@ elif menu == "⚠️ Emissão de PT":
             cod_doc = f"PT-{os_dados.get('id', '1')}-{datetime.now().strftime('%M%S')}"
             st.session_state.pt_emitida_html = f"""
             <div style="border:3px double #FF4B4B; padding:20px; background-color:#FFF5F5; font-family:monospace; color:#000000; border-radius:5px; margin-top:15px;">
+                <h3 style="text-align:center; color:#FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO EMITIDA</h3>
