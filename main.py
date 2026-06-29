@@ -14,18 +14,18 @@ if "maquinas_locais" not in st.session_state:
             "nome": "Torno Mecânico Nardini", 
             "localizacao": "Oficina Central", 
             "criticidade": "Alta", 
-            "check_semanal": "1. Verificar nivel de oleo lubrificante;\\n2. Limpar os barramentos;\\n3. Lubrificar as guias lineares;\\n4. Remover cavacos acumulados.", 
-            "check_mensal": "1. Trocar filtros de fluido refrigerante;\\n2. Conferir tensao das correias do motor;\\n3. Verificar folgas nos eixos X e Z;\\n4. Testar botoes de emergencia.", 
-            "check_anual": "1. Revisao geral do motor eletrico;\\n2. Alinhamento geometrico completo;\\n3. Troca total do oleo da caixa de engrenagens;\\n4. Megagem de isolamento eletrico."
+            "check_semanal": "1. Verificar nivel de oleo lubrificante; 2. Limpar os barramentos; 3. Lubrificar as guias lineares; 4. Remover cavacos acumulados.", 
+            "check_mensal": "1. Trocar filtros de fluido refrigerante; 2. Conferir tensao das correias do motor; 3. Verificar folgas nos eixos X e Z; 4. Testar botoes de emergencia.", 
+            "check_anual": "1. Revisao geral do motor eletrico; 2. Alinhamento geometrico completo; 3. Troca total do oleo da caixa de engrenagens; 4. Megagem de isolamento eletrico."
         },
         {
             "id": "EQ-002", 
             "nome": "Compressor de Ar Schulz", 
             "localizacao": "Sala de Compressores", 
             "criticidade": "Média", 
-            "check_semanal": "1. Drenar condensado do reservatorio;\\n2. Verificar nivel de oleo do carter;\\n3. Checar ruidos ou vibracoes estranhas;\\n4. Verificar pressao de operacao.", 
-            "check_mensal": "1. Limpar e inspecionar o filtro de ar;\\n2. Verificar vazamentos em conexoes e tubulacoes;\\n3. Conferir alinhamento das polias e correias;\\n4. Testar pressostato.", 
-            "check_anual": "1. Troca completa do oleo lubrificante;\\n2. Substituicao do elemento do filtro de ar;\\n3. Teste hidrostatico e calibracao da valvula de seguranca;\\n4. Limpeza interna das serpentinas."
+            "check_semanal": "1. Drenar condensado do reservatorio; 2. Verificar nivel de oleo do carter; 3. Checar ruidos ou vibracoes estranhas; 4. Verificar pressao de operacao.", 
+            "check_mensal": "1. Limpar e inspecionar o filtro de ar; 2. Verificar vazamentos em conexoes e tubulações; 3. Conferir alinhamento das polias e correias; 4. Testar pressostato.", 
+            "check_anual": "1. Troca completa do oleo lubrificante; 2. Substituicao do elemento do filtro de ar; 3. Teste hidrostatico e calibracao da valvula de seguranca; 4. Limpeza interna das serpentinas."
         }
     ]
 
@@ -76,8 +76,8 @@ elif menu == "➕ Cadastrar Nova Máquina":
         local_eq = st.text_input("Localização / Setor:")
         crit_eq = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"])
         st.markdown("##### 📜 Ações Preventivas Recomendadas")
-        c_sem = st.text_area("Checklist Semanal:", "1. Verificar nivel de oleo\\n2. Limpeza geral")
-        c_mes = st.text_area("Checklist Mensal:", "1. Trocar filtros\\n2. Conferir correias")
+        c_sem = st.text_area("Checklist Semanal:", "1. Verificar nivel de oleo; 2. Limpeza geral")
+        c_mes = st.text_area("Checklist Mensal:", "1. Trocar filtros; 2. Conferir correias")
         c_ano = st.text_area("Checklist Anual:", "1. Revisao geral do motor")
         botao_salvar = st.form_submit_button("Salvar Equipamento")
         
@@ -96,9 +96,9 @@ elif menu == "📅 Planejamento & Checklists":
     if maquina_selecionada:
         dados_mq = opcoes_lista[maquina_selecionada]
         col_c1, col_c2, col_c3 = st.columns(3)
-        with col_c1: st.info(f"**Semanal:**\\n{dados_mq.get('check_semanal', 'Nao configurado.')}")
-        with col_c2: st.warning(f"**Mensal:**\\n{dados_mq.get('check_mes', 'Nao configurado.')}")
-        with col_c3: st.error(f"**Anual:**\\n{dados_mq.get('check_anual', 'Nao configurado.')}")
+        with col_c1: st.info(f"**Semanal:**\n{dados_mq.get('check_semanal', 'Nao configurado.')}")
+        with col_c2: st.warning(f"**Mensal:**\n{dados_mq.get('check_mes', 'Nao configurado.')}")
+        with col_c3: st.error(f"**Anual:**\n{dados_mq.get('check_anual', 'Nao configurado.')}")
             
     st.markdown("---")
     st.subheader("📅 Agendar Nova Intervenção")
