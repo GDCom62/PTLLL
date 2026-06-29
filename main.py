@@ -140,34 +140,38 @@ elif menu == "📜 Histórico de Trocas":
         st.write(f"⏱️ **Concluído em:** {h.get('data_conclusao', 'N/A')} | Intervenção realizada: {h.get('pecas')}")
         st.write("---")
 
+# ---- PÁGINA REESTRUTURADA COM LAYOUT 100% NATIVO (SEM ERROS DE RENDERIZAÇÃO) ----
 elif menu == "⚠️ Emissão de PT":
-    st.header("⚠️ Permissão de Trabalho (PT)")
+    st.header("⚠️ Permissão de Trabalho Nativa (PT)")
     
     if not todos_agendamentos or len(todos_agendamentos) == 0:
         st.warning("Não existem manutenções pendentes no momento.")
     else:
         opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
-        os_selecionada = st.selectbox("Selecione a Ordem de Serviço:", list(opcoes_os.keys()))
+        os_selecionada = st.selectbox("Selecione a Ordem de Serviço Alvo:", list(opcoes_os.keys()))
         os_dados = opcoes_os[os_selecionada]
         
-        # INPUTS DIRETOS E REATIVOS EM TEMPO REAL (SEM BOTÕES)
-        executante = st.text_input("Nome do Técnico Executante:", value="Digite o nome do técnico aqui")
-        emitente = st.text_input("Supervisor Emitente:", value="Supervisor de Manutenção")
+        # Coleta de dados simples e direta
+        executante = st.text_input("Nome do Técnico Executante:", value="")
+        emitente = st.text_input("Supervisor Responsável:", value="Supervisor de Manutenção")
         
         col_r1, col_r2 = st.columns(2)
         with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
         with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
         
         st.markdown("---")
-        st.subheader("📄 Documento de PT Gerado Automaticamente")
         
-        # Lógica de riscos calculada instantaneamente
-        riscos_str = ""
-        if r_altura: riscos_str += "[X] Altura (NR-35) "
-        if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
-        if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
+        # LAYOUT DE IMPRESSÃO NATIVO EXIBIDO EM TEMPO REAL NA TELA
+        st.subheader("📄 Documento Oficial de Permissão de Trabalho")
         
-        # Documento montado direto na raiz da página, livre de qualquer trava de clique
-        l1 = '<div style="border:3px double #FF4B4B; padding:20px; background-color:#FFF5F5; font-family:monospace; color:#000000; border-radius:5px; margin-top:15px;">'
-        l2 = '<h3 style="text-align:center; color:#FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO (HOMOLOGADA)</h3>'
-        l3 = '<p><b>CÓDIGO DOC:</b> PT-00' + str(os_dados.get('id', '1')) + ' | <b>STATUS:</b> Liberado para Execução</p>'
+        # Caixa de status nativa do Streamlit (Garante destaque visual absoluto)
+        st.error(f"🚨 STATUS DO DOCUMENTO: AUTORIZADO E LIBERADO PARA EXECUÇÃO")
+        
+        # Exibição organizada dos dados em formato de ficha limpa
+        st.markdown(f"**CÓDIGO DO DOCUMENTO:** PT-00{os_dados.get('id', '1')}")
+        st.markdown(f"**EQUIPAMENTO ALVO:** {os_dados.get('equipamento')}")
+        st.markdown(f"**DESCRIÇÃO DO SERVIÇO:** {os_dados.get('pecas')}")
+        st.markdown(f"**TÉCNICO EXECUTANTE:** {executante if executante else '(Aguardando preenchimento do nome)'}")
+        st.markdown(f"**SUPERVISOR RESPONSÁVEL:** {emitente}")
+        
+        # Validação reativa de riscos monitorados
