@@ -29,6 +29,10 @@ if "historico_local" not in st.session_state:
         {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluído"}
     ]
 
+# --- GATILHO DE ATIVAÇÃO DA PT ---
+if "trigger_gerar_pt" not in st.session_state:
+    st.session_state.trigger_gerar_pt = False
+
 # --- MENU LATERAL E LOGO ---
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_column_width=True)
@@ -156,7 +160,6 @@ elif menu == "⚠️ Emissão de PT":
         os_selecionada = st.selectbox("Selecione a Ordem de Serviço:", list(opcoes_os.keys()))
         os_dados = opcoes_os[os_selecionada]
         
-        # INTERFACE DIRETA, REATIVA E TOTALMENTE LIVRE DE FORMULÁRIOS TRAVADOS
         executante = st.text_input("Nome do Técnico Executante:")
         emitente = st.text_input("Supervisor Emitente:", value="Supervisor de Manutenção")
         
@@ -164,13 +167,17 @@ elif menu == "⚠️ Emissão de PT":
         with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
         with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
         
-        # O documento HTML é gerado dinamicamente na tela baseado no preenchimento do campo Técnico
-        if executante:
+        # O BOTÃO VOLTOU: Mas agora aciona um gatilho fixo na memória para impedir o sumiço
+        if st.button("🚨 Gerar Documento de PT"):
+            if not executante:
+                st.error("Erro: Preencha o nome do técnico executante.")
+                st.session_state.trigger_gerar_pt = False
+            else:
+                st.session_state.trigger_gerar_pt = True
+        
+        # Desenha na tela apenas se o gatilho estiver ativo e o técnico preenchido
+        if st.session_state.trigger_gerar_pt and executante:
             cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
             riscos_str = ""
             if r_altura: riscos_str += "[X] Altura (NR-35) "
             if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
-            if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
-            
-            l1 = '<div style="border:3px double #FF4B4B; padding:20px; background-color:#FFF5F5; font-family:monospace; color:#000000; border-radius:5px; margin-top:15px;">'
-            l2 = '<h3 style="text-align:center; color:#FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO EMITIDA VIA REATIVIDADE</h3>'
