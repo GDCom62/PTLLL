@@ -29,9 +29,9 @@ if "historico_local" not in st.session_state:
         {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluído"}
     ]
 
-# --- MEMÓRIA PERSISTENTE ---
-if "pt_emitida_html" not in st.session_state:
-    st.session_state.pt_emitida_html = ""
+# --- MEMÓRIA DA PT PERSISTENTE EM SESSÃO ---
+if "pt_documento_html" not in st.session_state:
+    st.session_state.pt_documento_html = ""
 
 # --- MENU LATERAL E LOGO ---
 if os.path.exists("logo.png"):
@@ -160,18 +160,20 @@ elif menu == "⚠️ Emissão de PT":
         os_selecionada = st.selectbox("Selecione a Ordem de Serviço:", list(opcoes_os.keys()))
         os_dados = opcoes_os[os_selecionada]
         
-        executante = st.text_input("Técnico Executante:", key="input_tecnico")
-        emitente = st.text_input("Supervisor responsável:", value="Supervisor de Manutenção", key="input_supervisor")
-        
-        col_r1, col_r2 = st.columns(2)
-        with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
-        with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
-        
-        bt_gerar = st.button("🚨 Gerar Documento de PT")
+        # FORMULÁRIO BLINDADO CONTRA ERRO DE REFRESH DO STREAMLIT
+        with st.form("form_pt_definitivo"):
+            executante = st.text_input("Técnico Executante:")
+            emitente = st.text_input("Supervisor responsável:", value="Supervisor de Manutenção")
+            
+            col_r1, col_r2 = st.columns(2)
+            with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
+            with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
+            
+            bt_gerar = st.form_submit_button("🚨 Validar e Confirmar Emissão de PT")
             
         if bt_gerar:
             if not executante:
-                st.error("Erro: Preencha o nome do técnico executante.")
+                st.error("Erro: Digite o nome do técnico executante antes de gerar.")
             else:
                 cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
                 riscos_str = ""
@@ -179,4 +181,3 @@ elif menu == "⚠️ Emissão de PT":
                 if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
                 if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
                 
-                l1 = '<div style="border:3px double #FF4B4B; padding:20px; background-color:#FFF5F5; font-family:monospace; color:#000000; border-radius:5px; margin-top:15px;">'
