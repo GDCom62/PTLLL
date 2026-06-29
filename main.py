@@ -29,10 +29,6 @@ if "historico_local" not in st.session_state:
         {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluído"}
     ]
 
-# --- GATILHO DE ATIVAÇÃO DA PT ---
-if "trigger_gerar_pt" not in st.session_state:
-    st.session_state.trigger_gerar_pt = False
-
 # --- MENU LATERAL E LOGO ---
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_column_width=True)
@@ -160,24 +156,25 @@ elif menu == "⚠️ Emissão de PT":
         os_selecionada = st.selectbox("Selecione a Ordem de Serviço:", list(opcoes_os.keys()))
         os_dados = opcoes_os[os_selecionada]
         
-        executante = st.text_input("Nome do Técnico Executante:")
-        emitente = st.text_input("Supervisor Emitente:", value="Supervisor de Manutenção")
-        
-        col_r1, col_r2 = st.columns(2)
-        with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
-        with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
-        
-        # O BOTÃO VOLTOU: Mas agora aciona um gatilho fixo na memória para impedir o sumiço
-        if st.button("🚨 Gerar Documento de PT"):
+        # FORMULÁRIO COM CHAVE DE SESSÃO PERSISTENTE (CONEXÃO ESTÁVEL GATILHADA)
+        with st.form(key="formulario_pt_blindado"):
+            executante = st.text_input("Nome do Técnico Executante:")
+            emitente = st.text_input("Supervisor Emitente:", value="Supervisor de Manutenção")
+            
+            col_r1, col_r2 = st.columns(2)
+            with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
+            with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
+            
+            # O processamento ocorre diretamente no clique interno de submissão do formulário
+            bt_gerar = st.form_submit_button("🚨 Gerar Documento de PT")
+            
+        if bt_gerar:
             if not executante:
-                st.error("Erro: Preencha o nome do técnico executante.")
-                st.session_state.trigger_gerar_pt = False
+                st.error("Erro: Preencha o nome do técnico executante antes de clicar em gerar.")
             else:
-                st.session_state.trigger_gerar_pt = True
-        
-        # Desenha na tela apenas se o gatilho estiver ativo e o técnico preenchido
-        if st.session_state.trigger_gerar_pt and executante:
-            cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
-            riscos_str = ""
-            if r_altura: riscos_str += "[X] Altura (NR-35) "
-            if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
+                cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
+                riscos_str = ""
+                if r_altura: riscos_str += "[X] Altura (NR-35) "
+                if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
+                if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
+                
