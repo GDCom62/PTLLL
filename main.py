@@ -10,7 +10,7 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 # --- CONEXÃO DIRETA SUPABASE VIA API HTTP ---
 SUB_URL = ""
 SUB_HEADERS = {}
-MODO_DEMO = True # Forçado Modo Local Seguro para evitar que erros de rede da nuvem apaguem as abas
+MODO_DEMO = True 
 
 # --- INICIALIZAÇÃO FIXA DA MEMÓRIA DE SEGURANÇA LOCAL ---
 if "maquinas_locais" not in st.session_state:
@@ -48,7 +48,6 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-# Atribuição direta e limpa para evitar interferência na renderização
 equipamentos = list(st.session_state.maquinas_locais)
 todos_agendamentos = list(st.session_state.planejamento_local)
 historico_lista = list(st.session_state.historico_local)
@@ -157,7 +156,7 @@ elif menu == "⚠️ Emissão de PT":
     if not todos_agendamentos or len(todos_agendamentos) == 0:
         todos_agendamentos = [{"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "pecas": "Inspeção padrão de segurança"}]
     
-    opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento', 'Equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
+    opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
     os_selecionada = st.selectbox("Selecione a Ordem de Serviço Alvo:", list(opcoes_os.keys()))
     os_dados = opcoes_os[os_selecionada]
     
@@ -172,7 +171,10 @@ elif menu == "⚠️ Emissão de PT":
         if not executante:
             st.error("Erro: Preencha o nome do técnico executante.")
         else:
-            cod_doc = f"PT-{os_dados.get('id', '1')}-{datetime.now().strftime('%M%S')}"
-            st.session_state.pt_emitida_html = f"""
-            <div style="border:3px double #FF4B4B; padding:20px; background-color:#FFF5F5; font-family:monospace; color:#000000; border-radius:5px; margin-top:15px;">
-                <h3 style="text-align:center; color:#FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO EMITIDA</h3>
+            cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
+            riscos_str = ""
+            if r_altura: riscos_str += "[X] Altura (NR-35) "
+            if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
+            if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
+            
+            # TEXTO CONCATENADO EM LINHA PLANA PARA ELIMINAR QUALQUER ERRO DE SINTAXE
