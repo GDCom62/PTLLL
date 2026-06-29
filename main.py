@@ -166,11 +166,11 @@ elif menu == "⚠️ Emissão de PT":
     if not todos_agendamentos or len(todos_agendamentos) == 0:
         st.warning("Não existem manutenções preventivas pendentes abertas para gerar PT.")
     else:
-        # Vinculação automática com as especificações da máquina
         opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')} ({p.get('periodo')})": p for idx, p in enumerate(todos_agendamentos)}
         os_selecionada = st.selectbox("Selecione a Ordem de Serviço Pendente:", list(opcoes_os.keys()))
         os_dados = opcoes_os[os_selecionada]
         
-        # Localiza o prontuário completo da máquina correspondente
-        dados_da_maquina = {"check_semanal": "Rotina padrão", "check_mensal": "Rotina padrão", "check_anual": "Rotina padrão"}
-        for mac in equipamentos:
+        # Busca segura da máquina correspondente usando next() para blindar contra IndentationError
+        mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
+        
+        # Filtro de período direto e seguro
