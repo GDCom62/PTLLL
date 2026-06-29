@@ -9,13 +9,29 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 # --- INICIALIZAÇÃO FIXA DA MEMÓRIA DE SEGURANÇA LOCAL ---
 if "maquinas_locais" not in st.session_state:
     st.session_state.maquinas_locais = [
-        {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Verificar nível de óleo, limpar barramento e lubrificar guias.", "check_mensal": "Trocar filtros de fluido, conferir tensão das correias.", "check_anual": "Revisão geral do motor elétrico e alinhamento geométrico."},
-        {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "Drenar condensado do reservatório e checar ruídos estranhos.", "check_mensal": "Limpar/trocar filtro de ar, verificar vazamentos em conexões.", "check_anual": "Aferição do manômetro, teste de válvula de segurança e troca de óleo."}
+        {
+            "id": "EQ-001", 
+            "nome": "Torno Mecânico Nardini", 
+            "localizacao": "Oficina Central", 
+            "criticidade": "Alta", 
+            "check_semanal": "1. Verificar nível de óleo lubrificante;\n2. Limpar os barramentos;\n3. Lubrificar as guias lineares;\n4. Remover cavacos acumulados.", 
+            "check_mensal": "1. Trocar filtros de fluido refrigerante;\n2. Conferir tensão das correias do motor;\n3. Verificar folgas nos eixos X e Z;\n4. Testar botões de emergência.", 
+            "check_anual": "1. Revisão geral do motor elétrico;\n2. Alinhamento geométrico completo;\n3. Troca total do óleo da caixa de engrenagens;\n4. Megagem de isolamento elétrico."
+        },
+        {
+            "id": "EQ-002", 
+            "nome": "Compressor de Ar Schulz", 
+            "localizacao": "Sala de Compressores", 
+            "criticidade": "Média", 
+            "check_semanal": "1. Drenar condensado do reservatório;\n2. Verificar nível de óleo do cárter;\n3. Checar ruídos ou vibrações estranhas;\n4. Verificar pressão de operação.", 
+            "check_mensal": "1. Limpar e inspecionar o filtro de ar;\n2. Verificar vazamentos em conexões e tubulações;\n3. Conferir alinhamento das polias e correias;\n4. Testar pressostato.", 
+            "check_anual": "1. Troca completa do óleo lubrificante;\n2. Substituição do elemento do filtro de ar;\n3. Teste hidrostático e calibração da válvula de segurança;\n4. Limpeza interna das serpentinas."
+        }
     ]
 
 if "planejamento_local" not in st.session_state:
     st.session_state.planejamento_local = [
-        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Inspeção preventiva padrão e lubrificação geral", "status": "Pendente"}
+        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de óleo das guias e limpeza dos barramentos", "status": "Pendente"}
     ]
 
 if "historico_local" not in st.session_state:
@@ -60,9 +76,9 @@ elif menu == "➕ Cadastrar Nova Máquina":
         local_eq = st.text_input("Localização / Setor:")
         crit_eq = st.selectbox("Criticidade:", ["Baixa", "Média", "Alta"])
         st.markdown("##### 📜 Ações Preventivas Recomendadas")
-        c_sem = st.text_area("Checklist Semanal:", "Verificar nível de óleo\nLimpeza geral")
-        c_mes = st.text_area("Checklist Mensal:", "Trocar filtros\nConferir correias")
-        c_ano = st.text_area("Checklist Anual:", "Revisão geral do motor")
+        c_sem = st.text_area("Checklist Semanal:", "1. Verificar nível de óleo\n2. Limpeza geral")
+        c_mes = st.text_area("Checklist Mensal:", "1. Trocar filtros\n2. Conferir correias")
+        c_ano = st.text_area("Checklist Anual:", "1. Revisão geral do motor")
         botao_salvar = st.form_submit_button("Salvar Equipamento")
         
     if botao_salvar and id_eq and nome_eq:
@@ -140,38 +156,21 @@ elif menu == "📜 Histórico de Trocas":
         st.write(f"⏱️ **Concluído em:** {h.get('data_conclusao', 'N/A')} | Intervenção realizada: {h.get('pecas')}")
         st.write("---")
 
-# ---- PÁGINA REESTRUTURADA COM LAYOUT 100% NATIVO (SEM ERROS DE RENDERIZAÇÃO) ----
+# ==========================================
+# PAGE: EMISSÃO DE PT COMPLETA E NORMATIVA
+# ==========================================
 elif menu == "⚠️ Emissão de PT":
-    st.header("⚠️ Permissão de Trabalho Nativa (PT)")
+    st.header("⚠️ Permissão de Trabalho (PT) & Análise de Riscos")
+    st.write("Emita o documento obrigatório de segurança cruzando os dados da OS com as recomendações de manutenção.")
     
     if not todos_agendamentos or len(todos_agendamentos) == 0:
-        st.warning("Não existem manutenções pendentes no momento.")
+        st.warning("Não existem manutenções preventivas pendentes abertas para gerar PT.")
     else:
-        opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
-        os_selecionada = st.selectbox("Selecione a Ordem de Serviço Alvo:", list(opcoes_os.keys()))
+        # Vinculação automática com as especificações da máquina
+        opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')} ({p.get('periodo')})": p for idx, p in enumerate(todos_agendamentos)}
+        os_selecionada = st.selectbox("Selecione a Ordem de Serviço Pendente:", list(opcoes_os.keys()))
         os_dados = opcoes_os[os_selecionada]
         
-        # Coleta de dados simples e direta
-        executante = st.text_input("Nome do Técnico Executante:", value="")
-        emitente = st.text_input("Supervisor Responsável:", value="Supervisor de Manutenção")
-        
-        col_r1, col_r2 = st.columns(2)
-        with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
-        with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
-        
-        st.markdown("---")
-        
-        # LAYOUT DE IMPRESSÃO NATIVO EXIBIDO EM TEMPO REAL NA TELA
-        st.subheader("📄 Documento Oficial de Permissão de Trabalho")
-        
-        # Caixa de status nativa do Streamlit (Garante destaque visual absoluto)
-        st.error(f"🚨 STATUS DO DOCUMENTO: AUTORIZADO E LIBERADO PARA EXECUÇÃO")
-        
-        # Exibição organizada dos dados em formato de ficha limpa
-        st.markdown(f"**CÓDIGO DO DOCUMENTO:** PT-00{os_dados.get('id', '1')}")
-        st.markdown(f"**EQUIPAMENTO ALVO:** {os_dados.get('equipamento')}")
-        st.markdown(f"**DESCRIÇÃO DO SERVIÇO:** {os_dados.get('pecas')}")
-        st.markdown(f"**TÉCNICO EXECUTANTE:** {executante if executante else '(Aguardando preenchimento do nome)'}")
-        st.markdown(f"**SUPERVISOR RESPONSÁVEL:** {emitente}")
-        
-        # Validação reativa de riscos monitorados
+        # Localiza o prontuário completo da máquina correspondente
+        dados_da_maquina = {"check_semanal": "Rotina padrão", "check_mensal": "Rotina padrão", "check_anual": "Rotina padrão"}
+        for mac in equipamentos:
