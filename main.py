@@ -1,16 +1,10 @@
 import streamlit as st
 from datetime import datetime
 import os
-import requests
 import pandas as pd
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
-
-# --- CONEXÃO DIRETA SUPABASE VIA API HTTP ---
-SUB_URL = ""
-SUB_HEADERS = {}
-MODO_DEMO = True 
 
 # --- INICIALIZAÇÃO FIXA DA MEMÓRIA DE SEGURANÇA LOCAL ---
 if "maquinas_locais" not in st.session_state:
@@ -156,21 +150,20 @@ elif menu == "⚠️ Emissão de PT":
         os_selecionada = st.selectbox("Selecione a Ordem de Serviço:", list(opcoes_os.keys()))
         os_dados = opcoes_os[os_selecionada]
         
-        # FORMULÁRIO COM CHAVE DE SESSÃO PERSISTENTE (CONEXÃO ESTÁVEL GATILHADA)
-        with st.form(key="formulario_pt_blindado"):
-            executante = st.text_input("Nome do Técnico Executante:")
-            emitente = st.text_input("Supervisor Emitente:", value="Supervisor de Manutenção")
-            
-            col_r1, col_r2 = st.columns(2)
-            with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
-            with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
-            
-            # O processamento ocorre diretamente no clique interno de submissão do formulário
-            bt_gerar = st.form_submit_button("🚨 Gerar Documento de PT")
-            
-        if bt_gerar:
+        executante = st.text_input("Nome do Técnico Executante:")
+        emitente = st.text_input("Supervisor Emitente:", value="Supervisor de Manutenção")
+        
+        col_r1, col_r2 = st.columns(2)
+        with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
+        with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
+        
+        st.markdown("---")
+        # CONTROLE DE EMISSÃO INABALÁVEL POR CHECKBOX DE ATIVAÇÃO
+        ativar_pt = st.checkbox("🚨 Confirmar e Gerar Documento de PT")
+        
+        if activar_pt:
             if not executante:
-                st.error("Erro: Preencha o nome do técnico executante antes de clicar em gerar.")
+                st.error("❌ Digite o nome do técnico executante no campo acima para gerar o documento.")
             else:
                 cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
                 riscos_str = ""
@@ -178,3 +171,5 @@ elif menu == "⚠️ Emissão de PT":
                 if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
                 if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
                 
+                l1 = '<div style="border:3px double #FF4B4B; padding:20px; background-color:#FFF5F5; font-family:monospace; color:#000000; border-radius:5px; margin-top:15px;">'
+                l2 = '<h3 style="text-align:center; color:#FF4B4B; margin-top:0;">⚠️ PERMISSÃO DE TRABALHO EMITIDA</h3>'
