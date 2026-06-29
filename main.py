@@ -171,7 +171,7 @@ elif menu == "⚠️ Emissão de PT":
         
         mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
         
-        periodo_chave = str(os_dados.get('periodo', '')).strip().lower()
-        mapa_checklists = {
-            "semanal": mac_dados.get("check_semanal", "Realizar rotina de inspecao semanal."),
-            "mensal": mac_dados.get("check_mensal", "Realizar rotina de inspecao mensal."),
+        # Filtro de texto direto e limpo (Elimina loops e dicionários complexos)
+        periodo_os = str(os_dados.get('periodo', '')).lower()
+        checklist_manutencao = mac_dados.get("check_semanal", "Realizar rotina padrao.")
+        if "mensal" in periodo_os:
