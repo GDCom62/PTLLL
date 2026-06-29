@@ -44,6 +44,10 @@ if "historico_local" not in st.session_state or not st.session_state.historico_l
         {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluído"}
     ]
 
+# --- GARANTIA DOS ESTADOS DE EMISSÃO ---
+if "pt_emitida_html" not in st.session_state:
+    st.session_state.pt_emitida_html = ""
+
 # --- MENU LATERAL E LOGO ---
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_column_width=True)
@@ -60,7 +64,6 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-# Atribuição direta sem travas de rede na inicialização
 equipamentos = list(st.session_state.maquinas_locais)
 todos_agendamentos = list(st.session_state.planejamento_local)
 historico_lista = list(st.session_state.historico_local)
@@ -96,7 +99,7 @@ elif menu == "➕ Cadastrar Nova Máquina":
                 headers_g["Prefer"] = "resolution=merge-duplicates"
                 requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload, headers=headers_g, timeout=5)
             except: pass
-        st.success("🎉 Equipamento salvo com sucesso no banco de dados!")
+        st.success("🎉 Equipamento salvo com sucesso!")
         st.rerun()
 
 elif menu == "📅 Planejamento & Checklists":
@@ -141,8 +144,7 @@ elif menu == "📅 Planejamento & Checklists":
             registro_h = {"equipamento": p.get('equipamento'), "periodo": p.get('periodo'), "data_prevista": p.get('data_prevista'), "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"), "pecas": p.get('pecas'), "status": "Concluído"}
             st.session_state.historico_local.append(registro_h)
             if not MODO_DEMO:
-                try:
-                    requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_h, headers=SUB_HEADERS, timeout=5)
+                try: requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_h, headers=SUB_HEADERS, timeout=5)
                 except: pass
             st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
             st.success("Ordem finalizada!")
@@ -182,4 +184,3 @@ elif menu == "⚠️ Emissão de PT":
         st.warning("Não existem manutenções pendentes no momento.")
     else:
         opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
-        os_selecionada = st.selectbox("Selecione a Ordem de Serviço:", list(opcoes_os.keys()))
