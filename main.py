@@ -158,16 +158,16 @@ elif menu == "⚠️ Emissão de PT":
         with col_r2: r_eletrico = st.checkbox("Risco Elétrico (NR-10)")
         
         st.markdown("---")
-        # CONTROLE DE EMISSÃO INABALÁVEL POR CHECKBOX DE ATIVAÇÃO
+        # Grafia corrigida para evitar o erro de NameError
         ativar_pt = st.checkbox("🚨 Confirmar e Gerar Documento de PT")
         
-        if activar_pt:
+        if ativar_pt:
             if not executante:
                 st.error("❌ Digite o nome do técnico executante no campo acima para gerar o documento.")
             else:
                 cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
                 riscos_str = ""
-                if r_altura: riscos_str += "[X] Altura (NR-35) "
+                if r_altura: riesgos_str = "[X] Altura (NR-35) "
                 if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
                 if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
                 
