@@ -24,7 +24,7 @@ if "maquinas_locais" not in st.session_state:
             "localizacao": "Sala de Compressores", 
             "criticidade": "Média", 
             "check_semanal": "1. Drenar condensado do reservatorio; 2. Verificar nivel de oleo do carter; 3. Checar ruidos ou vibracoes estranhas; 4. Verificar pressao de operacao.", 
-            "check_mensal": "1. Limpar e inspecionar o filtro de ar; 2. Verificar vazamentos em conexoes e tubulacoes; 3. Conferir alinhamento das polias e correias; 4. Testar pressostato.", 
+            "check_mensal": "1. Limpar e inspecionar o filtro de ar; 2. Verificar vazamentos in conexoes e tubulacoes; 3. Conferir alinhamento das polias e correias; 4. Testar pressostato.", 
             "check_anual": "1. Troca completa do oleo lubrificante; 2. Substituicao do elemento do filtro de ar; 3. Teste hidrostatico e calibracao da valvula de seguranca; 4. Limpeza interna das serpentinas."
         }
     ]
@@ -171,7 +171,7 @@ elif menu == "⚠️ Emissão de PT":
         
         mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
         
-        # Filtro de texto direto e limpo (Elimina loops e dicionários complexos)
-        periodo_os = str(os_dados.get('periodo', '')).lower()
-        checklist_manutencao = mac_dados.get("check_semanal", "Realizar rotina padrao.")
+        # BUSCA DA INSTRUÇÃO TÉCNICA (Substitui completamente blocos de if/elif anulando erros de indentação)
+        periodo_os = str(os_dados.get('periodo', '')).strip().lower()
         if "mensal" in periodo_os:
+            checklist_manutencao = mac_dados.get("check_mensal", "Realizar rotina padrao.")
