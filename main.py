@@ -63,6 +63,7 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
+# Carregamento local plano (Garante que as listas nunca fiquem nulas ou vazias na tela)
 equipamentos = list(st.session_state.maquinas_locais)
 todos_agendamentos = list(st.session_state.planejamento_local)
 historico_lista = list(st.session_state.historico_local)
@@ -131,8 +132,7 @@ elif menu == "📅 Planejamento & Checklists":
         if not MODO_DEMO:
             try: 
                 requests.post(f"{SUB_URL}/rest/v1/planejamento", json=novo_agendamento, headers=SUB_HEADERS, timeout=5)
-            except: 
-                pass
+            except: pass
         st.success("🎉 Agendamento registrado!")
         st.rerun()
 
@@ -147,8 +147,7 @@ elif menu == "📅 Planejamento & Checklists":
             if not MODO_DEMO:
                 try: 
                     requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_h, headers=SUB_HEADERS, timeout=5)
-                except: 
-                    pass
+                except: pass
             st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
             st.success("Ordem finalizada!")
             st.rerun()
@@ -184,7 +183,5 @@ elif menu == "📜 Histórico de Trocas":
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Permissão de Trabalho (PT)")
     
-    if not todos_agendamentos or len(todos_agendamentos) == 0:
-        st.warning("Não existem manutenções pendentes no momento.")
-    else:
-        opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
+    # Removida qualquer restrição: os formulários aparecem usando a memória local imediatamente
+    opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
