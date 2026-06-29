@@ -29,6 +29,14 @@ if "historico_local" not in st.session_state:
         {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluído"}
     ]
 
+# --- MEMÓRIA PERSISTENTE EXCLUSIVA PARA A EMISSÃO DA PT ---
+if "pt_emitida_html" not in st.session_state:
+    st.session_state.pt_emitida_html = ""
+if "txt_tecnico" not in st.session_state:
+    st.session_state.txt_tecnico = ""
+if "txt_supervisor" not in st.session_state:
+    st.session_state.txt_supervisor = "Supervisor de Manutenção"
+
 # --- MENU LATERAL E LOGO ---
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_column_width=True)
@@ -80,7 +88,7 @@ elif menu == "➕ Cadastrar Nova Máquina":
 elif menu == "📅 Planejamento & Checklists":
     st.header("📅 Planejamento de Manutenções Preventivas")
     
-    st.subheader("📋 Consulta Rápida de Ações Preventivas")
+    st.subheader("📋 Consulta Rápica de Ações Preventivas")
     opcoes_lista = {eq.get('nome', 'Máquina'): eq for eq in equipamentos}
     maquina_selecionada = st.selectbox("Selecione uma máquina para ver suas ações preventivas padrão:", list(opcoes_lista.keys()))
     
@@ -157,9 +165,9 @@ elif menu == "⚠️ Emissão de PT":
         os_selecionada = st.selectbox("Selecione a Ordem de Serviço:", list(opcoes_os.keys()))
         os_dados = opcoes_os[os_selecionada]
         
-        # REMOVIDO ST.FORM PARA GARANTIR REATIVIDADE INSTANTÂNEA AO CLIQUE
-        executante = st.text_input("Técnico Executante:")
-        emitente = st.text_input("Supervisor responsável:", value="Supervisor de Manutenção")
+        # Sincronização direta com o session_state para reter os dados durante os cliques
+        st.session_state.txt_tecnico = st.text_input("Técnico Executante:", value=st.session_state.txt_tecnico)
+        st.session_state.txt_supervisor = st.text_input("Supervisor responsável:", value=st.session_state.txt_supervisor)
         
         col_r1, col_r2 = st.columns(2)
         with col_r1: r_altura = st.checkbox("Trabalho em Altura (NR-35)")
@@ -168,13 +176,8 @@ elif menu == "⚠️ Emissão de PT":
         bt_gerar = st.button("🚨 Gerar Documento de PT")
             
         if bt_gerar:
-            if not executante:
-                st.error("Erro: Preencha o nome do técnico executante.")
+            if not st.session_state.txt_tecnico:
+                st.error("Erro: Preencha o nome do técnico executante antes de emitir.")
             else:
                 cod_doc = "PT-" + str(os_dados.get('id', '1')) + "-" + datetime.now().strftime("%M%S")
                 riscos_str = ""
-                if r_altura: riscos_str += "[X] Altura (NR-35) "
-                if r_eletrico: riscos_str += "[X] Elétrico (NR-10) "
-                if not r_altura and not r_eletrico: riscos_str += "Nenhum risco crítico marcado"
-                
-                l1 = '<div style="border:3px double #FF4B4B; padding:20px; background-color:#FFF5F5; font-family:monospace; color:#000000; border-radius:5px; margin-top:15px;">'
