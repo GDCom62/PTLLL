@@ -27,7 +27,7 @@ try:
 except Exception as e:
     MODO_DEMO = True
 
-# --- GARANTIA DA ESTRUTURA DE MEMÓRIA LOCAL DE BACKUP ---
+# --- INICIALIZAÇÃO FIXA DA MEMÓRIA DE SEGURANÇA LOCAL ---
 if "maquinas_locais" not in st.session_state or not st.session_state.maquinas_locais:
     st.session_state.maquinas_locais = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "Verificar nível de óleo, limpar barramento e lubrificar guias.", "check_mensal": "Trocar filtros de fluido, conferir tensão das correias.", "check_anual": "Revisão geral do motor elétrico e alinhamento geométrico."},
@@ -44,7 +44,7 @@ if "historico_local" not in st.session_state or not st.session_state.historico_l
         {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluído"}
     ]
 
-# --- MENU LATERAL AND LOGO GENERATION ---
+# --- MENU LATERAL E LOGO ---
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_column_width=True)
 else:
@@ -60,43 +60,10 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-# --- PUXA EQUIPAMENTOS DA NUVEM OU BACKUP ---
-equipamentos = []
-if not MODO_DEMO:
-    try:
-        req = requests.get(f"{SUB_URL}/rest/v1/equipamentos?select=*", headers=SUB_HEADERS, timeout=5)
-        if req.status_code == 200 and isinstance(req.json(), list):
-            equipamentos = req.json()
-    except:
-        pass
-if not equipamentos or len(equipamentos) == 0:
-    equipamentos = list(st.session_state.maquinas_locais)
-
-# --- PUXA AGENDAMENTOS DA NUVEM OU BACKUP ---
-todos_agendamentos = []
-if not MODO_DEMO:
-    try:
-        req_plan = requests.get(f"{SUB_URL}/rest/v1/planejamento?status=eq.Pendente", headers=SUB_HEADERS, timeout=5)
-        if req_plan.status_code == 200 and isinstance(req_plan.json(), list):
-            todos_agendamentos = req_plan.json()
-    except:
-        pass
-
-# AJUSTE SEGURO DEFINITIVO: Se a nuvem estiver vazia, obriga o preenchimento com o backup local
-if not todos_agendamentos or len(todos_agendamentos) == 0:
-    todos_agendamentos = list(st.session_state.planejamento_local)
-
-# --- PUXA HISTÓRICO DA NUVEM OU BACKUP ---
-historico_lista = []
-if not MODO_DEMO:
-    try:
-        req_hist = requests.get(f"{SUB_URL}/rest/v1/historico?select=*", headers=SUB_HEADERS, timeout=5)
-        if req_hist.status_code == 200 and isinstance(req_hist.json(), list):
-            historico_lista = req_hist.json()
-    except:
-        pass
-if not historico_lista or len(historico_lista) == 0:
-    historico_lista = list(st.session_state.historico_local)
+# Atribuição direta sem travas de rede na inicialização
+equipamentos = list(st.session_state.maquinas_locais)
+todos_agendamentos = list(st.session_state.planejamento_local)
+historico_lista = list(st.session_state.historico_local)
 
 # ==========================================
 # ABAS DO SISTEMA
@@ -104,7 +71,7 @@ if not historico_lista or len(historico_lista) == 0:
 if menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados")
     for idx, eq in enumerate(equipamentos):
-        st.write(f"🔹 **[{eq.get('id', idx)}] {eq.get('nome', 'Equipamento')}** | Setor: {eq.get('localizacao', 'Geral')} | Criticidade: {eq.get('criticidade', 'Média')}")
+        st.write(f"🔹 **[{eq.get('id', idx)}] {eq.get('nome')}** | Setor: {eq.get('localizacao')} | Criticidade: {eq.get('criticidade')}")
         st.write("---")
 
 elif menu == "➕ Cadastrar Nova Máquina":
@@ -122,15 +89,14 @@ elif menu == "➕ Cadastrar Nova Máquina":
         
     if botao_salvar and id_eq and nome_eq:
         payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
-        if payload not in st.session_state.maquinas_locais:
-            st.session_state.maquinas_locais.append(payload)
+        st.session_state.maquinas_locais.append(payload)
         if not MODO_DEMO:
             try:
                 headers_g = SUB_HEADERS.copy()
                 headers_g["Prefer"] = "resolution=merge-duplicates"
                 requests.post(f"{SUB_URL}/rest/v1/equipamentos", json=payload, headers=headers_g, timeout=5)
             except: pass
-        st.success("🎉 Equipamento e rotinas preventivas salvos com sucesso!")
+        st.success("🎉 Equipamento salvo com sucesso no banco de dados!")
         st.rerun()
 
 elif menu == "📅 Planejamento & Checklists":
@@ -177,7 +143,6 @@ elif menu == "📅 Planejamento & Checklists":
             if not MODO_DEMO:
                 try:
                     requests.post(f"{SUB_URL}/rest/v1/historico", json=registro_h, headers=SUB_HEADERS, timeout=5)
-                    requests.delete(f"{SUB_URL}/rest/v1/planejamento?id=eq.{p.get('id')}", headers=SUB_HEADERS, timeout=5)
                 except: pass
             st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
             st.success("Ordem finalizada!")
@@ -187,4 +152,34 @@ elif menu == "📅 Planejamento & Checklists":
 elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Serviços Concluídos")
     st.subheader("📊 Gráfico de Evolução dos Serviços por Período")
+    
     p_semanal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'semanal')
+    p_mensal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'mensal')
+    p_anual = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'anual')
+    
+    c_semanal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'semanal')
+    c_mensal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'mensal')
+    c_anual = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'anual')
+    
+    dados_grafico = {
+        "Período": ["Semanal", "Mensal", "Anual"],
+        "Pendentes (Abertas)": [p_semanal, p_mensal, p_anual],
+        "Concluídos (Histórico)": [c_semanal, c_mensal, c_anual]
+    }
+    df = pd.DataFrame(dados_grafico).set_index("Período")
+    st.bar_chart(df)
+    
+    st.markdown("---")
+    st.subheader("📋 Listagem Completa de Ordens Fechadas")
+    for h in historico_lista:
+        st.write(f"✅ **{h.get('equipamento')}** | Período: **{h.get('periodo')}**")
+        st.write(f"⏱️ **Concluído em:** {h.get('data_conclusao', 'N/A')} | Intervenção realizada: {h.get('pecas')}")
+        st.write("---")
+
+elif menu == "⚠️ Emissão de PT":
+    st.header("⚠️ Permissão de Trabalho (PT)")
+    if not todos_agendamentos:
+        st.warning("Não existem manutenções pendentes no momento.")
+    else:
+        opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')}": p for idx, p in enumerate(todos_agendamentos)}
+        os_selecionada = st.selectbox("Selecione a Ordem de Serviço:", list(opcoes_os.keys()))
