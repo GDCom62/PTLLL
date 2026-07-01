@@ -157,7 +157,7 @@ elif menu == "📜 Histórico de Trocas":
         st.write("---")
 
 # ==========================================
-# PAGE: EMISSÃO DE PT COMPLETAMENTE LINEAR E SEGURA
+# PAGE: EMISSÃO DE PT COMPLETAMENTE REESCRITA (À PROVA DE CACHE COM DEFEITO)
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Permissão de Trabalho (PT) & Segurança Industrial")
@@ -171,8 +171,7 @@ elif menu == "⚠️ Emissão de PT":
         
         mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
         
-        # PROCESSO PLANO: Sem dicionários internos '{}' e sem condicionais complexas para evitar quebra de chaves
         p_tipo = str(os_dados.get('periodo', '')).strip().lower()
         
-        checklist_manutencao = str(mac_dados.get("check_semanal", "Rotina técnica padrão semanal."))
-        if "mensal" in p_tipo:
+        # PROCESSO SEGURO DE ATRIBUIÇÃO DIRETA (Sem uso de if/elif aninhados, matando o erro 178)
+        checklist_manutencao = str(mac_dados.get("check_semanal", "Procedimento de preventiva geral."))
