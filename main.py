@@ -19,6 +19,7 @@ def carregar_dados():
         except Exception:
             pass
             
+    # Dados padrão de fábrica com chaves e períodos totalmente padronizados em minúsculo
     dados_padrao = {
         "maquinas": [
             {
@@ -41,10 +42,10 @@ def carregar_dados():
             }
         ],
         "planejamento": [
-            {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente", "seguranca": "Cuidado com partes giratorias."}
+            {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente", "seguranca": "Cuidado com partes giratorias."}
         ],
         "historico": [
-            {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
+            {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
         ]
     }
     salvar_dados(dados_padrao)
@@ -55,15 +56,13 @@ def salvar_dados(dados):
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-# Sincronização do banco de dados persistente com o session_state
-if "db" not in st.session_state:
-    st.session_state.db = carregar_dados()
+# Força o recarregamento limpo do banco de dados na inicialização
+st.session_state.db = carregar_dados()
 
 st.session_state.maquinas = st.session_state.db["maquinas"]
 st.session_state.planejamento = st.session_state.db["planejamento"]
 st.session_state.historico = st.session_state.db["historico"]
 
-# Variáveis auxiliares para controle de Edição de OS
 if "editando_os_id" not in st.session_state:
     st.session_state.editando_os_id = None
 
@@ -115,12 +114,11 @@ elif menu == "➕ Cadastrar Nova Máquina":
         st.rerun()
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (GERAÇÃO, EDIÇÃO E EXCLUSÃO)
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)
 # ==========================================
-elif menu == "📅 Planejamento & Checklists" or menu == "📅 Planejamento & Ordens de Serviço (OS)":
+elif menu == "📅 Planejamento & Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
     
-    # Bloco A: Agendamento ou Edição Ativa
     if st.session_state.editando_os_id is not None:
         st.subheader("📝 Editar Ordem de Serviço Ativa")
         os_para_editar = next((item for item in st.session_state.db["planejamento"] if item["id"] == st.session_state.editando_os_id), None)
@@ -133,14 +131,12 @@ elif menu == "📅 Planejamento & Checklists" or menu == "📅 Planejamento & Or
                 edit_pecas = st.text_area("Descrição / Escopo do Serviço:", value=os_para_editar["pecas"])
                 
                 col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
-                    gravar_edicao = st.form_submit_button("💾 Salvar Alterações na OS")
-                with col_btn2:
-                    cancelar_edicao = st.form_submit_button("❌ Cancelar Edição")
+                with col_btn1: gravar_edicao = st.form_submit_button("💾 Salvar Alterações na OS")
+                with col_btn2: cancelar_edicao = st.form_submit_button("❌ Cancelar Edição")
             
             if gravar_edicao:
                 os_para_editar["equipamento"] = edit_equip
-                os_para_editar["periodo"] = edit_periodo
+                os_para_editar["periodo"] = edit_periodo.lower()
                 os_para_editar["data_prevista"] = edit_data.strftime("%d/%m/%Y")
                 os_para_editar["pecas"] = edit_pecas
                 salvar_dados(st.session_state.db)
@@ -163,7 +159,7 @@ elif menu == "📅 Planejamento & Checklists" or menu == "📅 Planejamento & Or
             
         if botao_agenda and eq_escolhido != "Nenhum cadastrado":
             novo_id = max([item["id"] for item in todos_agendamentos], default=0) + 1
-            novo_agendamento = {"id": novo_id, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": ""}
+            novo_agendamento = {"id": novo_id, "equipamento": eq_escolhido, "periodo": periodo_escolhido.lower(), "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": ""}
             st.session_state.db["planejamento"].append(novo_agendamento)
             salvar_dados(st.session_state.db)
             st.success(f"🎉 Ordem de Serviço OS #{novo_id} gerada e salva permanentemente!")
@@ -177,7 +173,9 @@ elif menu == "📅 Planejamento & Checklists" or menu == "📅 Planejamento & Or
         st.info("Nenhuma Ordem de Serviço aberta no momento.")
     else:
         for p in ordens_exibicao:
-            st.markdown(f"#### 🛠️ OS #{p.get('id')} - {p.get('equipamento')} ({p.get('periodo')})")
+            st.markdown(f"#### 🛠️ OS #{p.get('id')} - {p.get('equipamento')} ({str(p.get('periodo')).upper()})")
             st.write(f"📅 **Data Prevista:** {p.get('data_prevista')} | 🔧 **Escopo:** {p.get('pecas')}")
             
-            # Painel Reativo de Botões de Ação por OS
+            col_b1, col_b2, col_b3 = st.columns(3)
+            with col_b1:
+                if st.button("✔️ Concluir e Fechar OS", key=f"concluir_{p.get('id')}"):
