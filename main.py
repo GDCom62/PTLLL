@@ -171,7 +171,8 @@ elif menu == "⚠️ Emissão de PT":
         
         mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
         
-        # PROCESSO LINEAR PLANO: Remove os ifs/elifs e usa buscas diretas por strings limpas
         p_tipo = str(os_dados.get('periodo', '')).strip().lower()
         
-        # Definição segura dos checklists usando chaves estáticas do dicionário
+        # PROCESSO SEGURO DE ATRIBUIÇÃO LINEAR (Sem aninhamentos ou blocos vazios)
+        checklist_manutencao = str(mac_dados.get("check_semanal", "Procedimento padrao."))
+        if "mensal" in p_tipo:
