@@ -11,6 +11,7 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 ARQUIVO_BANCO = "banco_manutencao.json"
 
 def carregar_dados():
+    """Carrega os dados salvos em arquivo local. Se não existir, cria o padrão."""
     if os.path.exists(ARQUIVO_BANCO):
         try:
             with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
@@ -18,6 +19,7 @@ def carregar_dados():
         except Exception:
             pass
             
+    # Dados padrão de fábrica
     dados_padrao = {
         "maquinas": [
             {
@@ -40,23 +42,35 @@ def carregar_dados():
             }
         ],
         "planejamento": [
-            {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente"}
+            {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente", "seguranca": "Cuidado com partes giratorias."}
         ],
         "historico": [
-            {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
+            {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
         ]
     }
     salvar_dados(dados_padrao)
     return dados_padrao
 
 def salvar_dados(dados):
+    """Salva fisicamente as listas no arquivo local permanente em disco."""
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
+# Sincroniza o banco de dados permanente com os estados de sessão do Streamlit
 if "db" not in st.session_state:
     st.session_state.db = carregar_dados()
 
-# --- MENU LATERAL ---
+# Mantém os nomes originais que as suas variáveis chamavam
+st.session_state.maquinas = st.session_state.db["maquinas"]
+st.session_state.planejamento = st.session_state.db["planejamento"]
+st.session_state.historico = st.session_state.db["historico"]
+
+# --- MENU LATERAL E LOGO ---
+if os.path.exists("logo.png"):
+    st.sidebar.image("logo.png", use_column_width=True)
+else:
+    st.sidebar.info("💡 Para exibir sua logo, adicione o arquivo 'logo.png' no GitHub.")
+
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
@@ -67,9 +81,9 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-equipamentos = st.session_state.db["maquinas"]
-todos_agendamentos = st.session_state.db["planejamento"]
-historico_lista = st.session_state.db["historico"]
+equipamentos = st.session_state.maquinas
+todos_agendamentos = st.session_state.planejamento
+historico_lista = st.session_state.historico
 
 # ==========================================
 # ABAS DO SISTEMA
@@ -97,7 +111,7 @@ elif menu == "➕ Cadastrar Nova Máquina":
         payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
         st.session_state.db["maquinas"].append(payload)
         salvar_dados(st.session_state.db)
-        st.success("🎉 Equipamento gravado permanentemente!")
+        st.success("🎉 Equipamento gravado permanentemente em disco!")
         st.rerun()
 
 elif menu == "📅 Planejamento & Checklists":
@@ -124,17 +138,17 @@ elif menu == "📅 Planejamento & Checklists":
         botao_agenda = st.form_submit_button("💾 Gravar e Agendar Manutenção")
         
     if botao_agenda and eq_escolhido != "Nenhum cadastrado":
-        novo_agendamento = {"id": len(todos_agendamentos) + 1, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente"}
+        novo_agendamento = {"id": len(todos_agendamentos) + 1, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": ""}
         st.session_state.db["planejamento"].append(novo_agendamento)
         salvar_dados(st.session_state.db)
-        st.success("🎉 Agendamento registrado!")
+        st.success("🎉 Agendamento gravado com sucesso!")
         st.rerun()
 
     st.markdown("---")
     st.subheader("🔍 Ordens de Serviço Abertas")
-    ordens_pendentes = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
+    ordens_exibicao = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
     
-    for idx, p in enumerate(ordens_pendentes):
+    for idx, p in enumerate(ordens_exibicao):
         st.write(f"⚙️ **{p.get('equipamento')}** | Período: **{p.get('periodo')}** | 📅 **Prevista:** {p.get('data_prevista')}")
         st.write(f"🔧 Peças/Ferramentas: {p.get('pecas')}")
         if st.button("✔️ Concluir OS e Enviar para Histórico", key=f"comp_{idx}"):
@@ -143,8 +157,9 @@ elif menu == "📅 Planejamento & Checklists":
             for item in st.session_state.db["planejamento"]:
                 if item.get("id") == p.get("id"):
                     item["status"] = "Concluido"
+                    break
             salvar_dados(st.session_state.db)
-            st.success("Ordem finalizada e salva permanentemente!")
+            st.success("Ordem finalizada e salva!")
             st.rerun()
         st.write("---")
 
@@ -170,137 +185,3 @@ elif menu == "📜 Histórico de Trocas":
     st.bar_chart(df)
     
     st.markdown("---")
-    st.subheader("📋 Listagem Completa de Ordens Fechadas")
-    for h in historico_lista:
-        st.write(f"✅ **{h.get('equipamento')}** | Período: **{h.get('periodo')}**")
-        st.write(f"⏱️ **Concluído em:** {h.get('data_conclusao', 'N/A')} | Intervenção realizada: {h.get('pecas')}")
-        st.write("---")
-
-elif menu == "⚠️ Emissão de PT":
-    st.header("⚠️ Permissão de Trabalho (PT) & Segurança Industrial")
-    
-    ordens_ativas = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
-    if not ordens_ativas or len(ordens_ativas) == 0:
-        st.warning("Não existem manutenções preventivas pendentes abertas para gerar PT.")
-    else:
-        opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')} ({p.get('periodo')})": p for idx, p in enumerate(ordens_ativas)}
-
-# ==========================================
-# 4. PÁGINA: EMISSÃO DE PT (TOTALMENTE DESACOPLADA)
-# ==========================================
-elif menu == "⚠️ Emissão de PT":
-    st.header("⚠️ Emissão e Impressão de Permissão de Trabalho (PT)")
-    
-    # 1. Filtra as manutenções pendentes registradas no sistema
-    ordens_pendentes = [p for p in st.session_state.planejamento if p['status'] == "Pendente"]
-    
-    if not ordens_pendentes:
-        st.warning("Não existem manutenções pendentes no momento para emitir uma PT. Agende uma preventiva primeiro!")
-    else:
-        # Monta a lista de opções para o seletor
-        opcoes_os = {f"OS #{p['id']} - {p['equipamento']} ({p['periodo']})": p for p in ordens_pendentes}
-        os_selecionada_str = str(st.selectbox("Selecione a Ordem de Serviço para vincular à PT:", list(opcoes_os.keys())))
-        os_dados = opcoes_os[os_selecionada_str]
-        
-        st.markdown("---")
-        st.subheader("📋 Formulário de Liberação de Segurança")
-        
-        # Formulário isolado para preenchimento dos dados da PT
-        with st.form("form_emissao_pt"):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                emitente = st.text_input("Nome do Emitente / Supervisor:", value="Supervisor de Manutenção")
-                executante = st.text_input("Nome do Executante / Técnico:")
-                empresa_exec = st.selectbox("Empresa Executante:", ["Própria (Interna)", "Terceirizada / Contratada"])
-            
-            with col2:
-                validade_data = st.date_input("Válido para o dia:", datetime.now())
-                hora_inicio = st.time_input("Horário de Início Autorizado:", value=datetime.strptime("08:00", "%H:%M").time())
-                hora_fim = st.time_input("Horário de Término Máximo:", value=datetime.strptime("17:00", "%H:%M").time())
-            
-            st.markdown("##### 🚨 Análise de Riscos e Riscos Envolvidos")
-            col_r1, col_r2, col_r3 = st.columns(3)
-            with col_r1:
-                r_altura = st.checkbox("Trabalho em Altura (NR-35)")
-                r_eletrico = st.checkbox("Risco Elétrico / Energias Vivas (NR-10)")
-            with col_r2:
-                r_confinado = st.checkbox("Espaço Confinado (NR-33)")
-                r_quimico = st.checkbox("Risco Químico (Gases/Vapores/Ácidos)")
-            with col_r3:
-                r_quente = st.checkbox("Trabalho a Quente (Solda/Esmeril/Corte)")
-                r_mecanico = st.checkbox("Risco Mecânico (Prensamento/Corte)")
-                
-            st.markdown("##### 🛡️ Medidas de Controle Obrigatórias")
-            col_c1, col_c2 = st.columns(2)
-            with col_c1:
-                c_loto = st.checkbox("Bloqueio e Etiquetagem executados (LOTO / Lockout Tagout)", value=True)
-                c_delim = st.checkbox("Área devidamente isolada e sinalizada", value=True)
-            with col_c2:
-                c_epi = st.checkbox("EPIs básicos e específicos verificados", value=True)
-                c_extintor = st.checkbox("Equipamento de combate a incêndio posicionado no local")
-
-            observacoes_seg = st.text_area("Observações Adicionais de Segurança:", value=str(os_dados.get('seguranca', '')))
-            
-            bt_gerar = st.form_submit_button("Validar e Gerar Documento de PT")
-            
-        # 2. Processamento do documento após o clique (Simulação de Impressão Industrial)
-        if bt_gerar:
-            if not executante:
-                st.error("Por favor, preencha o nome do técnico executante para assinar a ordem.")
-            else:
-                st.success("✅ Permissão de Trabalho gerada com sucesso na memória do sistema!")
-                
-                # Layout pronto para impressão (Preview do Documento Industrial)
-                st.markdown("""
-                <style>
-                    .pt-box {
-                        border: 3px double #FF0000;
-                        padding: 20px;
-                        background-color: #FFF5F5;
-                        color: #000000;
-                        font-family: monospace;
-                        border-radius: 5px;
-                    }
-                    .pt-title { text-align: center; color: #FF0000; margin-bottom: 20px; }
-                </style>
-                """, unsafe_html=True)
-                
-                # Monta a string visual do documento para o usuário
-                conteudo_pt = f"""
-                <div class="pt-box">
-                    <h2 class="pt-title">⚠️ PERMISSÃO DE TRABALHO (PT) - REGISTRO INDUSTRIAL</h2>
-                    <p><b>CÓDIGO PT:</b> PT-{os_dados['id']}{datetime.now().strftime('%M%S')} | <b>VINCULADO À:</b> OS #{os_dados['id']}</p>
-                    <p><b>EQUIPAMENTO:</b> {os_dados['equipamento']} | <b>SERVIÇO:</b> {os_dados['pecas']}</p>
-                    <hr style='border-top: 1px dashed #FF0000;'>
-                    <p><b>EMITENTE/SUPERVISOR:</b> {emitente} | <b>EXECUTANTE:</b> {executante} ({empresa_exec})</p>
-                    <p><b>VALIDADE:</b> {validade_data.strftime('%d/%m/%Y')} das {hora_inicio.strftime('%H:%M')} às {hora_fim.strftime('%H:%M')}</p>
-                    <hr style='border-top: 1px dashed #FF0000;'>
-                    <p><b>RISCOS DETECTADOS:</b><br>
-                    {"- Trabalho em Altura<br>" if r_altura else ""}
-                    {"- Risco Elétrico<br>" if r_eletrico else ""}
-                    {"- Espaço Confinado<br>" if r_confinado else ""}
-                    {"- Risco Químico<br>" if r_quimico else ""}
-                    {"- Trabalho a Quente<br>" if r_quente else ""}
-                    {"- Risco Mecânico<br>" if r_mecanico else ""}
-                    </p>
-                    <p><b>CONTROLES EXECUTADOS:</b><br>
-                    {"[X] Lockout / Tagout Ativo<br>" if c_loto else ""}
-                    {"[X] Área Isolada<br>" if c_delim else ""}
-                    {"[X] EPIs Verificados<br>" if c_epi else ""}
-                    {"[X] Proteção Incêndio Pronta<br>" if c_extintor else ""}
-                    </p>
-                    <p><b>OBSERVAÇÕES:</b> {observacoes_seg}</p>
-                    <br><br>
-                    <p style='text-align: center;'>________________________________________<br>Assinatura Digital do Supervisor (Liberado)</p>
-                </div>
-                """
-                st.markdown(conteudo_pt, unsafe_html=True)
-                
-                # Botão nativo para baixar como arquivo de texto (ou você pode usar Ctrl+P para imprimir a tela)
-                st.download_button(
-                    label="🖨️ Baixar Cópia do Texto para Impressão",
-                    data=conteudo_pt.replace("<br>", "\n").replace("<p>", "").replace("</p>", "\n").replace("<div>", "").replace("</div>", ""),
-                    file_name=f"PT_OS_{os_dados['id']}.txt",
-                    mime="text/plain"
-                )
