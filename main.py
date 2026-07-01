@@ -157,7 +157,7 @@ elif menu == "📜 Histórico de Trocas":
         st.write("---")
 
 # ==========================================
-# PAGE: EMISSÃO DE PT COMPLETAMENTE LINEAR
+# PAGE: EMISSÃO DE PT COMPLETAMENTE LINEAR E SEGURA
 # ==========================================
 elif menu == "⚠️ Emissão de PT":
     st.header("⚠️ Permissão de Trabalho (PT) & Segurança Industrial")
@@ -171,8 +171,8 @@ elif menu == "⚠️ Emissão de PT":
         
         mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
         
-        # BLINDAGEM MÁXIMA CONTRA INDENTATIONERROR: 
-        # Mapeamento estático via chaves de dicionário. Sem estruturas de IF ou ELIF na checagem.
+        # PROCESSO PLANO: Sem dicionários internos '{}' e sem condicionais complexas para evitar quebra de chaves
         p_tipo = str(os_dados.get('periodo', '')).strip().lower()
-        mapa_rotinas = {
-            "semanal": str(mac_dados.get("check_semanal", "Rotina técnica padrão semanal.")),
+        
+        checklist_manutencao = str(mac_dados.get("check_semanal", "Rotina técnica padrão semanal."))
+        if "mensal" in p_tipo:
