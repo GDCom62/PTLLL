@@ -1,43 +1,64 @@
 import streamlit as st
 from datetime import datetime
 import os
+import json
 import pandas as pd
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- INICIALIZAÇÃO FIXA DA MEMÓRIA DE SEGURANÇA LOCAL ---
-if "maquinas_locais" not in st.session_state:
-    st.session_state.maquinas_locais = [
-        {
-            "id": "EQ-001", 
-            "nome": "Torno Mecânico Nardini", 
-            "localizacao": "Oficina Central", 
-            "criticidade": "Alta", 
-            "check_semanal": "1. Verificar nivel de oleo lubrificante; 2. Limpar os barramentos; 3. Lubrificar as guias lineares; 4. Remover cavacos acumulados.", 
-            "check_mensal": "1. Trocar filtros de fluido refrigerante; 2. Conferir tensao das correias do motor; 3. Verificar folgas nos eixos X e Z; 4. Testar botoes de emergencia.", 
-            "check_anual": "1. Revisao geral do motor eletrico; 2. Alinhamento geometrico completo; 3. Troca total do oleo da caixa de engrenagens; 4. Megagem de isolamento eletrico."
-        },
-        {
-            "id": "EQ-002", 
-            "nome": "Compressor de Ar Schulz", 
-            "localizacao": "Sala de Compressores", 
-            "criticidade": "Média", 
-            "check_semanal": "1. Drenar condensado do reservatorio; 2. Verificar nivel de oleo do carter; 3. Checar ruidos ou vibracoes estranhas; 4. Verificar pressao de operacao.", 
-            "check_mensal": "1. Limpar e inspecionar o filtro de ar; 2. Verificar vazamentos em conexoes e tubulacoes; 3. Conferir alinhamento das polias e correias; 4. Testar pressostato.", 
-            "check_anual": "1. Troca completa do oleo lubrificante; 2. Substituicao do elemento do filtro de ar; 3. Teste hidrostatico e calibracao da valvula de seguranca; 4. Limpeza interna das serpentinas."
-        }
-    ]
+# --- BANCO DE DADOS PERSISTENTE EM ARQUIVO LOCAL (JSON) ---
+ARQUIVO_BANCO = "banco_manutencao.json"
 
-if "planejamento_local" not in st.session_state:
-    st.session_state.planejamento_local = [
-        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente"}
-    ]
+def carregar_dados():
+    """Carrega os dados persistidos do arquivo local. Se não existir, cria o padrão."""
+    if os.path.exists(ARQUIVO_BANCO):
+        try:
+            with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+            
+    # Dados padrão de fábrica caso o arquivo ainda não exista
+    dados_padrao = {
+        "maquinas": [
+            {
+                "id": "EQ-001", 
+                "nome": "Torno Mecânico Nardini", 
+                "localizacao": "Oficina Central", 
+                "criticidade": "Alta", 
+                "check_semanal": "1. Verificar nivel de oleo lubrificante; 2. Limpar os barramentos; 3. Lubrificar as guias lineares; 4. Remover cavacos acumulados.", 
+                "check_mensal": "1. Trocar filtros de fluido refrigerante; 2. Conferir tensao das correias do motor; 3. Verificar folgas nos eixos X e Z; 4. Testar botoes de emergencia.", 
+                "check_anual": "1. Revisao geral do motor eletrico; 2. Alinhamento geometrico completo; 3. Troca total do oleo da caixa de engrenagens; 4. Megagem de isolamento eletrico."
+            },
+            {
+                "id": "EQ-002", 
+                "nome": "Compressor de Ar Schulz", 
+                "localizacao": "Sala de Compressores", 
+                "criticidade": "Média", 
+                "check_semanal": "1. Drenar condensado do reservatorio; 2. Verificar nivel de oleo do carter; 3. Checar ruidos ou vibracoes estranhas; 4. Verificar pressao de operacao.", 
+                "check_mensal": "1. Limpar e inspecionar o filtro de ar; 2. Verificar vazamentos em conexoes e tubulacoes; 3. Conferir alinhamento das polias e correias; 4. Testar pressostato.", 
+                "check_anual": "1. Troca completa do oleo lubrificante; 2. Substituicao do elemento do filtro de ar; 3. Teste hidrostatico e calibracao da valvula de seguranca; 4. Limpeza interna das serpentinas."
+            }
+        ],
+        "planejamento": [
+            {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente"}
+        ],
+        "historico": [
+            {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
+        ]
+    }
+    salvar_dados(dados_padrao)
+    return dados_padrao
 
-if "historico_local" not in st.session_state:
-    st.session_state.historico_local = [
-        {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
-    ]
+def salvar_dados(dados):
+    """Grava fisicamente os dados no arquivo local permanente."""
+    with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+# Inicializa ou recupera os dados salvos em disco
+if "db" not in st.session_state:
+    st.session_state.db = carregar_dados()
 
 # --- MENU LATERAL E LOGO ---
 if os.path.exists("logo.png"):
@@ -55,12 +76,13 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Emissão de PT"
 ])
 
-equipamentos = list(st.session_state.maquinas_locais)
-todos_agendamentos = list(st.session_state.planejamento_local)
-historico_lista = list(st.session_state.historico_local)
+# Sincroniza atalhos locais de leitura
+equipamentos = st.session_state.db["maquinas"]
+todos_agendamentos = st.session_state.db["planejamento"]
+historico_lista = st.session_state.db["historico"]
 
 # ==========================================
-# ABAS DO SISTEMA
+# ABAS DO SISTEMA (GRAVANDO FISICAMENTE)
 # ==========================================
 if menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados")
@@ -83,8 +105,12 @@ elif menu == "➕ Cadastrar Nova Máquina":
         
     if botao_salvar and id_eq and nome_eq:
         payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
-        st.session_state.maquinas_locais.append(payload)
-        st.success("🎉 Equipamento salvo com sucesso!")
+        
+        # Inserção e gravação física permanente
+        st.session_state.db["maquinas"].append(payload)
+        salvar_dados(st.session_state.db)
+        
+        st.success("🎉 Equipamento gravado com sucesso no arquivo permanente!")
         st.rerun()
 
 elif menu == "📅 Planejamento & Checklists":
@@ -112,20 +138,34 @@ elif menu == "📅 Planejamento & Checklists":
         
     if botao_agenda and eq_escolhido != "Nenhum cadastrado":
         novo_agendamento = {"id": len(todos_agendamentos) + 1, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente"}
-        st.session_state.planejamento_local.append(novo_agendamento)
-        st.success("🎉 Agendamento registrado!")
+        
+        # Agendamento persistido fisicamente em arquivo
+        st.session_state.db["planejamento"].append(novo_agendamento)
+        salvar_dados(st.session_state.db)
+        
+        st.success("🎉 Agendamento gravado e salvo!")
         st.rerun()
 
     st.markdown("---")
     st.subheader("🔍 Ordens de Serviço Abertas")
-    for idx, p in enumerate(todos_agendamentos):
+    # Filtra apenas as ordens que estão como pendentes para exibição
+    ordens_pendentes = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
+    
+    for idx, p in enumerate(ordens_pendentes):
         st.write(f"⚙️ **{p.get('equipamento')}** | Período: **{p.get('periodo')}** | 📅 **Prevista:** {p.get('data_prevista')}")
         st.write(f"🔧 Peças/Ferramentas: {p.get('pecas')}")
         if st.button("✔️ Concluir OS e Enviar para Histórico", key=f"comp_{idx}"):
-            registro_h = {"equipamento": p.get('equipamento'), "periodo": p.get('periodo'), "data_prevista": p.get('data_prevista'), "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"), "pecas": p.get('pecas'), "status": "Concluido"}
-            st.session_state.historico_local.append(registro_h)
-            st.session_state.planejamento_local = [item for item in st.session_state.planejamento_local if item.get('id') != p.get('id')]
-            st.success("Ordem finalizada!")
+            registro_h = {"id": p.get('id'), "equipamento": p.get('equipamento'), "periodo": p.get('periodo'), "data_prevista": p.get('data_prevista'), "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"), "pecas": p.get('pecas'), "status": "Concluido"}
+            
+            # Remove do planejamento ativo e envia fisicamente para o histórico definitivo em disco
+            st.session_state.db["historico"].append(registro_h)
+            for item in st.session_state.db["planejamento"]:
+                if item.get("id") == p.get("id"):
+                    item["status"] = "Concluido"
+                    break
+                    
+            salvar_dados(st.session_state.db)
+            st.success("Ordem finalizada e salva permanentemente em arquivo!")
             st.rerun()
         st.write("---")
 
@@ -133,9 +173,11 @@ elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Serviços Concluídos")
     st.subheader("📊 Gráfico de Evolução dos Serviços por Período")
     
-    p_semanal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'semanal')
-    p_mensal = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'mensal')
-    p_anual = sum(1 for x in todos_agendamentos if str(x.get('periodo')).lower() == 'anual')
+    # Contadores atualizados lendo a base persistida
+    ordens_abertas = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
+    p_semanal = sum(1 for x in ordens_abertas if str(x.get('periodo')).lower() == 'semanal')
+    p_mensal = sum(1 for x in ordens_abertas if str(x.get('periodo')).lower() == 'mensal')
+    p_anual = sum(1 for x in ordens_abertas if str(x.get('periodo')).lower() == 'anual')
     
     c_semanal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'semanal')
     c_mensal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'mensal')
@@ -144,34 +186,3 @@ elif menu == "📜 Histórico de Trocas":
     dados_grafico = {
         "Período": ["Semanal", "Mensal", "Anual"],
         "Pendentes (Abertas)": [p_semanal, p_mensal, p_anual],
-        "Concluídos (Histórico)": [c_semanal, c_mensal, c_anual]
-    }
-    df = pd.DataFrame(dados_grafico).set_index("Período")
-    st.bar_chart(df)
-    
-    st.markdown("---")
-    st.subheader("📋 Listagem Completa de Ordens Fechadas")
-    for h in historico_lista:
-        st.write(f"✅ **{h.get('equipamento')}** | Período: **{h.get('periodo')}**")
-        st.write(f"⏱️ **Concluído em:** {h.get('data_conclusao', 'N/A')} | Intervenção realizada: {h.get('pecas')}")
-        st.write("---")
-
-# ==========================================
-# PAGE: EMISSÃO DE PT COMPLETAMENTE REESCRITA (À PROVA DE CACHE COM DEFEITO)
-# ==========================================
-elif menu == "⚠️ Emissão de PT":
-    st.header("⚠️ Permissão de Trabalho (PT) & Segurança Industrial")
-    
-    if not todos_agendamentos or len(todos_agendamentos) == 0:
-        st.warning("Não existem manutenções preventivas pendentes abertas para gerar PT.")
-    else:
-        opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')} ({p.get('periodo')})": p for idx, p in enumerate(todos_agendamentos)}
-        os_selecionada = st.selectbox("Selecione a Ordem de Serviço Alvo:", list(opcoes_os.keys()))
-        os_dados = opcoes_os[os_selecionada]
-        
-        mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
-        
-        p_tipo = str(os_dados.get('periodo', '')).strip().lower()
-        
-        # PROCESSO SEGURO DE ATRIBUIÇÃO DIRETA (Sem uso de if/elif aninhados, matando o erro 178)
-        checklist_manutencao = str(mac_dados.get("check_semanal", "Procedimento de preventiva geral."))
