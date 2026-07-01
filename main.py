@@ -42,10 +42,10 @@ def carregar_dados():
             }
         ],
         "planejamento": [
-            {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente"}
+            {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente"}
         ],
         "historico": [
-            {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
+            {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
         ]
     }
     salvar_dados(dados_padrao)
@@ -82,7 +82,7 @@ todos_agendamentos = st.session_state.db["planejamento"]
 historico_lista = st.session_state.db["historico"]
 
 # ==========================================
-# ABAS DO SISTEMA (GRAVANDO FISICAMENTE) 
+# ABAS DO SISTEMA (GRAVANDO FISICAMENTE)
 # ==========================================
 if menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados")
@@ -184,7 +184,7 @@ elif menu == "📜 Histórico de Trocas":
     st.subheader("📋 Listagem Completa de Ordens Fechadas")
     for h in historico_lista:
         st.write(f"✅ **{h.get('equipamento')}** | Período: **{h.get('periodo')}**")
-        
+
 # ==========================================
 # PAGE: EMISSÃO DE PT COMPLETAMENTE LINEAR
 # ==========================================
