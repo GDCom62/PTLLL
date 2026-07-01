@@ -19,7 +19,6 @@ def carregar_dados():
         except Exception:
             pass
             
-    # Dados padrão de fábrica
     dados_padrao = {
         "maquinas": [
             {
@@ -56,27 +55,25 @@ def salvar_dados(dados):
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-# Sincroniza o banco de dados permanente com os estados de sessão do Streamlit
+# Sincronização do banco de dados persistente com o session_state
 if "db" not in st.session_state:
     st.session_state.db = carregar_dados()
 
-# Mantém os nomes originais que as suas variáveis chamavam
 st.session_state.maquinas = st.session_state.db["maquinas"]
 st.session_state.planejamento = st.session_state.db["planejamento"]
 st.session_state.historico = st.session_state.db["historico"]
 
-# --- MENU LATERAL E LOGO ---
-if os.path.exists("logo.png"):
-    st.sidebar.image("logo.png", use_column_width=True)
-else:
-    st.sidebar.info("💡 Para exibir sua logo, adicione o arquivo 'logo.png' no GitHub.")
+# Variáveis auxiliares para controle de Edição de OS
+if "editando_os_id" not in st.session_state:
+    st.session_state.editando_os_id = None
 
+# --- MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
     "🔍 Lista de Máquinas",
     "➕ Cadastrar Nova Máquina",
-    "📅 Planejamento & Checklists",
+    "📅 Planejamento & Ordens de Serviço (OS)",
     "📜 Histórico de Trocas",
     "⚠️ Emissão de PT"
 ])
@@ -86,7 +83,7 @@ todos_agendamentos = st.session_state.planejamento
 historico_lista = st.session_state.historico
 
 # ==========================================
-# ABAS DO SISTEMA
+# ABA 1: LISTA DE MÁQUINAS
 # ==========================================
 if menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados")
@@ -94,6 +91,9 @@ if menu == "🔍 Lista de Máquinas":
         st.write(f"🔹 **[{eq.get('id', idx)}] {eq.get('nome')}** | Setor: {eq.get('localizacao')} | Criticidade: {eq.get('criticidade')}")
         st.write("---")
 
+# ==========================================
+# ABA 2: CADASTRAR NOVA MÁQUINA
+# ==========================================
 elif menu == "➕ Cadastrar Nova Máquina":
     st.header("➕ Cadastrar Nova Máquina")
     with st.form("form_cadastro_direto"):
@@ -114,74 +114,70 @@ elif menu == "➕ Cadastrar Nova Máquina":
         st.success("🎉 Equipamento gravado permanentemente em disco!")
         st.rerun()
 
-elif menu == "📅 Planejamento & Checklists":
-    st.header("📅 Planejamento de Manutenções Preventivas")
-    st.subheader("📋 Consulta Rápida de Ações Preventivas")
-    opcoes_lista = {eq.get('nome', 'Máquina'): eq for eq in equipamentos}
-    maquina_selecionada = st.selectbox("Selecione uma máquina:", list(opcoes_lista.keys()))
+# ==========================================
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (GERAÇÃO, EDIÇÃO E EXCLUSÃO)
+# ==========================================
+elif menu == "📅 Planejamento & Checklists" or menu == "📅 Planejamento & Ordens de Serviço (OS)":
+    st.header("📅 Planejamento & Ordens de Serviço (OS)")
     
-    if maquina_selecionada:
-        dados_mq = opcoes_lista[maquina_selecionada]
-        col_c1, col_c2, col_c3 = st.columns(3)
-        with col_c1: st.info(f"**Semanal:**\n{dados_mq.get('check_semanal', 'Nao configurado.')}")
-        with col_c2: st.warning(f"**Mensal:**\n{dados_mq.get('check_mes', 'Nao configurado.')}")
-        with col_c3: st.error(f"**Anual:**\n{dados_mq.get('check_anual', 'Nao configurado.')}")
-            
-    st.markdown("---")
-    st.subheader("📅 Agendar Nova Intervenção")
-    with st.form("form_agenda_direto"):
-        lista_nomes = list(opcoes_lista.keys())
-        eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes if lista_nomes else ["Nenhum cadastrado"])
-        periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
-        data_planejada = st.date_input("Selecione a Data:", datetime.now())
-        pecas_necessarias = st.text_area("Descrição das Peças / Ferramentas / Escopo:", value="Realizar rotina padrao de preventiva.")
-        botao_agenda = st.form_submit_button("💾 Gravar e Agendar Manutenção")
+    # Bloco A: Agendamento ou Edição Ativa
+    if st.session_state.editando_os_id is not None:
+        st.subheader("📝 Editar Ordem de Serviço Ativa")
+        os_para_editar = next((item for item in st.session_state.db["planejamento"] if item["id"] == st.session_state.editando_os_id), None)
         
-    if botao_agenda and eq_escolhido != "Nenhum cadastrado":
-        novo_agendamento = {"id": len(todos_agendamentos) + 1, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": ""}
-        st.session_state.db["planejamento"].append(novo_agendamento)
-        salvar_dados(st.session_state.db)
-        st.success("🎉 Agendamento gravado com sucesso!")
-        st.rerun()
+        if os_para_editar:
+            with st.form("form_editar_os"):
+                edit_equip = st.selectbox("Máquina Alvo:", [eq["nome"] for eq in equipamentos], index=[eq["nome"] for eq in equipamentos].index(os_para_editar["equipamento"]) if os_para_editar["equipamento"] in [eq["nome"] for eq in equipamentos] else 0)
+                edit_periodo = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], index=["semanal", "mensal", "anual"].index(os_para_editar["periodo"].lower()))
+                edit_data = st.date_input("Selecione a Data:", datetime.strptime(os_para_editar["data_prevista"], "%d/%m/%Y"))
+                edit_pecas = st.text_area("Descrição / Escopo do Serviço:", value=os_para_editar["pecas"])
+                
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    gravar_edicao = st.form_submit_button("💾 Salvar Alterações na OS")
+                with col_btn2:
+                    cancelar_edicao = st.form_submit_button("❌ Cancelar Edição")
+            
+            if gravar_edicao:
+                os_para_editar["equipamento"] = edit_equip
+                os_para_editar["periodo"] = edit_periodo
+                os_para_editar["data_prevista"] = edit_data.strftime("%d/%m/%Y")
+                os_para_editar["pecas"] = edit_pecas
+                salvar_dados(st.session_state.db)
+                st.session_state.editando_os_id = None
+                st.success("🎉 Alterações gravadas com sucesso!")
+                st.rerun()
+                
+            if cancelar_edicao:
+                st.session_state.editando_os_id = None
+                st.rerun()
+    else:
+        st.subheader("📅 Agendar Nova Manutenção / Gerar OS")
+        with st.form("form_agenda_direto"):
+            lista_nomes = [eq["nome"] for eq in equipamentos]
+            eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes if lista_nomes else ["Nenhum cadastrado"])
+            periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
+            data_planejada = st.date_input("Selecione a Data:", datetime.now())
+            pecas_necessarias = st.text_area("Descrição das Peças / Ferramentas / Escopo:", value="Realizar rotina padrao de preventiva.")
+            botao_agenda = st.form_submit_button("💾 Gravar e Gerar OS Pendente")
+            
+        if botao_agenda and eq_escolhido != "Nenhum cadastrado":
+            novo_id = max([item["id"] for item in todos_agendamentos], default=0) + 1
+            novo_agendamento = {"id": novo_id, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": ""}
+            st.session_state.db["planejamento"].append(novo_agendamento)
+            salvar_dados(st.session_state.db)
+            st.success(f"🎉 Ordem de Serviço OS #{novo_id} gerada e salva permanentemente!")
+            st.rerun()
 
     st.markdown("---")
-    st.subheader("🔍 Ordens de Serviço Abertas")
+    st.subheader("🔍 Painel de Controle de Ordens de Serviço (Abertas)")
     ordens_exibicao = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
     
-    for idx, p in enumerate(ordens_exibicao):
-        st.write(f"⚙️ **{p.get('equipamento')}** | Período: **{p.get('periodo')}** | 📅 **Prevista:** {p.get('data_prevista')}")
-        st.write(f"🔧 Peças/Ferramentas: {p.get('pecas')}")
-        if st.button("✔️ Concluir OS e Enviar para Histórico", key=f"comp_{idx}"):
-            registro_h = {"id": p.get('id'), "equipamento": p.get('equipamento'), "periodo": p.get('periodo'), "data_prevista": p.get('data_prevista'), "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"), "pecas": p.get('pecas'), "status": "Concluido"}
-            st.session_state.db["historico"].append(registro_h)
-            for item in st.session_state.db["planejamento"]:
-                if item.get("id") == p.get("id"):
-                    item["status"] = "Concluido"
-                    break
-            salvar_dados(st.session_state.db)
-            st.success("Ordem finalizada e salva!")
-            st.rerun()
-        st.write("---")
-
-elif menu == "📜 Histórico de Trocas":
-    st.header("📜 Histórico de Serviços Concluídos")
-    st.subheader("📊 Gráfico de Evolução dos Serviços por Período")
-    
-    ordens_abertas = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
-    p_semanal = sum(1 for x in ordens_abertas if str(x.get('periodo')).lower() == 'semanal')
-    p_mensal = sum(1 for x in ordens_abertas if str(x.get('periodo')).lower() == 'mensal')
-    p_anual = sum(1 for x in ordens_abertas if str(x.get('periodo')).lower() == 'anual')
-    
-    c_semanal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'semanal')
-    c_mensal = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'mensal')
-    c_anual = sum(1 for x in historico_lista if str(x.get('periodo')).lower() == 'anual')
-    
-    dados_grafico = {
-        "Período": ["Semanal", "Mensal", "Anual"],
-        "Pendentes (Abertas)": [p_semanal, p_mensal, p_anual],
-        "Concluídos (Histórico)": [c_semanal, c_mensal, c_anual]
-    }
-    df = pd.DataFrame(dados_grafico).set_index("Período")
-    st.bar_chart(df)
-    
-    st.markdown("---")
+    if not ordens_exibicao:
+        st.info("Nenhuma Ordem de Serviço aberta no momento.")
+    else:
+        for p in ordens_exibicao:
+            st.markdown(f"#### 🛠️ OS #{p.get('id')} - {p.get('equipamento')} ({p.get('periodo')})")
+            st.write(f"📅 **Data Prevista:** {p.get('data_prevista')} | 🔧 **Escopo:** {p.get('pecas')}")
+            
+            # Painel Reativo de Botões de Ação por OS
