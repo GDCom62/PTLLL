@@ -171,8 +171,8 @@ elif menu == "⚠️ Emissão de PT":
         
         mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
         
+        # BLINDAGEM MÁXIMA CONTRA INDENTATIONERROR: 
+        # Mapeamento estático via chaves de dicionário. Sem estruturas de IF ou ELIF na checagem.
         p_tipo = str(os_dados.get('periodo', '')).strip().lower()
-        
-        # PROCESSO SEGURO DE ATRIBUIÇÃO LINEAR INDEPENDENTE
-        checklist_manutencao = str(mac_dados.get("check_semanal", "Procedimento padrao."))
-        if "mensal" in p_tipo:
+        mapa_rotinas = {
+            "semanal": str(mac_dados.get("check_semanal", "Rotina técnica padrão semanal.")),
