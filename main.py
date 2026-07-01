@@ -173,6 +173,6 @@ elif menu == "⚠️ Emissão de PT":
         
         p_tipo = str(os_dados.get('periodo', '')).strip().lower()
         
-        # PROCESSO SEGURO DE ATRIBUIÇÃO LINEAR (Sem aninhamentos ou blocos vazios)
+        # PROCESSO SEGURO DE ATRIBUIÇÃO LINEAR INDEPENDENTE
         checklist_manutencao = str(mac_dados.get("check_semanal", "Procedimento padrao."))
         if "mensal" in p_tipo:
