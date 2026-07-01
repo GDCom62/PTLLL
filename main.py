@@ -19,7 +19,7 @@ def carregar_dados():
         except Exception:
             pass
             
-    # Dados padrão de fábrica com chaves e períodos totalmente padronizados em minúsculo
+    # Dados padrão de fábrica
     dados_padrao = {
         "maquinas": [
             {
