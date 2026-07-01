@@ -184,3 +184,24 @@ elif menu == "📜 Histórico de Trocas":
     st.subheader("📋 Listagem Completa de Ordens Fechadas")
     for h in historico_lista:
         st.write(f"✅ **{h.get('equipamento')}** | Período: **{h.get('periodo')}**")
+        
+# ==========================================
+# PAGE: EMISSÃO DE PT COMPLETAMENTE LINEAR
+# ==========================================
+elif menu == "⚠️ Emissão de PT":
+    st.header("⚠️ Permissão de Trabalho (PT) & Segurança Industrial")
+    
+    if not todos_agendamentos or len(todos_agendamentos) == 0:
+        st.warning("Não existem manutenções preventivas pendentes abertas para gerar PT.")
+    else:
+        opcoes_os = {f"OS #{p.get('id', idx)} - {p.get('equipamento')} ({p.get('periodo')})": p for idx, p in enumerate(todos_agendamentos)}
+        os_selecionada = st.selectbox("Selecione a Ordem de Serviço Alvo:", list(opcoes_os.keys()))
+        os_dados = opcoes_os[os_selecionada]
+        
+        mac_dados = next((m for m in equipamentos if m.get("nome") == os_dados.get("equipamento")), {})
+        
+        p_tipo = str(os_dados.get('periodo', '')).strip().lower()
+        
+        # PROCESSO SEGURO DE ATRIBUIÇÃO LINEAR (Sem aninhamentos ou blocos vazios)
+        checklist_manutencao = str(mac_dados.get("check_semanal", "Procedimento padrao."))
+        if "mensal" in p_tipo:
