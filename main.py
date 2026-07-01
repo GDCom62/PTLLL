@@ -82,7 +82,7 @@ todos_agendamentos = st.session_state.db["planejamento"]
 historico_lista = st.session_state.db["historico"]
 
 # ==========================================
-# ABAS DO SISTEMA (GRAVANDO FISICAMENTE)
+# ABAS DO SISTEMA (GRAVANDO FISICAMENTE) 
 # ==========================================
 if menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados")
