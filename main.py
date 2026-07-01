@@ -105,11 +105,8 @@ elif menu == "➕ Cadastrar Nova Máquina":
         
     if botao_salvar and id_eq and nome_eq:
         payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mes": c_mes, "check_anual": c_ano}
-        
-        # Inserção e gravação física permanente
         st.session_state.db["maquinas"].append(payload)
         salvar_dados(st.session_state.db)
-        
         st.success("🎉 Equipamento gravado com sucesso no arquivo permanente!")
         st.rerun()
 
@@ -138,17 +135,13 @@ elif menu == "📅 Planejamento & Checklists":
         
     if botao_agenda and eq_escolhido != "Nenhum cadastrado":
         novo_agendamento = {"id": len(todos_agendamentos) + 1, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente"}
-        
-        # Agendamento persistido fisicamente em arquivo
         st.session_state.db["planejamento"].append(novo_agendamento)
         salvar_dados(st.session_state.db)
-        
-        st.success("🎉 Agendamento gravado e salvo!")
+        st.success("🎉 Agendamento registrado!")
         st.rerun()
 
     st.markdown("---")
     st.subheader("🔍 Ordens de Serviço Abertas")
-    # Filtra apenas as ordens que estão como pendentes para exibição
     ordens_pendentes = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
     
     for idx, p in enumerate(ordens_pendentes):
@@ -156,14 +149,11 @@ elif menu == "📅 Planejamento & Checklists":
         st.write(f"🔧 Peças/Ferramentas: {p.get('pecas')}")
         if st.button("✔️ Concluir OS e Enviar para Histórico", key=f"comp_{idx}"):
             registro_h = {"id": p.get('id'), "equipamento": p.get('equipamento'), "periodo": p.get('periodo'), "data_prevista": p.get('data_prevista'), "data_conclusao": datetime.now().strftime("%d/%m/%Y %H:%M"), "pecas": p.get('pecas'), "status": "Concluido"}
-            
-            # Remove do planejamento ativo e envia fisicamente para o histórico definitivo em disco
             st.session_state.db["historico"].append(registro_h)
             for item in st.session_state.db["planejamento"]:
                 if item.get("id") == p.get("id"):
                     item["status"] = "Concluido"
                     break
-                    
             salvar_dados(st.session_state.db)
             st.success("Ordem finalizada e salva permanentemente em arquivo!")
             st.rerun()
@@ -173,7 +163,6 @@ elif menu == "📜 Histórico de Trocas":
     st.header("📜 Histórico de Serviços Concluídos")
     st.subheader("📊 Gráfico de Evolução dos Serviços por Período")
     
-    # Contadores atualizados lendo a base persistida
     ordens_abertas = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
     p_semanal = sum(1 for x in ordens_abertas if str(x.get('periodo')).lower() == 'semanal')
     p_mensal = sum(1 for x in ordens_abertas if str(x.get('periodo')).lower() == 'mensal')
@@ -186,3 +175,12 @@ elif menu == "📜 Histórico de Trocas":
     dados_grafico = {
         "Período": ["Semanal", "Mensal", "Anual"],
         "Pendentes (Abertas)": [p_semanal, p_mensal, p_anual],
+        "Concluídos (Histórico)": [c_semanal, c_mensal, c_anual]
+    }
+    df = pd.DataFrame(dados_grafico).set_index("Período")
+    st.bar_chart(df)
+    
+    st.markdown("---")
+    st.subheader("📋 Listagem Completa de Ordens Fechadas")
+    for h in historico_lista:
+        st.write(f"✅ **{h.get('equipamento')}** | Período: **{h.get('periodo')}**")
