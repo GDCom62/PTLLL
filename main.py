@@ -144,7 +144,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 os_editar["pecas"] = edit_pecas
                 os_editar["seguranca"] = edit_seg
                 st.session_state.editando_os_id = None
-                st.success("Ordem de Serviço updated!")
+                st.success("Ordem de Serviço atualizada!")
                 st.rerun()
             if btn_canc_os:
                 st.session_state.editando_os_id = None
@@ -173,4 +173,3 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     if not ordens_ativas:
         st.info("Nenhuma Ordem de Serviço aberta.")
     else:
-        for p in ordens_ativas:
