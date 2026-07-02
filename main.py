@@ -170,6 +170,5 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.subheader("🔍 Ordens de Serviço Abertas")
     ordens_ativas = [os for os in st.session_state.planejamento if os["status"] == "Pendente"]
     
+    # RESOLUÇÃO DEFINITIVA DO LOOP: Alinhamento plano e direto de renderização
     if not ordens_ativas:
-        st.info("Nenhuma Ordem de Serviço aberta.")
-    else:
