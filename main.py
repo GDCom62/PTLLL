@@ -38,13 +38,16 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Aba 5: Emissão de PT"
 ])
 
+equipamentos = st.session_state.maquinas
+todos_agendamentos = st.session_state.planejamento
+historico_lista = st.session_state.historico
+
 # ==========================================
-# ABAS 1 & 2: LISTA E CADASTRO DE MÁQUINAS (COM EDIÇÃO E EXCLUSÃO)
+# ABAS 1 & 2: LISTA E CADASTRO DE MÁQUINAS
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
     
-    # Formulário de Cadastro ou Edição de Máquina
     if st.session_state.editando_maquina_id is not None:
         st.subheader("✏️ Editar Equipamento Registrado")
         mq_editar = next((m for m in st.session_state.maquinas if m["id"] == st.session_state.editando_maquina_id), None)
@@ -100,7 +103,6 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     else:
         for mq in st.session_state.maquinas:
             st.write(f"🔹 **[{mq['id']}] {mq['nome']}** | Setor: {mq['localizacao']} | Criticidade: {mq['criticidade']}")
-            
             c_m1, c_m2 = st.columns(2)
             with c_m1:
                 if st.button(f"✏️ Editar {mq['id']}", key=f"ed_mq_{mq['id']}"):
@@ -114,7 +116,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             st.write("---")
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (COM EDIÇÃO E EXCLUSÃO)
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)
 # ==========================================
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
