@@ -11,8 +11,7 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 ARQUIVO_BANCO = "banco_manutencao.json"
 
 def carregar_dados():
-    """Carrega os dados salvos em arquivo local. Se estiver vazio ou der erro, reconstrói o padrão."""
-    # Estrutura padrão de fábrica que garante que as abas nunca fiquem vazias
+    """Carrega os dados salvos em arquivo local. Se não existir, cria o padrão."""
     dados_padrao = {
         "maquinas": [
             {
@@ -35,10 +34,10 @@ def carregar_dados():
             }
         ],
         "planejamento": [
-            {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente", "seguranca": "Cuidado com partes giratorias."}
+            {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de oleo das guias e limpeza dos barramentos", "status": "Pendente", "seguranca": "Atenção redobrada com partes giratórias."}
         ],
         "historico": [
-            {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
+            {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
         ]
     }
 
@@ -46,13 +45,11 @@ def carregar_dados():
         try:
             with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
                 conteudo = json.load(f)
-                # Se o arquivo existir mas não tiver as chaves corretas, força o padrão
-                if conteudo and "maquinas" in conteudo and len(conteudo["maquinas"]) > 0:
+                if conteudo and "maquinas" in conteudo:
                     return conteudo
         except Exception:
             pass
             
-    # Se o arquivo não existia, estava em branco ou deu erro de leitura, grava o padrão
     salvar_dados(dados_padrao)
     return dados_padrao
 
@@ -61,8 +58,9 @@ def salvar_dados(dados):
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-# Força o recarregamento e a sincronização absoluta do banco limpo
-st.session_state.db = carregar_dados()
+# Sincronização do banco de dados persistente com o session_state
+if "db" not in st.session_state:
+    st.session_state.db = carregar_dados()
 
 st.session_state.maquinas = st.session_state.db["maquinas"]
 st.session_state.planejamento = st.session_state.db["planejamento"]
@@ -71,7 +69,7 @@ st.session_state.historico = st.session_state.db["historico"]
 if "editando_os_id" not in st.session_state:
     st.session_state.editando_os_id = None
 
-# --- MENU LATERAL COMPLETO COM TODAS AS 5 ABAS ---
+# --- MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
@@ -87,7 +85,7 @@ todos_agendamentos = st.session_state.planejamento
 historico_lista = st.session_state.historico
 
 # ==========================================
-# ABA 1: LISTA DE MÁQUINAS
+# 1. PÁGINA: LISTA DE MÁQUINAS
 # ==========================================
 if menu == "🔍 Lista de Máquinas":
     st.header("🔍 Equipamentos Registrados")
@@ -96,7 +94,7 @@ if menu == "🔍 Lista de Máquinas":
         st.write("---")
 
 # ==========================================
-# ABA 2: CADASTRAR NOVA MÁQUINA
+# 2. PÁGINA: CADASTRAR NOVA MÁQUINA
 # ==========================================
 elif menu == "➕ Cadastrar Nova Máquina":
     st.header("➕ Cadastrar Nova Máquina")
@@ -119,7 +117,7 @@ elif menu == "➕ Cadastrar Nova Máquina":
         st.rerun()
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)
+# 3. PÁGINA: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)
 # ==========================================
 elif menu == "📅 Planejamento & Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
@@ -134,6 +132,7 @@ elif menu == "📅 Planejamento & Ordens de Serviço (OS)":
                 edit_periodo = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], index=["semanal", "mensal", "anual"].index(os_para_editar["periodo"].lower()))
                 edit_data = st.date_input("Selecione a Data:", datetime.strptime(os_para_editar["data_prevista"], "%d/%m/%Y"))
                 edit_pecas = st.text_area("Descrição / Escopo do Serviço:", value=os_para_editar["pecas"])
+                edit_seg = st.text_area("Recomendações de Segurança:", value=os_para_editar.get("seguranca", ""))
                 
                 col_btn1, col_btn2 = st.columns(2)
                 with col_btn1: gravar_edicao = st.form_submit_button("💾 Salvar Alterações na OS")
@@ -141,9 +140,10 @@ elif menu == "📅 Planejamento & Ordens de Serviço (OS)":
             
             if gravar_edicao:
                 os_para_editar["equipamento"] = edit_equip
-                os_para_editar["periodo"] = edit_periodo.lower()
+                os_para_editar["periodo"] = edit_periodo
                 os_para_editar["data_prevista"] = edit_data.strftime("%d/%m/%Y")
                 os_para_editar["pecas"] = edit_pecas
+                os_para_editar["seguranca"] = edit_seg
                 salvar_dados(st.session_state.db)
                 st.session_state.editando_os_id = None
                 st.success("🎉 Alterações gravadas com sucesso!")
@@ -160,14 +160,15 @@ elif menu == "📅 Planejamento & Ordens de Serviço (OS)":
             periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
             data_planejada = st.date_input("Selecione a Data:", datetime.now())
             pecas_necessarias = st.text_area("Descrição das Peças / Ferramentas / Escopo:", value="Realizar rotina padrao de preventiva.")
+            seg_necessaria = st.text_area("Observações Iniciais de Segurança:", value="Seguir as NRs de segurança aplicadas.")
             botao_agenda = st.form_submit_button("💾 Gravar e Gerar OS Pendente")
             
         if botao_agenda and eq_escolhido != "Nenhum cadastrado":
             novo_id = max([item["id"] for item in todos_agendamentos], default=0) + 1
-            novo_agendamento = {"id": novo_id, "equipamento": eq_escolhido, "periodo": periodo_escolhido.lower(), "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": ""}
+            novo_agendamento = {"id": novo_id, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": seg_necessaria}
             st.session_state.db["planejamento"].append(novo_agendamento)
             salvar_dados(st.session_state.db)
-            st.success(f"🎉 Ordem de Serviço OS #{novo_id} gerada e salva permanentemente!")
+            st.success(f"🎉 Ordem de Serviço OS #{novo_id} gerada e salva!")
             st.rerun()
 
     st.markdown("---")
