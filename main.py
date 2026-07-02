@@ -11,15 +11,8 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 ARQUIVO_BANCO = "banco_manutencao.json"
 
 def carregar_dados():
-    """Carrega os dados salvos em arquivo local. Se não existir, cria o padrão."""
-    if os.path.exists(ARQUIVO_BANCO):
-        try:
-            with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-            
-    # Dados padrão de fábrica
+    """Carrega os dados salvos em arquivo local. Se estiver vazio ou der erro, reconstrói o padrão."""
+    # Estrutura padrão de fábrica que garante que as abas nunca fiquem vazias
     dados_padrao = {
         "maquinas": [
             {
@@ -48,6 +41,18 @@ def carregar_dados():
             {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
         ]
     }
+
+    if os.path.exists(ARQUIVO_BANCO):
+        try:
+            with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
+                conteudo = json.load(f)
+                # Se o arquivo existir mas não tiver as chaves corretas, força o padrão
+                if conteudo and "maquinas" in conteudo and len(conteudo["maquinas"]) > 0:
+                    return conteudo
+        except Exception:
+            pass
+            
+    # Se o arquivo não existia, estava em branco ou deu erro de leitura, grava o padrão
     salvar_dados(dados_padrao)
     return dados_padrao
 
@@ -56,9 +61,8 @@ def salvar_dados(dados):
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-# Força o recarregamento limpo do banco de dados na inicialização
-if "db" not in st.session_state:
-    st.session_state.db = carregar_dados()
+# Força o recarregamento e a sincronização absoluta do banco limpo
+st.session_state.db = carregar_dados()
 
 st.session_state.maquinas = st.session_state.db["maquinas"]
 st.session_state.planejamento = st.session_state.db["planejamento"]
@@ -67,7 +71,7 @@ st.session_state.historico = st.session_state.db["historico"]
 if "editando_os_id" not in st.session_state:
     st.session_state.editando_os_id = None
 
-# --- MENU LATERAL ---
+# --- MENU LATERAL COMPLETO COM TODAS AS 5 ABAS ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
@@ -174,8 +178,3 @@ elif menu == "📅 Planejamento & Ordens de Serviço (OS)":
         st.info("Nenhuma Ordem de Serviço aberta no momento.")
     else:
         df_ordens = pd.DataFrame(ordens_exibicao)[["id", "equipamento", "periodo", "data_prevista", "pecas"]]
-        df_ordens.columns = ["ID OS", "Equipamento", "Frequência", "Data Programada", "Descrição do Escopo"]
-        st.dataframe(df_ordens, use_container_width=True, hide_index=True)
-        
-        st.markdown("##### 🛠️ Gerenciar Ações da Ordem")
-        mapa_botoes = {f"OS #{item['id']} - {item['equipamento']}": item for item in ordens_exibicao}
