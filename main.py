@@ -57,7 +57,8 @@ def salvar_dados(dados):
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
 # Força o recarregamento limpo do banco de dados na inicialização
-st.session_state.db = carregar_dados()
+if "db" not in st.session_state:
+    st.session_state.db = carregar_dados()
 
 st.session_state.maquinas = st.session_state.db["maquinas"]
 st.session_state.planejamento = st.session_state.db["planejamento"]
@@ -172,10 +173,9 @@ elif menu == "📅 Planejamento & Ordens de Serviço (OS)":
     if not ordens_exibicao:
         st.info("Nenhuma Ordem de Serviço aberta no momento.")
     else:
-        for p in ordens_exibicao:
-            st.markdown(f"#### 🛠️ OS #{p.get('id')} - {p.get('equipamento')} ({str(p.get('periodo')).upper()})")
-            st.write(f"📅 **Data Prevista:** {p.get('data_prevista')} | 🔧 **Escopo:** {p.get('pecas')}")
-            
-            col_b1, col_b2, col_b3 = st.columns(3)
-            with col_b1:
-                if st.button("✔️ Concluir e Fechar OS", key=f"concluir_{p.get('id')}"):
+        df_ordens = pd.DataFrame(ordens_exibicao)[["id", "equipamento", "periodo", "data_prevista", "pecas"]]
+        df_ordens.columns = ["ID OS", "Equipamento", "Frequência", "Data Programada", "Descrição do Escopo"]
+        st.dataframe(df_ordens, use_container_width=True, hide_index=True)
+        
+        st.markdown("##### 🛠️ Gerenciar Ações da Ordem")
+        mapa_botoes = {f"OS #{item['id']} - {item['equipamento']}": item for item in ordens_exibicao}
