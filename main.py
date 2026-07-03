@@ -87,6 +87,38 @@ def excluir_dados(tabela: str, coluna_id: str, valor_id):
     except Exception:
         return False
 
+def atualizar_dados(tabela: str, payload: dict, coluna_id: str, valor_id):
+    """Atualiza um registro diretamente via REST API."""
+    if not SUBAPASE_URL or not SUPABASE_KEY:
+        return False
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+    }
+    url = f"{SUBAPASE_URL}/rest/v1/{tabela}?{coluna_id}=eq.{valor_id}"
+    try:
+        response = requests.patch(url, headers=headers, json=payload)
+        return 200 <= response.status_code <= 299
+    except Exception:
+        return False
+
+def excluir_dados(tabela: str, coluna_id: str, valor_id):
+    """Exclui um registro diretamente via REST API."""
+    if not SUBAPASE_URL or not SUPABASE_KEY:
+        return False
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}"
+    }
+    url = f"{SUBAPASE_URL}/rest/v1/{tabela}?{coluna_id}=eq.{valor_id}"
+    try:
+        response = requests.delete(url, headers=headers)
+        return 200 <= response.status_code <= 299
+    except Exception:
+        return False
+
 # Estados de controle para edição activa
 if "editando_maquina_id" not in st.session_state:
     st.session_state.editando_maquina_id = None
