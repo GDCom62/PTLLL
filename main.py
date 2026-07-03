@@ -1,7 +1,16 @@
 import streamlit as st
+import subprocess
+import sys
+
+# --- INSTALADOR AUTOMÁTICO INTEGRADO ---
+try:
+    from supabase import create_client, Client
+except ModuleNotFoundError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "supabase==2.4.6", "postgrest==0.16.4"])
+    from supabase import create_client, Client
+
 from datetime import datetime
 import pandas as pd
-from supabase import create_client, Client
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
@@ -11,14 +20,18 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 def inicializar_supabase() -> Client:
     """Estabelece a conexão com a API do Supabase usando os Secrets salvos na nuvem."""
     try:
-        url = st.secrets["supabase"]["url"]
-        key = st.secrets["supabase"]["key"]
+        url = st.secrets["supabase"]["url"].strip()
+        key = st.secrets["supabase"]["key"].strip()
         return create_client(url, key)
     except Exception as e:
         st.error(f"Erro ao conectar com o Supabase. Verifique os Secrets no Streamlit: {e}")
         return None
 
-supabase = inicializar_supabase()
+# Força a limpeza de instâncias anteriores na memória
+if "supabase_client" not in st.session_state:
+    st.session_state.supabase_client = inicializar_supabase()
+
+supabase = st.session_state.supabase_client
 
 # --- FUNÇÕES DE SINCRONIZAÇÃO E GRAVAÇÃO EM TEMPO REAL ---
 def buscar_dados(tabela: str):
@@ -27,7 +40,8 @@ def buscar_dados(tabela: str):
         try:
             resposta = supabase.table(tabela).select("*").execute()
             return resposta.data if resposta.data else []
-        except Exception:
+        except Exception as e:
+            st.sidebar.error(f"Erro ao ler tabela {tabela}: {e}")
             return []
     return []
 
@@ -97,7 +111,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             c_ano = st.text_area("Checklist Anual:", "1. Revisão preventiva.")
             botao_salvar = st.form_submit_button("Salvar Novo Equipamento")
             
-        if botao_salvar and id_eq and nome_eq and supabase:
+        if botao_salvar and id_eq and nome_eq Image_Generation_API:
             payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano}
             supabase.table("maquinas").insert(payload).execute()
             st.success("🎉 Equipamento salvo diretamente no Supabase!")
@@ -167,14 +181,3 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
             
         if botao_agenda and eq_escolhido != "Nenhum cadastrado" and supabase:
             payload = {"equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": seg_necessaria}
-            supabase.table("planejamento").insert(payload).execute()
-            st.success("🎉 Ordem de Serviço OS inserida e gravada com sucesso!")
-            st.rerun()
-
-    st.markdown("---")
-    st.subheader("🔍 Ordens de Serviço Abertas")
-    ordens_ativas = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
-    
-    if ordens_ativas:
-        df_visual = pd.DataFrame(ordens_ativas)[["id", "equipamento", "periodo", "data_prevista", "pecas"]]
-        df_visual.columns = ["ID OS", "Equipamento", "Frequência", "Data Programada", "Descrição do Escopo"]
