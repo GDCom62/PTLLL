@@ -7,7 +7,6 @@ import requests
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
 # --- CONEXÃO BLINDADA VIA API REST (HTTP) COM O SUPABASE ---
-# Removido o cache agressivo para forçar a nuvem a gravar e ler os dados ao vivo
 def obter_credenciais():
     """Recupera e limpa as credenciais dos Secrets."""
     try:
@@ -20,7 +19,7 @@ def obter_credenciais():
 
 SUBAPASE_URL, SUPABASE_KEY = obter_credenciais()
 
-# --- FUNÇÕES DE INTERAÇÃO DIRETA COM O BANCO DE DADOS (API REST) ---
+# --- FUNÇÕES DE INTERAÇÃO DIRETA COM O BANCO DE DADOS (API REST COERENTE) ---
 def buscar_dados(tabela: str):
     """Busca dados diretamente via REST API do Supabase."""
     if not SUBAPASE_URL or not SUPABASE_KEY:
@@ -87,39 +86,7 @@ def excluir_dados(tabela: str, coluna_id: str, valor_id):
     except Exception:
         return False
 
-def atualizar_dados(tabela: str, payload: dict, coluna_id: str, valor_id):
-    """Atualiza um registro diretamente via REST API."""
-    if not SUBAPASE_URL or not SUPABASE_KEY:
-        return False
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal"
-    }
-    url = f"{SUBAPASE_URL}/rest/v1/{tabela}?{coluna_id}=eq.{valor_id}"
-    try:
-        response = requests.patch(url, headers=headers, json=payload)
-        return 200 <= response.status_code <= 299
-    except Exception:
-        return False
-
-def excluir_dados(tabela: str, coluna_id: str, valor_id):
-    """Exclui um registro diretamente via REST API."""
-    if not SUBAPASE_URL or not SUPABASE_KEY:
-        return False
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}"
-    }
-    url = f"{SUBAPASE_URL}/rest/v1/{tabela}?{coluna_id}=eq.{valor_id}"
-    try:
-        response = requests.delete(url, headers=headers)
-        return 200 <= response.status_code <= 299
-    except Exception:
-        return False
-
-# Estados de controle para edição activa
+# Estados de controle para edição ativa
 if "editando_maquina_id" not in st.session_state:
     st.session_state.editando_maquina_id = None
 if "editando_os_id" not in st.session_state:
@@ -135,17 +102,10 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Aba 5: Emissão de PT"
 ])
 
-# Carregamento dinâmico e direto das tabelas
+# Carregamento dinâmico e direto das tabelas estruturadas do Supabase
 equipamentos = buscar_dados("maquinas")
 todos_agendamentos = buscar_dados("planejamento")
 historico_lista = buscar_dados("historico")
-
-# Injeção local de segurança caso as tabelas demorem a responder na primeira requisição
-if not equipamentos:
-    equipamentos = [
-        {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo.", "check_mensal": "1. Trocar filtros.", "check_anual": "1. Revisão motor."},
-        {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala Compressores", "criticidade": "Média", "check_semanal": "1. Drenar reservatório.", "check_mensal": "1. Limpar conexões.", "check_anual": "1. Teste válvula."}
-    ]
 
 # ==========================================
 # ABAS 1 & 2: GERENCIAR MÁQUINAS
@@ -200,19 +160,22 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
 
     st.markdown("---")
     st.subheader("📋 Lista de Equipamentos Registrados")
-    for mq in equipamentos:
-        st.write(f"🔹 **[{mq.get('id')}] {mq.get('nome')}** | Setor: {mq.get('localizacao')} | Criticidade: {mq.get('criticidade')}")
-        c_m1, c_m2 = st.columns(2)
-        with c_m1:
-            if st.button(f"✏️ Editar {mq.get('id')}", key=f"ed_mq_{mq.get('id')}"):
-                st.session_state.editando_maquina_id = mq.get('id')
-                st.rerun()
-        with c_m2:
-            if st.button(f"🗑️ Excluir {mq.get('id')}", key=f"ex_mq_{mq.get('id')}"):
-                excluir_dados("maquinas", "id", mq.get('id'))
-                st.warning("Equipamento excluído permanentemente!")
-                st.rerun()
-        st.write("---")
+    if not equipamentos:
+        st.info("Nenhuma máquina encontrada na tabela 'maquinas' do Supabase.")
+    else:
+        for mq in equipamentos:
+            st.write(f"🔹 **[{mq.get('id')}] {mq.get('nome')}** | Setor: {mq.get('localizacao')} | Criticidade: {mq.get('criticidade')}")
+            c_m1, c_m2 = st.columns(2)
+            with c_m1:
+                if st.button(f"✏️ Editar {mq.get('id')}", key=f"ed_mq_{mq.get('id')}"):
+                    st.session_state.editando_maquina_id = mq.get('id')
+                    st.rerun()
+            with c_m2:
+                if st.button(f"🗑️ Excluir {mq.get('id')}", key=f"ex_mq_{mq.get('id')}"):
+                    excluir_dados("maquinas", "id", mq.get('id'))
+                    st.warning("Equipamento excluído permanentemente!")
+                    st.rerun()
+            st.write("---")
 
 # ==========================================
 # ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)
@@ -237,3 +200,12 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 with col_b2: btn_canc_os = st.form_submit_button("❌ Cancelar")
                 
             if btn_salvar_os:
+                payload = {"equipamento": edit_equip, "periodo": edit_periodo, "data_prevista": edit_data.strftime("%d/%m/%Y"), "pecas": edit_pecas, "seguranca": edit_seg}
+                atualizar_dados("planejamento", payload, "id", os_editar["id"])
+                st.session_state.editando_os_id = None
+                st.success("🎉 Alterações na OS gravadas com sucesso!")
+                st.rerun()
+            if btn_canc_os:
+                st.session_state.editando_os_id = None
+                st.rerun()
+    else:
