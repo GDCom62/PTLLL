@@ -177,8 +177,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
         st.subheader("📝 Editar Ordem de Serviço Ativa")
         os_editar = next((item for item in todos_agendamentos if str(item["id"]) == str(st.session_state.editando_os_id)), None)
         
-        if os_editar:
-            # --- CORREÇÃO DA LINHA 199 DO FORM_EDITAR_OS DENTRO DO ESCOPO NATIVO ---
+               if os_editar:
             with st.form("form_editar_os"):
                 edit_equip = st.selectbox("Máquina Alvo:", [m["nome"] for m in equipamentos] if equipamentos else ["Nenhuma cadastrada"])
                 edit_periodo = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
@@ -187,12 +186,22 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
                 btn_salvar_os = st.form_submit_button("💾 Salvar Alterações da OS")
                 
-                if btn_salvar_os:
-                    payload = {"equipamento": edit_equip, "periodo": edit_periodo, "data_prevista": edit_data.strftime("%d/%m/%Y"), "pecas": edit_pecas, "seguranca": edit_seg}
-                    if atualizar_dados("planejamento", payload, "id", os_editar["id"]):
-                        st.success("🎉 Alterações na OS gravadas com sucesso!")
-                        st.session_state.editando_os_id = None
-                        st.rerun()
+            # O SEGREDO É AQUI: O "if" precisa ficar FORA (alinhado com o "with")
+            if btn_salvar_os:
+                payload = {"equipamento": edit_equip, "periodo": edit_periodo, "data_prevista": edit_data.strftime("%d/%m/%Y"), "pecas": edit_pecas, "seguranca": edit_seg}
+                if atualizar_dados("planejamento", payload, "id", os_editar["id"]):
+                    st.success("🎉 Alterações na OS gravadas com sucesso!")
+                    st.session_state.editando_os_id = None
+                    st.rerun()
+
+                
+            # CORREÇÃO CRÍTICA: Os testes lógicos ficam fora do bloco "with st.form"
+            if btn_salvar_os:
+                payload = {"equipamento": edit_equip, "periodo": edit_periodo, "data_prevista": edit_data.strftime("%d/%m/%Y"), "pecas": edit_pecas, "seguranca": edit_seg}
+                if atualizar_dados("planejamento", payload, "id", os_editar["id"]):
+                    st.success("🎉 Alterações na OS gravadas com sucesso!")
+                    st.session_state.editando_os_id = None
+                    st.rerun()
             
             if st.button("❌ Cancelar Edição da OS"):
                 st.session_state.editando_os_id = None
