@@ -192,10 +192,9 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
         os_editar = next((item for item in todos_agendamentos if str(item["id"]) == str(st.session_state.editando_os_id)), None)
         
         if os_editar:
-            # --- INDENTAÇÃO REVISADA: CAMPOS RECUADOS DENTRO DO IF ---
             with st.form("form_editar_os"):
                 edit_equip = st.selectbox("Máquina Alvo:", [m["nome"] for m in equipamentos], index=[m["nome"] for m in equipamentos].index(os_editar["equipamento"]) if os_editar["equipamento"] in [m["nome"] for m in equipamentos] else 0)
-                edit_periodo = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], index=["semanal", "mensal", "anual"].index(os_editar.get("periodo", "Semanal").lower()))
+                edit_periodo = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], index=["semanal", "mensal", "anual"].index(os_editar.get("periodo", "Semanal").lower()) if os_editar.get("periodo") else 0)
                 edit_data = st.date_input("Data Prevista:", datetime.strptime(os_editar.get("data_prevista", datetime.now().strftime("%d/%m/%Y")), "%d/%m/%Y"))
                 edit_pecas = st.text_area("Escopo do Serviço:", value=os_editar.get("pecas", ""))
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
