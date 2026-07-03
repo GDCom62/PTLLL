@@ -110,7 +110,6 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             c_ano = st.text_area("Checklist Anual:", "1. Revisão preventiva.")
             botao_salvar = st.form_submit_button("Salvar Novo Equipamento")
             
-        # CORREÇÃO DA LINHA 114: Sintaxe limpa e sem termos perdidos
         if botao_salvar and id_eq and nome_eq and supabase:
             payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano}
             supabase.table("maquinas").insert(payload).execute()
@@ -179,4 +178,5 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
             seg_necessaria = st.text_area("Observações Iniciais de Segurança:", value="Seguir as NRs de segurança aplicadas.")
             botao_agenda = st.form_submit_button("💾 Gerar OS Pendente")
             
+        # CORREÇÃO DA LINHA 182: Bloco perfeitamente alinhado e completo
         if botao_agenda and eq_escolhido != "Nenhum cadastrado" and supabase:
