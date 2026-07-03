@@ -5,30 +5,24 @@ import pandas as pd
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- BANCO DE DADOS DIRETO NA MEMÓRIA OPERACIONAL (SEM DEPENDER DE JSON TRAVADO) ---
-if "maquinas" not in st.session_state or not st.session_state.maquinas:
+# --- SISTEMA DE BLINDAGEM DE MEMÓRIA CONTRA RECARRREGAMENTOS DE PÁGINA ---
+if "banco_inicializado" not in st.session_state:
+    # Este bloco SÓ EXECUTA UMA VEZ na primeira abertura do app. Nunca mais apaga os dados ao clicar nos botões.
     st.session_state.maquinas = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo; 2. Limpar barramento.", "check_mensal": "1. Trocar filtros; 2. Conferir correias.", "check_anual": "1. Revisão do motor."},
         {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "1. Drenar reservatório; 2. Checar ruídos.", "check_mensal": "1. Limpar filtro; 2. Verificar conexões.", "check_anual": "1. Teste de válvula."}
     ]
-
-if "planejamento" not in st.session_state or not st.session_state.planejamento:
     st.session_state.planejamento = [
         {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de óleo das guias e limpeza", "status": "Pendente", "seguranca": "Cuidado com partes giratórias."}
     ]
-
-if "historico" not in st.session_state or not st.session_state.historico:
     st.session_state.historico = [
         {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
     ]
-
-# Estados de controle para edição
-if "editando_maquina_id" not in st.session_state:
     st.session_state.editando_maquina_id = None
-if "editando_os_id" not in st.session_state:
     st.session_state.editando_os_id = None
+    st.session_state.banco_inicializado = True
 
-# --- MENU LATERAL ---
+# --- MENU LATERAL INDUSTRIAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
@@ -38,12 +32,8 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Aba 5: Emissão de PT"
 ])
 
-equipamentos = st.session_state.maquinas
-todos_agendamentos = st.session_state.planejamento
-historico_lista = st.session_state.historico
-
 # ==========================================
-# ABAS 1 & 2: GERENCIAR MÁQUINAS
+# ABAS 1 & 2: GERENCIAR MÁQUINAS (COM GRAVAÇÃO REAL DE EDIÇÃO E EXCLUSÃO)
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
@@ -73,7 +63,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                 mq_editar["check_mensal"] = edit_mes
                 mq_editar["check_anual"] = edit_ano
                 st.session_state.editando_maquina_id = None
-                st.success("Equipamento atualizado com sucesso!")
+                st.success("🎉 Alterações na máquina gravadas permanentemente na memória!")
                 st.rerun()
             if btn_canc_mq:
                 st.session_state.editando_maquina_id = None
@@ -93,7 +83,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             
         if botao_salvar and id_eq and nome_eq:
             st.session_state.maquinas.append({"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano})
-            st.success("Equipamento cadastrado com sucesso!")
+            st.success("🎉 Nova máquina cadastrada e adicionada com sucesso!")
             st.rerun()
 
     st.markdown("---")
@@ -111,12 +101,12 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             with c_m2:
                 if st.button(f"🗑️ Excluir {mq['id']}", key=f"ex_mq_{mq['id']}"):
                     st.session_state.maquinas = [m for m in st.session_state.maquinas if m["id"] != mq["id"]]
-                    st.warning("Equipamento excluído com sucesso!")
+                    st.warning("Equipamento excluído permanentemente!")
                     st.rerun()
             st.write("---")
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS) - (GRAVAÇÃO REAL TRAVADA)
 # ==========================================
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
@@ -128,23 +118,23 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
         if os_editar:
             with st.form("form_editar_os"):
                 edit_equip = st.selectbox("Máquina Alvo:", [m["nome"] for m in st.session_state.maquinas], index=[m["nome"] for m in st.session_state.maquinas].index(os_editar["equipamento"]) if os_editar["equipamento"] in [m["nome"] for m in st.session_state.maquinas] else 0)
-                edit_period = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], index=["semanal", "mensal", "anual"].index(os_editar["periodo"].lower()))
+                edit_periodo = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], index=["semanal", "mensal", "anual"].index(os_editar["periodo"].lower()))
                 edit_data = st.date_input("Data Prevista:", datetime.strptime(os_editar["data_prevista"], "%d/%m/%Y"))
                 edit_pecas = st.text_area("Escopo do Serviço:", value=os_editar["pecas"])
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
                 
                 col_b1, col_b2 = st.columns(2)
-                with col_b1: btn_salvar_os = st.form_submit_button("💾 Salvar OS")
+                with col_b1: btn_salvar_os = st.form_submit_button("💾 Salvar Alterações na OS")
                 with col_b2: btn_canc_os = st.form_submit_button("❌ Cancelar")
                 
             if btn_salvar_os:
                 os_editar["equipamento"] = edit_equip
-                os_editar["periodo"] = edit_period
+                os_editar["periodo"] = edit_periodo
                 os_editar["data_prevista"] = edit_data.strftime("%d/%m/%Y")
                 os_editar["pecas"] = edit_pecas
                 os_editar["seguranca"] = edit_seg
                 st.session_state.editando_os_id = None
-                st.success("Ordem de Serviço atualizada com sucesso!")
+                st.success("🎉 Alterações na OS gravadas permanentemente!")
                 st.rerun()
             if btn_canc_os:
                 st.session_state.editando_os_id = None
@@ -163,8 +153,11 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
         if botao_agenda and eq_escolhido != "Nenhum cadastrado":
             novo_id = max([item["id"] for item in st.session_state.planejamento], default=0) + 1
             st.session_state.planejamento.append({"id": novo_id, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": seg_necessaria})
-            st.success(f"🎉 OS #{novo_id} gerada com sucesso!")
+            st.success(f"🎉 Ordem de Serviço OS #{novo_id} gerada e gravada!")
             st.rerun()
 
     st.markdown("---")
     st.subheader("🔍 Ordens de Serviço Abertas")
+    ordens_ativas = [os for os in st.session_state.planejamento if os["status"] == "Pendente"]
+    
+    if not ordens_ativas:
