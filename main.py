@@ -7,7 +7,6 @@ import requests
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
 # --- CONEXÃO BLINDADA VIA API REST (HTTP) COM O SUPABASE ---
-# Método direto que elimina o bug de 'Invalid API key' do pacote oficial
 @st.cache_resource
 def obter_credenciais():
     """Recupera e limpa as credenciais dos Secrets."""
@@ -19,10 +18,9 @@ def obter_credenciais():
         st.error(f"Erro ao ler os Secrets no Streamlit: {e}")
         return None, None
 
-credenciais = obter_credenciais()
-SUBAPASE_URL, SUPABASE_KEY = credenciais
+SUBAPASE_URL, SUPABASE_KEY = obter_credenciais()
 
-# --- FUNÇÕES DE INTERAÇÃO DIRETA COM O BANCO DE DADOS ---
+# --- FUNÇÕES DE INTERAÇÃO DIRETA COM O BANCO DE DADOS (API REST) ---
 def buscar_dados(tabela: str):
     """Busca dados diretamente via REST API do Supabase."""
     if not SUBAPASE_URL or not SUPABASE_KEY:
@@ -209,3 +207,6 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 st.success("🎉 Alterações na OS gravadas com sucesso!")
                 st.rerun()
             if btn_canc_os:
+                st.session_state.editando_os_id = None
+                st.rerun()
+    else:
