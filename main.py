@@ -1,48 +1,93 @@
 import streamlit as st
 from datetime import datetime
 import pandas as pd
-
-# --- INSTALADOR AUTOMÁTICO INTEGRADO (CASO O REQS.TXT TRAVE) ---
-try:
-    from supabase import create_client, Client
-except ModuleNotFoundError:
-    import subprocess
-    import sys
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "supabase==2.4.6", "postgrest==0.16.4"])
-    from supabase import create_client, Client
+import requests
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- CONEXÃO NATIVA COM O BANCO DE DADOS SUPABASE ---
+# --- CONEXÃO BLINDADA VIA API REST (HTTP) COM O SUPABASE ---
+# Método direto que elimina o bug de 'Invalid API key' do pacote oficial
 @st.cache_resource
-def inicializar_supabase() -> Client:
-    """Estabelece a conexão com a API do Supabase usando os Secrets salvos na nuvem."""
+def obter_credenciais():
+    """Recupera e limpa as credenciais dos Secrets."""
     try:
-        url = st.secrets["supabase"]["url"].strip()
+        url = st.secrets["supabase"]["url"].strip().rstrip("/")
         key = st.secrets["supabase"]["key"].strip()
-        return create_client(url, key)
+        return url, key
     except Exception as e:
-        st.error(f"Erro ao conectar com o Supabase. Verifique os Secrets no Streamlit: {e}")
-        return None
+        st.error(f"Erro ao ler os Secrets no Streamlit: {e}")
+        return None, None
 
-# Força a limpeza de instâncias anteriores na memória
-if "supabase_client" not in st.session_state:
-    st.session_state.supabase_client = inicializar_supabase()
+credenciais = obter_credenciais()
+SUBAPASE_URL, SUPABASE_KEY = credenciais
 
-supabase = st.session_state.supabase_client
-
-# --- FUNÇÕES DE SINCRONIZAÇÃO E GRAVAÇÃO EM TEMPO REAL ---
+# --- FUNÇÕES DE INTERAÇÃO DIRETA COM O BANCO DE DADOS ---
 def buscar_dados(tabela: str):
-    """Busca os dados de uma tabela específica no Supabase. Retorna uma lista de dicionários."""
-    if supabase:
-        try:
-            resposta = supabase.table(tabela).select("*").execute()
-            return resposta.data if resposta.data else []
-        except Exception as e:
-            st.sidebar.error(f"Erro ao ler tabela {tabela}: {e}")
-            return []
+    """Busca dados diretamente via REST API do Supabase."""
+    if not SUBAPASE_URL or not SUPABASE_KEY:
+        return []
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}"
+    }
+    url = f"{SUBAPASE_URL}/rest/v1/{tabela}?select=*"
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            return response.json()
+    except Exception:
+        pass
     return []
+
+def inserir_dados(tabela: str, payload: dict):
+    """Insere um novo registro diretamente via REST API."""
+    if not SUBAPASE_URL or not SUPABASE_KEY:
+        return False
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+    }
+    url = f"{SUBAPASE_URL}/rest/v1/{tabela}"
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        return response.status_code in [200, 201]
+    except Exception:
+        return False
+
+def atualizar_dados(tabela: str, payload: dict, coluna_id: str, valor_id):
+    """Atualiza um registro diretamente via REST API."""
+    if not SUBAPASE_URL or not SUPABASE_KEY:
+        return False
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+    }
+    url = f"{SUBAPASE_URL}/rest/v1/{tabela}?{coluna_id}=eq.{valor_id}"
+    try:
+        response = requests.patch(url, headers=headers, json=payload)
+        return response.status_code in [200, 204]
+    except Exception:
+        return False
+
+def excluir_dados(tabela: str, coluna_id: str, valor_id):
+    """Exclui um registro diretamente via REST API."""
+    if not SUBAPASE_URL or not SUPABASE_KEY:
+        return False
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}"
+    }
+    url = f"{SUBAPASE_URL}/rest/v1/{tabela}?{coluna_id}=eq.{valor_id}"
+    try:
+        response = requests.delete(url, headers=headers)
+        return response.status_code in [200, 204]
+    except Exception:
+        return False
 
 # Estados de controle para edição ativa
 if "editando_maquina_id" not in st.session_state:
@@ -60,7 +105,7 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Aba 5: Emissão de PT"
 ])
 
-# Carregamento dinâmico direto das tabelas do Supabase
+# Carregamento dinâmico e direto das tabelas
 equipamentos = buscar_dados("maquinas")
 todos_agendamentos = buscar_dados("planejamento")
 historico_lista = buscar_dados("historico")
@@ -73,7 +118,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     
     if st.session_state.editando_maquina_id is not None:
         st.subheader("✏️ Editar Equipamento Registrado")
-        mq_editar = next((m for m in equipamentos if m["id"] == st.session_state.editando_maquina_id), None)
+        mq_editar = next((m for m in equipamentos if str(m["id"]) == str(st.session_state.editando_maquina_id)), None)
         
         if mq_editar:
             with st.form("form_editar_maquina"):
@@ -88,11 +133,11 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                 with col_m1: btn_salvar_mq = st.form_submit_button("💾 Salvar Alterações")
                 with col_m2: btn_canc_mq = st.form_submit_button("❌ Cancelar")
                 
-            if btn_salvar_mq and supabase:
+            if btn_salvar_mq:
                 payload = {"nome": edit_nome, "localizacao": edit_local, "criticidade": edit_crit, "check_semanal": edit_sem, "check_mensal": edit_mes, "check_anual": edit_ano}
-                supabase.table("maquinas").update(payload).eq("id", mq_editar["id"]).execute()
+                atualizar_dados("maquinas", payload, "id", mq_editar["id"])
                 st.session_state.editando_maquina_id = None
-                st.success("🎉 Equipamento updated com sucesso no Supabase!")
+                st.success("🎉 Equipamento atualizado com sucesso no Supabase!")
                 st.rerun()
             if btn_canc_mq:
                 st.session_state.editando_maquina_id = None
@@ -110,9 +155,9 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             c_ano = st.text_area("Checklist Anual:", "1. Revisão preventiva.")
             botao_salvar = st.form_submit_button("Salvar Novo Equipamento")
             
-        if botao_salvar and id_eq and nome_eq and supabase:
+        if botao_salvar and id_eq and nome_eq:
             payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano}
-            supabase.table("maquinas").insert(payload).execute()
+            inserir_dados("maquinas", payload)
             st.success("🎉 Equipamento salvo diretamente no Supabase!")
             st.rerun()
 
@@ -130,10 +175,9 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                     st.rerun()
             with c_m2:
                 if st.button(f"🗑️ Excluir {mq.get('id')}", key=f"ex_mq_{mq.get('id')}"):
-                    if supabase:
-                        supabase.table("maquinas").delete().eq("id", mq.get('id')).execute()
-                        st.warning("Equipamento excluído permanentemente do Supabase!")
-                        st.rerun()
+                    excluir_dados("maquinas", "id", mq.get('id'))
+                    st.warning("Equipamento excluído permanentemente do Supabase!")
+                    st.rerun()
             st.write("---")
 
 # ==========================================
@@ -144,7 +188,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     
     if st.session_state.editando_os_id is not None:
         st.subheader("📝 Editar Ordem de Serviço Ativa")
-        os_editar = next((item for item in todos_agendamentos if item["id"] == st.session_state.editando_os_id), None)
+        os_editar = next((item for item in todos_agendamentos if str(item["id"]) == str(st.session_state.editando_os_id)), None)
         
         if os_editar:
             with st.form("form_editar_os"):
@@ -158,25 +202,10 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 with col_b1: btn_salvar_os = st.form_submit_button("💾 Salvar OS")
                 with col_b2: btn_canc_os = st.form_submit_button("❌ Cancelar")
                 
-            if btn_salvar_os and supabase:
+            if btn_salvar_os:
                 payload = {"equipamento": edit_equip, "periodo": edit_periodo, "data_prevista": edit_data.strftime("%d/%m/%Y"), "pecas": edit_pecas, "seguranca": edit_seg}
-                supabase.table("planejamento").update(payload).eq("id", os_editar["id"]).execute()
+                atualizar_dados("planejamento", payload, "id", os_editar["id"])
                 st.session_state.editando_os_id = None
                 st.success("🎉 Alterações na OS gravadas com sucesso!")
                 st.rerun()
             if btn_canc_os:
-                st.session_state.editando_os_id = None
-                st.rerun()
-    else:
-        st.subheader("📅 Agendar Nova Manutenção / Gerar OS")
-        with st.form("form_agenda_direto"):
-            lista_nomes = [m["nome"] for m in equipamentos]
-            eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes if lista_nomes else ["Nenhum cadastrado"])
-            periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
-            data_planejada = st.date_input("Selecione a Data:", datetime.now())
-            pecas_necessarias = st.text_area("Descrição das Peças / Escopo:", value="Realizar rotina padrão de preventiva.")
-            seg_necessaria = st.text_area("Observações Iniciais de Segurança:", value="Seguir as NRs de segurança aplicadas.")
-            botao_agenda = st.form_submit_button("💾 Gerar OS Pendente")
-            
-        if botao_agenda and eq_escolhido != "Nenhum cadastrado" and supabase:
-            payload = {"equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": seg_necessaria}
