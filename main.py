@@ -133,9 +133,8 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                 edit_mes = st.text_area("Checklist Mensal:", value=mq_editar.get("check_mensal", ""))
                 edit_ano = st.text_area("Checklist Anual:", value=mq_editar.get("check_anual", ""))
                 
-                col_m1, col_m2 = st.columns(2)
-                with col_m1: btn_salvar_mq = st.form_submit_button("💾 Salvar Alterações")
-                with col_m2: btn_canc_mq = st.form_submit_button("❌ Cancelar")
+                btn_salvar_mq = st.form_submit_button("💾 Salvar Alterações")
+                btn_canc_mq = st.form_submit_button("❌ Cancelar")
                 
             if btn_salvar_mq:
                 payload = {"nome": edit_nome, "localizacao": edit_local, "criticidade": edit_crit, "check_semanal": edit_sem, "check_mensal": edit_mes, "check_anual": edit_ano}
@@ -199,10 +198,8 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 edit_pecas = st.text_area("Escopo do Serviço:", value=os_editar.get("pecas", ""))
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
                 
-                col_b1, col_b2 = st.columns(2)
-                with col_b1:
-                    btn_salvar_os = st.form_submit_button("💾 Salvar OS")
-                with col_b2:
-                    btn_canc_os = st.form_submit_button("❌ Cancelar")
+                # CORREÇÃO CRÍTICA DO ESCOPO DO FORMULÁRIO (Removido with col_b1/col_b2 internos)
+                btn_salvar_os = st.form_submit_button("💾 Salvar OS")
+                btn_canc_os = st.form_submit_button("❌ Cancelar Ação")
                 
             if btn_salvar_os:
