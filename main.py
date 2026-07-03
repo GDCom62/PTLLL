@@ -18,7 +18,7 @@ def obter_credenciais():
 
 SUBAPASE_URL, SUPABASE_KEY = obter_credenciais()
 
-# --- FUNÇÕES DE BANCO DE DADOS DIRETO (SEM CACHE QUEBRADO) ---
+# --- FUNÇÕES DE BANCO DE DADOS DIRETO ---
 def buscar_dados(tabela: str):
     if not SUBAPASE_URL or not SUPABASE_KEY:
         return []
@@ -114,7 +114,6 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                 edit_mes = st.text_area("Checklist Mensal:", value=mq_editar.get("check_mensal", ""))
                 edit_ano = st.text_area("Checklist Anual:", value=mq_editar.get("check_anual", ""))
                 btn_salvar_mq = st.form_submit_button("💾 Salvar Alterações")
-                btn_canc_mq = st.form_submit_button("❌ Cancelar")
                 
             if btn_salvar_mq:
                 payload = {"nome": edit_nome, "localizacao": edit_local, "criticidade": edit_crit, "check_semanal": edit_sem, "check_mensal": edit_mes, "check_anual": edit_ano}
@@ -124,7 +123,8 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                     st.rerun()
                 else:
                     st.error("Erro ao salvar atualizações.")
-            if btn_canc_mq:
+            
+            if st.button("❌ Cancelar Edição"):
                 st.session_state.editando_maquina_id = None
                 st.rerun()
     else:
@@ -184,8 +184,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 edit_data = st.date_input("Data Prevista:", datetime.now())
                 edit_pecas = st.text_area("Escopo do Serviço:", value=os_editar.get("pecas", ""))
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
-                btn_salvar_os = st.form_submit_button("💾 Salvar OS")
-                btn_canc_os = st.form_submit_button("❌ Cancelar Ação")
+                btn_salvar_os = st.form_submit_button("💾 Salvar Alterações da OS")
                 
             if btn_salvar_os:
                 payload = {"equipamento": edit_equip, "periodo": edit_periodo, "data_prevista": edit_data.strftime("%d/%m/%Y"), "pecas": edit_pecas, "seguranca": edit_seg}
@@ -193,7 +192,8 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                     st.success("🎉 Alterações na OS gravadas com sucesso!")
                     st.session_state.editando_os_id = None
                     st.rerun()
-            if btn_canc_os:
+            
+            if st.button("❌ Cancelar Edição da OS"):
                 st.session_state.editando_os_id = None
                 st.rerun()
     else:
