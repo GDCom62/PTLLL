@@ -95,9 +95,11 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                 edit_mes = st.text_area("Checklist Mensal:", value=mq_editar["check_mensal"])
                 edit_ano = st.text_area("Checklist Anual:", value=mq_editar["check_anual"])
                 
-                c1, col2 = st.columns(2)
-                with c1: btn_salvar_mq = st.form_submit_button("💾 Salvar Alterações")
-                with col2: btn_canc_mq = st.form_submit_button("❌ Cancelar")
+                col_m1, col_m2 = st.columns(2)
+                with col_m1:
+                    btn_salvar_mq = st.form_submit_button("💾 Salvar Alterações")
+                with col_m2:
+                    btn_canc_mq = st.form_submit_button("❌ Cancelar")
                 
             if btn_salvar_mq:
                 mq_editar["nome"] = edit_nome
@@ -107,9 +109,10 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                 mq_editar["check_mensal"] = edit_mes
                 mq_editar["check_anual"] = edit_ano
                 st.session_state.editando_maquina_id = None
-                salvar_dados_físicos() # GRAVA EM DISCO
-                st.success("Equipamento atualizado fisicamente no arquivo!")
+                salvar_dados_físicos()
+                st.success("Equipamento atualizado com sucesso!")
                 st.rerun()
+                
             if btn_canc_mq:
                 st.session_state.editando_maquina_id = None
                 st.rerun()
@@ -128,8 +131,8 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             
         if botao_salvar and id_eq and nome_eq:
             st.session_state.maquinas.append({"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano})
-            salvar_dados_físicos() # GRAVA EM DISCO
-            st.success("Equipamento cadastrado e gravado fisicamente!")
+            salvar_dados_físicos()
+            st.success("Equipamento cadastrado e gravado com sucesso!")
             st.rerun()
 
     st.markdown("---")
@@ -147,8 +150,8 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             with c_m2:
                 if st.button(f"🗑️ Excluir {mq['id']}", key=f"ex_mq_{mq['id']}"):
                     st.session_state.maquinas = [m for m in st.session_state.maquinas if m["id"] != mq["id"]]
-                    salvar_dados_físicos() # GRAVA EM DISCO
-                    st.warning("Equipamento excluído permanentemente!")
+                    salvar_dados_físicos()
+                    st.warning("Equipamento excluído com sucesso!")
                     st.rerun()
             st.write("---")
 
@@ -171,8 +174,10 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
                 
                 col_b1, col_b2 = st.columns(2)
-                with col_b1: btn_salvar_os = st.form_submit_button("💾 Salvar OS")
-                with col_b2: btn_canc_os = st.form_submit_button("❌ Cancelar")
+                with col_b1:
+                    btn_salvar_os = st.form_submit_button("💾 Salvar OS")
+                with col_b2:
+                    btn_canc_os = st.form_submit_button("❌ Cancelar")
                 
             if btn_salvar_os:
                 os_editar["equipamento"] = edit_equip
@@ -181,7 +186,6 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 os_editar["pecas"] = edit_pecas
                 os_editar["seguranca"] = edit_seg
                 st.session_state.editando_os_id = None
-                salvar_dados_físicos() # GRAVA EM DISCO
-                st.success("Ordem de Serviço atualizada e gravada!")
+                salvar_dados_físicos()
+                st.success("Ordem de Serviço atualizada com sucesso!")
                 st.rerun()
-            if btn_canc_os:
