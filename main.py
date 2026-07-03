@@ -109,7 +109,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             st.write("---")
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS) - TOTALMENTE LINEAR
 # ==========================================
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
@@ -163,8 +163,6 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.subheader("🔍 Ordens de Serviço Abertas")
     ordens_ativas = [os for os in st.session_state.planejamento if os["status"] == "Pendente"]
     
-    # REMOÇÃO COMPLETA DO ELSE DE INDENTAÇÃO: O código roda de forma linear limpa
     if not ordens_ativas:
         st.info("Nenhuma Ordem de Serviço aberta no momento.")
-    
-    for p in ordens_ativas:
+    else:
