@@ -1,7 +1,17 @@
 import streamlit as st
+import subprocess
+import sys
+
+# --- INSTALADOR AUTOMÁTICO INTEGRADO (CORREÇÃO DO MODULE_NOT_FOUND) ---
+try:
+    from supabase import create_client, Client
+except ModuleNotFoundError:
+    # Força a instalação imediata direto no servidor do Streamlit Cloud
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "supabase==2.4.6", "postgrest==0.16.4"])
+    from supabase import create_client, Client
+
 from datetime import datetime
 import pandas as pd
-from supabase import create_client, Client
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
@@ -15,7 +25,7 @@ def inicializar_supabase() -> Client:
         key = st.secrets["supabase"]["key"]
         return create_client(url, key)
     except Exception as e:
-        st.error(f"Erro ao conectar com o Supabase. Verifique os Secrets: {e}")
+        st.error(f"Erro ao conectar com o Supabase. Verifique os Secrets no Streamlit: {e}")
         return None
 
 supabase = inicializar_supabase()
@@ -26,7 +36,7 @@ def buscar_dados(tabela: str):
     if supabase:
         try:
             resposta = supabase.table(tabela).select("*").execute()
-            return resposta.data if resposta.data else []
+            return resposta.data if respuesta.data else []
         except Exception:
             return []
     return []
@@ -53,7 +63,7 @@ todos_agendamentos = buscar_dados("planejamento")
 historico_lista = buscar_dados("historico")
 
 # ==========================================
-# ABAS 1 & 2: GERENCIAR MÁQUINAS  
+# ABAS 1 & 2: GERENCIAR MÁQUINAS
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
@@ -172,9 +182,3 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
             st.rerun()
 
     st.markdown("---")
-    st.subheader("🔍 Ordens de Serviço Abertas")
-    ordens_ativas = [os for os in todos_agendamentos if os.get("status") == "Pendente"]
-    
-    if ordens_ativas:
-        df_visual = pd.DataFrame(ordens_ativas)[["id", "equipamento", "periodo", "data_prevista", "pecas"]]
-        df_visual.columns = ["ID OS", "Equipamento", "Frequência", "Data Programada", "Descrição do Escopo"]
