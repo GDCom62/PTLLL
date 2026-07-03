@@ -186,15 +186,15 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
     
-    if st.session_state.editando_os_id is not None:
+       if st.session_state.editando_os_id is not None:
         st.subheader("📝 Editar Ordem de Serviço Ativa")
         os_editar = next((item for item in todos_agendamentos if str(item["id"]) == str(st.session_state.editando_os_id)), None)
         
         if os_editar:
             with st.form("form_editar_os"):
-                edit_equip = st.selectbox("Máquina Alvo:", [m["nome"] for m in equipamentos], index=[m["nome"] for m in equipamentos].index(os_editar["equipamento"]) if os_editar["equipamento"] in [m["nome"] for m in equipamentos] else 0)
-                edit_periodo = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], index=["semanal", "mensal", "anual"].index(os_editar.get("periodo", "Semanal").lower()) if os_editar.get("periodo") else 0)
-                edit_data = st.date_input("Data Prevista:", datetime.strptime(os_editar.get("data_prevista", datetime.now().strftime("%d/%m/%Y")), "%d/%m/%Y"))
+                edit_equip = st.selectbox("Máquina Alvo:", [m["nome"] for m in equipamentos])
+                edit_periodo = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
+                edit_data = st.date_input("Data Prevista:", datetime.now())
                 edit_pecas = st.text_area("Escopo do Serviço:", value=os_editar.get("pecas", ""))
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
                 btn_salvar_os = st.form_submit_button("💾 Salvar OS")
@@ -203,3 +203,10 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
             if btn_salvar_os:
                 payload = {"equipamento": edit_equip, "periodo": edit_periodo, "data_prevista": edit_data.strftime("%d/%m/%Y"), "pecas": edit_pecas, "seguranca": edit_seg}
                 atualizar_dados("planejamento", payload, "id", os_editar["id"])
+                st.session_state.editando_os_id = None
+                st.success("🎉 Alterações na OS gravadas com sucesso!")
+                st.rerun()
+                
+            if btn_canc_os:
+                st.session_state.editando_os_id = None
+                st.rerun()
