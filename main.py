@@ -50,7 +50,7 @@ def inserir_dados(tabela: str, payload: dict):
     url = f"{SUBAPASE_URL}/rest/v1/{tabela}"
     try:
         response = requests.post(url, headers=headers, json=payload)
-        return response.status_code >= 200 and response.status_code <= 299
+        return 200 <= response.status_code <= 299
     except Exception:
         return False
 
@@ -67,7 +67,7 @@ def atualizar_dados(tabela: str, payload: dict, coluna_id: str, valor_id):
     url = f"{SUBAPASE_URL}/rest/v1/{tabela}?{coluna_id}=eq.{valor_id}"
     try:
         response = requests.patch(url, headers=headers, json=payload)
-        return response.status_code >= 200 and response.status_code <= 299
+        return 200 <= response.status_code <= 299
     except Exception:
         return False
 
@@ -82,7 +82,7 @@ def excluir_dados(tabela: str, coluna_id: str, valor_id):
     url = f"{SUBAPASE_URL}/rest/v1/{tabela}?{coluna_id}=eq.{valor_id}"
     try:
         response = requests.delete(url, headers=headers)
-        return response.status_code >= 200 and response.status_code <= 299
+        return 200 <= response.status_code <= 299
     except Exception:
         return False
 
@@ -102,12 +102,12 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Aba 5: Emissão de PT"
 ])
 
-# Carregamento dinâmico e direto das tabelas
+# Carregamento dinâmico e direto das tabelas estruturadas
 equipamentos = buscar_dados("maquinas")
 todos_agendamentos = buscar_dados("planejamento")
 historico_lista = buscar_dados("historico")
 
-# Injeção local de segurança caso as tabelas demorem a responder na primeira requisição
+# Injeção local de segurança caso o banco demore a responder para evitar telas em branco
 if not equipamentos:
     equipamentos = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo.", "check_mensal": "1. Trocar filtros.", "check_anual": "1. Revisão motor."},
