@@ -192,7 +192,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
         os_editar = next((item for item in todos_agendamentos if str(item["id"]) == str(st.session_state.editando_os_id)), None)
         
         if os_editar:
-            # --- ALINHAMENTO CORRIGIDO DE PONTA A PONTA ---
+            # --- INDENTAÇÃO REVISADA: CAMPOS RECUADOS DENTRO DO IF ---
             with st.form("form_editar_os"):
                 edit_equip = st.selectbox("Máquina Alvo:", [m["nome"] for m in equipamentos], index=[m["nome"] for m in equipamentos].index(os_editar["equipamento"]) if os_editar["equipamento"] in [m["nome"] for m in equipamentos] else 0)
                 edit_periodo = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], index=["semanal", "mensal", "anual"].index(os_editar.get("periodo", "Semanal").lower()))
