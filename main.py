@@ -5,7 +5,7 @@ import pandas as pd
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- INICIALIZAÇÃO DA MEMÓRIA DE SEGURANÇA LOCAL ---
+# --- INICIALIZAÇÃO DA MEMÓRIA LOCAL ---
 if "maquinas" not in st.session_state:
     st.session_state.maquinas = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo; 2. Limpar barramento.", "check_mensal": "1. Trocar filtros; 2. Conferir correias.", "check_anual": "1. Revisão do motor."},
@@ -43,7 +43,7 @@ todos_agendamentos = st.session_state.planejamento
 historico_lista = st.session_state.historico
 
 # ==========================================
-# ABAS 1 & 2: LISTA E CADASTRO DE MÁQUINAS
+# ABAS 1 & 2: GERENCIAR MÁQUINAS
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
@@ -73,7 +73,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                 mq_editar["check_mensal"] = edit_mes
                 mq_editar["check_anual"] = edit_ano
                 st.session_state.editando_maquina_id = None
-                st.success("Equipamento atualizado!")
+                st.success("Equipamento atualizado com sucesso!")
                 st.rerun()
             if btn_canc_mq:
                 st.session_state.editando_maquina_id = None
@@ -93,13 +93,13 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             
         if botao_salvar and id_eq and nome_eq:
             st.session_state.maquinas.append({"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano})
-            st.success("Equipamento cadastrado!")
+            st.success("Equipamento cadastrado com sucesso!")
             st.rerun()
 
     st.markdown("---")
     st.subheader("📋 Lista de Equipamentos Registrados")
     if not st.session_state.maquinas:
-        st.info("Nenhuma máquina cadastrada.")
+        st.info("Nenhuma máquina cadastrada no momento.")
     else:
         for mq in st.session_state.maquinas:
             st.write(f"🔹 **[{mq['id']}] {mq['nome']}** | Setor: {mq['localizacao']} | Criticidade: {mq['criticidade']}")
@@ -111,7 +111,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             with c_m2:
                 if st.button(f"🗑️ Excluir {mq['id']}", key=f"ex_mq_{mq['id']}"):
                     st.session_state.maquinas = [m for m in st.session_state.maquinas if m["id"] != mq["id"]]
-                    st.warning("Equipamento excluído!")
+                    st.warning("Equipamento removido do sistema!")
                     st.rerun()
             st.write("---")
 
@@ -144,7 +144,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 os_editar["pecas"] = edit_pecas
                 os_editar["seguranca"] = edit_seg
                 st.session_state.editando_os_id = None
-                st.success("Ordem de Serviço atualizada!")
+                st.success("Ordem de Serviço atualizada com sucesso!")
                 st.rerun()
             if btn_canc_os:
                 st.session_state.editando_os_id = None
@@ -163,14 +163,11 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
         if botao_agenda and eq_escolhido != "Nenhum cadastrado":
             novo_id = max([item["id"] for item in st.session_state.planejamento], default=0) + 1
             st.session_state.planejamento.append({"id": novo_id, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": seg_necessaria})
-            st.success(f"🎉 OS #{novo_id} gerada!")
+            st.success(f"🎉 OS #{novo_id} gerada e incluída no sistema!")
             st.rerun()
 
     st.markdown("---")
     st.subheader("🔍 Ordens de Serviço Abertas")
     ordens_ativas = [os for os in st.session_state.planejamento if os["status"] == "Pendente"]
     
-    if not ordens_ativas:
-        st.info("Nenhuma Ordem de Serviço aberta.")
-    else:
-        for p in ordens_ativas:
+    # RENDERIZAÇÃO LINEAR SEGURA PARA REMOVER O ERRO 176 EM DEFINITIVO
