@@ -1,26 +1,59 @@
 import streamlit as st
 from datetime import datetime
+import os
+import json
 import pandas as pd
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- INICIALIZAÇÃO DA MEMÓRIA LOCAL ---
-if "maquinas" not in st.session_state:
-    st.session_state.maquinas = [
-        {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo; 2. Limpar barramento.", "check_mensal": "1. Trocar filtros; 2. Conferir correias.", "check_anual": "1. Revisão do motor."},
-        {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "1. Drenar reservatório; 2. Checar ruídos.", "check_mensal": "1. Limpar filtro; 2. Verificar conexões.", "check_anual": "1. Teste de válvula."}
-    ]
+# --- BANCO DE DADOS PERSISTENTE EM ARQUIVO LOCAL (JSON) ---
+ARQUIVO_BANCO = "banco_manutencao.json"
 
-if "planejamento" not in st.session_state:
-    st.session_state.planejamento = [
-        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de óleo das guias e limpeza", "status": "Pendente", "seguranca": "Cuidado com partes giratórias."}
-    ]
+def carregar_dados():
+    """Carrega os dados salvos em arquivo local. Se não existir, cria o padrão de fábrica."""
+    dados_padrao = {
+        "maquinas": [
+            {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo; 2. Limpar barramento.", "check_mensal": "1. Trocar filtros; 2. Conferir correias.", "check_anual": "1. Revisão do motor."},
+            {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "1. Drenar reservatório; 2. Checar ruídos.", "check_mensal": "1. Limpar filtro; 2. Verificar conexões.", "check_anual": "1. Teste de válvula."}
+        ],
+        "planejamento": [
+            {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de óleo das guias e limpeza", "status": "Pendente", "seguranca": "Cuidado com partes giratórias."}
+        ],
+        "historico": [
+            {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
+        ]
+    }
 
-if "historico" not in st.session_state:
-    st.session_state.historico = [
-        {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
-    ]
+    if os.path.exists(ARQUIVO_BANCO):
+        try:
+            with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
+                conteudo = json.load(f)
+                if conteudo and "maquinas" in conteudo:
+                    return conteudo
+        except Exception:
+            pass
+            
+    with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
+        json.dump(dados_padrao, f, ensure_ascii=False, indent=4)
+    return dados_padrao
+
+def salvar_dados_físicos():
+    """Grava o estado atual da memória diretamente no arquivo JSON permanente."""
+    dados_para_salvar = {
+        "maquinas": st.session_state.maquinas,
+        "planejamento": st.session_state.planejamento,
+        "historico": st.session_state.historico
+    }
+    with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
+        json.dump(dados_para_salvar, f, ensure_ascii=False, indent=4)
+
+# Inicialização segura das variáveis de sessão casadas com o banco permanente
+if "maquinas" not in st.session_state or "planejamento" not in st.session_state or "historico" not in st.session_state:
+    db_inicial = carregar_dados()
+    st.session_state.maquinas = db_inicial["maquinas"]
+    st.session_state.planejamento = db_inicial["planejamento"]
+    st.session_state.historico = db_inicial["historico"]
 
 # Estados de controle para edição
 if "editando_maquina_id" not in st.session_state:
@@ -38,6 +71,7 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Aba 5: Emissão de PT"
 ])
 
+# Sincronização de apelidos de leitura rápida
 equipamentos = st.session_state.maquinas
 todos_agendamentos = st.session_state.planejamento
 historico_lista = st.session_state.historico
@@ -73,7 +107,8 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                 mq_editar["check_mensal"] = edit_mes
                 mq_editar["check_anual"] = edit_ano
                 st.session_state.editando_maquina_id = None
-                st.success("Equipamento atualizado com sucesso!")
+                salvar_dados_físicos() # GRAVA EM DISCO
+                st.success("Equipamento atualizado fisicamente no arquivo!")
                 st.rerun()
             if btn_canc_mq:
                 st.session_state.editando_maquina_id = None
@@ -93,7 +128,8 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             
         if botao_salvar and id_eq and nome_eq:
             st.session_state.maquinas.append({"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano})
-            st.success("Equipamento cadastrado com sucesso!")
+            salvar_dados_físicos() # GRAVA EM DISCO
+            st.success("Equipamento cadastrado e gravado fisicamente!")
             st.rerun()
 
     st.markdown("---")
@@ -111,7 +147,8 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             with c_m2:
                 if st.button(f"🗑️ Excluir {mq['id']}", key=f"ex_mq_{mq['id']}"):
                     st.session_state.maquinas = [m for m in st.session_state.maquinas if m["id"] != mq["id"]]
-                    st.warning("Equipamento removido do sistema!")
+                    salvar_dados_físicos() # GRAVA EM DISCO
+                    st.warning("Equipamento excluído permanentemente!")
                     st.rerun()
             st.write("---")
 
@@ -144,30 +181,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 os_editar["pecas"] = edit_pecas
                 os_editar["seguranca"] = edit_seg
                 st.session_state.editando_os_id = None
-                st.success("Ordem de Serviço atualizada com sucesso!")
+                salvar_dados_físicos() # GRAVA EM DISCO
+                st.success("Ordem de Serviço atualizada e gravada!")
                 st.rerun()
             if btn_canc_os:
-                st.session_state.editando_os_id = None
-                st.rerun()
-    else:
-        st.subheader("📅 Agendar Nova Manutenção / Gerar OS")
-        with st.form("form_agenda_direto"):
-            lista_nomes = [m["nome"] for m in st.session_state.maquinas]
-            eq_escolhido = st.selectbox("Selecione a Máquina Alvo:", lista_nomes if lista_nomes else ["Nenhum cadastrado"])
-            periodo_escolhido = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"])
-            data_planejada = st.date_input("Selecione a Data:", datetime.now())
-            pecas_necessarias = st.text_area("Descrição das Peças / Escopo:", value="Realizar rotina padrão de preventiva.")
-            seg_necessaria = st.text_area("Observações Iniciais de Segurança:", value="Seguir as NRs de segurança aplicadas.")
-            botao_agenda = st.form_submit_button("💾 Gerar OS Pendente")
-            
-        if botao_agenda and eq_escolhido != "Nenhum cadastrado":
-            novo_id = max([item["id"] for item in st.session_state.planejamento], default=0) + 1
-            st.session_state.planejamento.append({"id": novo_id, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": seg_necessaria})
-            st.success(f"🎉 OS #{novo_id} gerada e incluída no sistema!")
-            st.rerun()
-
-    st.markdown("---")
-    st.subheader("🔍 Ordens de Serviço Abertas")
-    ordens_ativas = [os for os in st.session_state.planejamento if os["status"] == "Pendente"]
-    
-    # RENDERIZAÇÃO LINEAR SEGURA PARA REMOVER O ERRO 176 EM DEFINITIVO
