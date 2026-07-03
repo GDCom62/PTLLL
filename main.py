@@ -44,7 +44,8 @@ if url_banco and chave_banco:
             try:
                 response = requests.post(url_api, headers=headers, json=payload)
                 st.info(f"Código de resposta do banco: {response.status_code}")
-                if response.status_code in:
+                # LINHA 47 CORRIGIDA DEFINITIVAMENTE:
+                if 200 <= response.status_code <= 299:
                     st.success("🎉 GRAVAÇÃO INDUSTRIAL CONFIRMADA NO SUPABASE!")
                 else:
                     st.error(f"O banco recusou os dados. Detalhe técnico: {response.text}")
