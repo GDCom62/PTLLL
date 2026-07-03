@@ -11,7 +11,7 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 ARQUIVO_BANCO = "banco_manutencao.json"
 
 def carregar_dados():
-    """Carrega os dados do arquivo local. Se chaves estiverem vazias, injeta os dados reais."""
+    """Carrega os dados salvos em arquivo local. Se chaves estiverem vazias ou ausentes, injeta e grava o padrão."""
     dados_padrao = {
         "maquinas": [
             {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo; 2. Limpar barramento.", "check_mensal": "1. Trocar filtros; 2. Conferir correias.", "check_anual": "1. Revisão do motor."},
@@ -25,26 +25,33 @@ def carregar_dados():
         ]
     }
 
+    # Se o arquivo já existe fisicamente no servidor
     if os.path.exists(ARQUIVO_BANCO):
         try:
             with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
                 conteudo = json.load(f)
                 
-                # --- BLINDAGEM DA RECUPERAÇÃO OPERACIONAL ---
-                # Se o arquivo existir, garante que nenhuma lista interna venha nula ou vazia
-                if not conteudo or not isinstance(conteudo, dict):
-                    conteudo = dados_padrao
-                if "maquinas" not in conteudo or not conteudo["maquinas"]:
-                    conteudo["maquinas"] = dados_padrao["maquinas"]
-                if "planejamento" not in conteudo or not conteudo["planejamento"]:
-                    conteudo["planejamento"] = dados_padrao["planejamento"]
-                if "historico" not in conteudo or not conteudo["historico"]:
-                    conteudo["historico"] = dados_padrao["historico"]
-                    
-                return conteudo
+            if not conteudo or not isinstance(conteudo, dict):
+                conteudo = dados_padrao
+                
+            # BLINDAGEM INDIVIDUAL: Se uma lista específica vier vazia ou ausente, reconstrói ela na hora
+            if "maquinas" not in conteudo or not conteudo["maquinas"]:
+                conteudo["maquinas"] = dados_padrao["maquinas"]
+                
+            if "planejamento" not in conteudo or not conteudo["planejamento"]:
+                conteudo["planejamento"] = dados_padrao["planejamento"]
+                
+            if "historico" not in conteudo or not conteudo["historico"]:
+                conteudo["historico"] = dados_padrao["historico"]
+            
+            # Atualiza o arquivo físico para garantir que as listas novas fiquem salvas
+            with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
+                json.dump(conteudo, f, ensure_ascii=False, indent=4)
+            return conteudo
         except Exception:
             pass
             
+    # Se o arquivo não existia de forma alguma, cria e salva do zero
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(dados_padrao, f, ensure_ascii=False, indent=4)
     return dados_padrao
@@ -59,7 +66,7 @@ def salvar_dados_físicos():
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(dados_para_salvar, f, ensure_ascii=False, indent=4)
 
-# Inicialização e sincronização imediata
+# Força a carga física do banco reconstruído direto no carregamento inicial da página
 db_inicial = carregar_dados()
 st.session_state.maquinas = db_inicial["maquinas"]
 st.session_state.planejamento = db_inicial["planejamento"]
@@ -86,7 +93,7 @@ todos_agendamentos = st.session_state.planejamento
 historico_lista = st.session_state.historico
 
 # ==========================================
-# ABAS 1 & 2: GERENCIAR MÁQUINAS (SUA ABA QUE JÁ FUNCIONA)
+# ABAS 1 & 2: GERENCIAR MÁQUINAS (SUA ABA PREFERIDA)
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
@@ -180,11 +187,3 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 edit_periodo = st.selectbox("Escolha o Período:", ["Semanal", "Mensal", "Anual"], index=["semanal", "mensal", "anual"].index(os_editar["periodo"].lower()))
                 edit_data = st.date_input("Data Prevista:", datetime.strptime(os_editar["data_prevista"], "%d/%m/%Y"))
                 edit_pecas = st.text_area("Escopo do Serviço:", value=os_editar["pecas"])
-                edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
-                
-                col_b1, col_b2 = st.columns(2)
-                with col_b1:
-                    btn_salvar_os = st.form_submit_button("💾 Salvar OS")
-                with col_b2:
-                    btn_canc_os = st.form_submit_button("❌ Cancelar")
-                
