@@ -53,7 +53,7 @@ todos_agendamentos = buscar_dados("planejamento")
 historico_lista = buscar_dados("historico")
 
 # ==========================================
-# ABAS 1 & 2: GERENCIAR MÁQUINAS
+# ABAS 1 & 2: GERENCIAR MÁQUINAS  
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
