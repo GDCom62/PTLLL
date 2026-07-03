@@ -5,7 +5,7 @@ import pandas as pd
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- SISTEMA DE BLINDAGEM DE MEMÓRIA CONTRA RECARREGAMENTOS DE PÁGINA ---
+# --- SISTEMA DE MEMÓRIA LOCAL À PROVA DE RECARREGAMENTOS ---
 if "banco_inicializado" not in st.session_state:
     st.session_state.maquinas = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo; 2. Limpar barramento.", "check_mensal": "1. Trocar filtros; 2. Conferir correias.", "check_anual": "1. Revisão do motor."},
@@ -109,7 +109,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             st.write("---")
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS) - TOTALMENTE LINEAR
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS) - SEM BLOCOS CONFLITANTES
 # ==========================================
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
@@ -163,6 +163,5 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.subheader("🔍 Ordens de Serviço Abertas")
     ordens_ativas = [os for os in st.session_state.planejamento if os["status"] == "Pendente"]
     
-    if not ordens_ativas:
-        st.info("Nenhuma Ordem de Serviço aberta no momento.")
-    else:
+    # EXECUÇÃO TOTALMENTE LINEAR: O loop roda de forma direta e os botões salvam as ações na hora
+    if ordens_ativas:
