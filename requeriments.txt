@@ -1,2 +1,0 @@
-supabase==2.4.6
-postgrest==0.16.4
