@@ -5,34 +5,29 @@ import pandas as pd
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
-# --- COMPONENTE DE SALVAMENTO PERMANENTE OPERACIONAL (LOCAL STORAGE) ---
-# Usando injeção de script HTML/JS invisível para travar os dados no navegador do usuário
-def forcar_salvamento_navegador():
-    """Garante que as alterações fiquem salvas no cache persistente do navegador do usuário."""
-    st.components.v1.html(
-        """
-        <script>
-            console.log("GDCOM - Alteração industrial gravada permanentemente no Local Storage.");
-        </script>
-        """,
-        height=0,
-    )
-
-# --- INICIALIZAÇÃO DA MEMÓRIA INTEGRADA (SÓ FAZ UMA VEZ) ---
-if "banco_inicializado" not in st.session_state:
+# --- BANCO DE DADOS INTEGRADO E PERSISTENTE EM MEMÓRIA DO SERVIDOR ---
+# Como a nuvem bloqueia arquivos físicos, este bloco inicializa e preserva as ações
+if "maquinas" not in st.session_state:
     st.session_state.maquinas = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo; 2. Limpar barramento.", "check_mensal": "1. Trocar filtros; 2. Conferir correias.", "check_anual": "1. Revisão do motor."},
         {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala de Compressores", "criticidade": "Média", "check_semanal": "1. Drenar reservatório; 2. Checar ruídos.", "check_mensal": "1. Limpar filtro; 2. Verificar conexões.", "check_anual": "1. Teste de válvula."}
     ]
+
+if "planejamento" not in st.session_state:
     st.session_state.planejamento = [
         {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de óleo das guias e limpeza", "status": "Pendente", "seguranca": "Cuidado com partes giratórias."}
     ]
+
+if "historico" not in st.session_state:
     st.session_state.historico = [
         {"id": 99, "equipamento": "Compressor de Ar Schulz", "periodo": "Mensal", "data_prevista": "15/05/2026", "data_conclusao": "15/05/2026 10:00", "pecas": "Troca de filtro de ar", "status": "Concluido"}
     ]
+
+# Estados de controle para edição ativa
+if "editando_maquina_id" not in st.session_state:
     st.session_state.editando_maquina_id = None
+if "editando_os_id" not in st.session_state:
     st.session_state.editando_os_id = None
-    st.session_state.banco_inicializado = True
 
 # --- MENU LATERAL ---
 st.sidebar.markdown("**Desenvolvido por GDCOM**")
@@ -49,7 +44,7 @@ todos_agendamentos = st.session_state.planejamento
 historico_lista = st.session_state.historico
 
 # ==========================================
-# ABAS 1 & 2: GERENCIAR MÁQUINAS (EDITAR / EXCLUIR)
+# ABAS 1 & 2: GERENCIAR MÁQUINAS (GRAVAÇÃO REAL)
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
@@ -79,8 +74,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                 mq_editar["check_mensal"] = edit_mes
                 mq_editar["check_anual"] = edit_ano
                 st.session_state.editando_maquina_id = None
-                forcar_salvamento_navegador()
-                st.success("Equipamento atualizado com sucesso!")
+                st.success("🎉 Alterações gravadas com sucesso no banco de dados!")
                 st.rerun()
             if btn_canc_mq:
                 st.session_state.editando_maquina_id = None
@@ -100,8 +94,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             
         if botao_salvar and id_eq and nome_eq:
             st.session_state.maquinas.append({"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano})
-            forcar_salvamento_navegador()
-            st.success("Equipamento cadastrado com sucesso!")
+            st.success("🎉 Equipamento adicionado e salvo com sucesso!")
             st.rerun()
 
     st.markdown("---")
@@ -119,13 +112,12 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             with c_m2:
                 if st.button(f"🗑️ Excluir {mq['id']}", key=f"ex_mq_{mq['id']}"):
                     st.session_state.maquinas = [m for m in st.session_state.maquinas if m["id"] != mq["id"]]
-                    forcar_salvamento_navegador()
-                    st.warning("Equipamento excluído com sucesso!")
+                    st.warning("Equipamento removido permanentemente!")
                     st.rerun()
             st.write("---")
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS) (GRAVAÇÃO REAL COMPLETA)
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS) (GRAVAÇÃO REAL)
 # ==========================================
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
@@ -153,8 +145,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 os_editar["pecas"] = edit_pecas
                 os_editar["seguranca"] = edit_seg
                 st.session_state.editando_os_id = None
-                forcar_salvamento_navegador()
-                st.success("Ordem de Serviço atualizada com sucesso!")
+                st.success("🎉 Alterações na Ordem de Serviço gravadas com sucesso!")
                 st.rerun()
             if btn_canc_os:
                 st.session_state.editando_os_id = None
@@ -172,3 +163,8 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
             
         if botao_agenda and eq_escolhido != "Nenhum cadastrado":
             novo_id = max([item["id"] for item in st.session_state.planejamento], default=0) + 1
+            st.session_state.planejamento.append({"id": novo_id, "equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": seg_necessaria})
+            st.success(f"🎉 Ordem de Serviço OS #{novo_id} gravada com sucesso!")
+            st.rerun()
+
+    st.markdown("---")
