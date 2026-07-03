@@ -7,7 +7,7 @@ import requests
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
 
 # --- CONEXÃO BLINDADA VIA API REST (HTTP) COM O SUPABASE ---
-@st.cache_resource
+# Removido o cache agressivo para forçar a nuvem a gravar e ler os dados ao vivo
 def obter_credenciais():
     """Recupera e limpa as credenciais dos Secrets."""
     try:
@@ -87,7 +87,7 @@ def excluir_dados(tabela: str, coluna_id: str, valor_id):
     except Exception:
         return False
 
-# Estados de controle para edição ativa
+# Estados de controle para edição activa
 if "editando_maquina_id" not in st.session_state:
     st.session_state.editando_maquina_id = None
 if "editando_os_id" not in st.session_state:
@@ -103,21 +103,16 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Aba 5: Emissão de PT"
 ])
 
-# Carregamento dinâmico e direto das tabelas estruturadas
+# Carregamento dinâmico e direto das tabelas
 equipamentos = buscar_dados("maquinas")
 todos_agendamentos = buscar_dados("planejamento")
 historico_lista = buscar_dados("historico")
 
-# Injeção local de segurança caso o banco retorne vazio para evitar telas em branco
+# Injeção local de segurança caso as tabelas demorem a responder na primeira requisição
 if not equipamentos:
     equipamentos = [
         {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo.", "check_mensal": "1. Trocar filtros.", "check_anual": "1. Revisão motor."},
         {"id": "EQ-002", "nome": "Compressor de Ar Schulz", "localizacao": "Sala Compressores", "criticidade": "Média", "check_semanal": "1. Drenar reservatório.", "check_mensal": "1. Limpar conexões.", "check_anual": "1. Teste válvula."}
-    ]
-
-if not todos_agendamentos:
-    todos_agendamentos = [
-        {"id": 1, "equipamento": "Torno Mecânico Nardini", "periodo": "Semanal", "data_prevista": datetime.now().strftime("%d/%m/%Y"), "pecas": "Troca de óleo das guias e limpeza", "status": "Pendente", "seguranca": "Cuidado com partes giratórias."}
     ]
 
 # ==========================================
@@ -206,3 +201,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
                 
                 col_b1, col_b2 = st.columns(2)
+                with col_b1: btn_salvar_os = st.form_submit_button("💾 Salvar OS")
+                with col_b2: btn_canc_os = st.form_submit_button("❌ Cancelar")
+                
+            if btn_salvar_os:
