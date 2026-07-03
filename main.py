@@ -197,9 +197,9 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 edit_data = st.date_input("Data Prevista:", datetime.strptime(os_editar.get("data_prevista", datetime.now().strftime("%d/%m/%Y")), "%d/%m/%Y"))
                 edit_pecas = st.text_area("Escopo do Serviço:", value=os_editar.get("pecas", ""))
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
-                
-                # CORREÇÃO CRÍTICA DO ESCOPO DO FORMULÁRIO (Removido with col_b1/col_b2 internos)
                 btn_salvar_os = st.form_submit_button("💾 Salvar OS")
                 btn_canc_os = st.form_submit_button("❌ Cancelar Ação")
                 
             if btn_salvar_os:
+                payload = {"equipamento": edit_equip, "periodo": edit_periodo, "data_prevista": edit_data.strftime("%d/%m/%Y"), "pecas": edit_pecas, "seguranca": edit_seg}
+                atualizar_dados("planejamento", payload, "id", os_editar["id"])
