@@ -200,7 +200,9 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
                 
                 col_b1, col_b2 = st.columns(2)
-                with col_b1: btn_salvar_os = st.form_submit_button("💾 Salvar OS")
-                with col_b2: btn_canc_os = st.form_submit_button("❌ Cancelar")
+                with col_b1:
+                    btn_salvar_os = st.form_submit_button("💾 Salvar OS")
+                with col_b2:
+                    btn_canc_os = st.form_submit_button("❌ Cancelar")
                 
             if btn_salvar_os:
