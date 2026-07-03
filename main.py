@@ -92,7 +92,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
                 payload = {"nome": edit_nome, "localizacao": edit_local, "criticidade": edit_crit, "check_semanal": edit_sem, "check_mensal": edit_mes, "check_anual": edit_ano}
                 supabase.table("maquinas").update(payload).eq("id", mq_editar["id"]).execute()
                 st.session_state.editando_maquina_id = None
-                st.success("🎉 Equipamento atualizado com sucesso no Supabase!")
+                st.success("🎉 Equipamento updated com sucesso no Supabase!")
                 st.rerun()
             if btn_canc_mq:
                 st.session_state.editando_maquina_id = None
@@ -178,5 +178,5 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
             seg_necessaria = st.text_area("Observações Iniciais de Segurança:", value="Seguir as NRs de segurança aplicadas.")
             botao_agenda = st.form_submit_button("💾 Gerar OS Pendente")
             
-        # CORREÇÃO DA LINHA 182: Bloco perfeitamente alinhado e completo
         if botao_agenda and eq_escolhido != "Nenhum cadastrado" and supabase:
+            payload = {"equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": seg_necessaria}
