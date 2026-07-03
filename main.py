@@ -10,7 +10,7 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 ARQUIVO_BANCO = "banco_manutencao.json"
 
 def carregar_banco_fisico():
-    """Carrega os dados salvos em disco. Se o arquivo não existir ou estiver corrompido, monta a estrutura real."""
+    """Carrega os dados salvos em disco. Se as listas internas vierem vazias, injeta os dados reais."""
     dados_padrao = {
         "maquinas": [
             {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo; 2. Limpar barramento.", "check_mensal": "1. Trocar filtros; 2. Conferir correias.", "check_anual": "1. Revisão do motor."},
@@ -28,17 +28,26 @@ def carregar_banco_fisico():
         try:
             with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
                 conteudo = json.load(f)
-                # Garante que nenhuma lista venha nula ou vazia do arquivo antigo
-                if conteudo and "maquinas" in conteudo and conteudo["maquinas"]:
-                    if "planejamento" not in conteudo or not conteudo["planejamento"]:
-                        conteudo["planejamento"] = dados_padrao["planejamento"]
-                    if "historico" not in conteudo or not conteudo["historico"]:
-                        conteudo["historico"] = dados_padrao["historico"]
-                    return conteudo
+                
+                # --- FORÇAMENTO ANTIVAZIO (MANDATÓRIO) ---
+                if not conteudo or not isinstance(conteudo, dict):
+                    conteudo = dados_padrao
+                if "maquinas" not in conteudo or not conteudo["maquinas"]:
+                    conteudo["maquinas"] = dados_padrao["maquinas"]
+                
+                # Se as abas 3, 4 e 5 estiverem vazias na nuvem, reinjeta os dados padrão nelas
+                if "planejamento" not in conteudo or not conteudo["planejamento"]:
+                    conteudo["planejamento"] = dados_padrao["planejamento"]
+                if "historico" not in conteudo or not conteudo["historico"]:
+                    conteudo["historico"] = dados_padrao["historico"]
+                
+                # Atualiza o arquivo físico para fixar os dados injetados
+                with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f_save:
+                    json.dump(conteudo, f_save, ensure_ascii=False, indent=4)
+                return conteudo
         except Exception:
             pass
             
-    # Se der erro ou não existir, cria o arquivo com a base cheia
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(dados_padrao, f, ensure_ascii=False, indent=4)
     return dados_padrao
@@ -57,7 +66,6 @@ def salvar_banco_fisico():
         pass
 
 # --- BLINDAGEM DE SINCRONIZAÇÃO NATIVA ---
-# Sif/else estruturado para impedir que o Streamlit sobrescreva as alterações ao recarregar a tela
 if "banco_carregado" not in st.session_state:
     base_dados = carregar_banco_fisico()
     st.session_state.maquinas = base_dados["maquinas"]
@@ -82,7 +90,7 @@ todos_agendamentos = st.session_state.planejamento
 historico_lista = st.session_state.historico
 
 # ==========================================
-# ABAS 1 & 2: LISTA E CADASTRO DE MÁQUINAS (BOTÕES PERSISTENTES)
+# ABAS 1 & 2: LISTA E CADASTRO DE MÁQUINAS
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
@@ -158,7 +166,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             st.write("---")
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS) (GRAVAÇÃO INTERTRAVADA)
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)
 # ==========================================
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
@@ -176,9 +184,3 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 edit_seg = st.text_area("Observações de Segurança:", value=os_editar.get("seguranca", ""))
                 
                 col_b1, col_b2 = st.columns(2)
-                with col_b1: btn_salvar_os = st.form_submit_button("💾 Salvar OS")
-                with col_b2: btn_canc_os = st.form_submit_button("❌ Cancelar")
-                
-            if btn_salvar_os:
-                os_editar["equipamento"] = edit_equip
-                os_editar["periodo"] = edit_periodo
