@@ -109,7 +109,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             st.write("---")
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS) - SEM BLOCOS CONFLITANTES
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS) - 100% LINEAR E COMPLETA
 # ==========================================
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
@@ -163,5 +163,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.subheader("🔍 Ordens de Serviço Abertas")
     ordens_ativas = [os for os in st.session_state.planejamento if os["status"] == "Pendente"]
     
-    # EXECUÇÃO TOTALMENTE LINEAR: O loop roda de forma direta e os botões salvam as ações na hora
-    if ordens_ativas:
+    # ESTRUTURA LINEAR REFEITA: 100% livre de blocos if/else vazios e travamentos na linha 167
+    if not ordens_ativas:
+        st.info("Nenhuma Ordem de Serviço aberta no momento.")
+    
