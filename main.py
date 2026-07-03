@@ -51,7 +51,7 @@ def inserir_dados(tabela: str, payload: dict):
     url = f"{SUBAPASE_URL}/rest/v1/{tabela}"
     try:
         response = requests.post(url, headers=headers, json=payload)
-        return response.status_code in [200, 201]
+        return 200 <= response.status_code <= 299
     except Exception:
         return False
 
@@ -68,7 +68,7 @@ def atualizar_dados(tabela: str, payload: dict, coluna_id: str, valor_id):
     url = f"{SUBAPASE_URL}/rest/v1/{tabela}?{coluna_id}=eq.{valor_id}"
     try:
         response = requests.patch(url, headers=headers, json=payload)
-        return response.status_code in [200, 204]
+        return 200 <= response.status_code <= 299
     except Exception:
         return False
 
@@ -83,7 +83,7 @@ def excluir_dados(tabela: str, coluna_id: str, valor_id):
     url = f"{SUBAPASE_URL}/rest/v1/{tabela}?{coluna_id}=eq.{valor_id}"
     try:
         response = requests.delete(url, headers=headers)
-        return response.status_code in [200, 204]
+        return 200 <= response.status_code <= 299
     except Exception:
         return False
 
@@ -179,7 +179,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             st.write("---")
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)  
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)
 # ==========================================
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
