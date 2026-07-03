@@ -1,16 +1,15 @@
 import streamlit as st
-import subprocess
-import sys
+from datetime import datetime
+import pandas as pd
 
-# --- INSTALADOR AUTOMÁTICO INTEGRADO ---
+# --- INSTALADOR AUTOMÁTICO INTEGRADO (CASO O REQS.TXT TRAVE) ---
 try:
     from supabase import create_client, Client
 except ModuleNotFoundError:
+    import subprocess
+    import sys
     subprocess.check_call([sys.executable, "-m", "pip", "install", "supabase==2.4.6", "postgrest==0.16.4"])
     from supabase import create_client, Client
-
-from datetime import datetime
-import pandas as pd
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", page_icon="⚙️")
@@ -111,7 +110,8 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             c_ano = st.text_area("Checklist Anual:", "1. Revisão preventiva.")
             botao_salvar = st.form_submit_button("Salvar Novo Equipamento")
             
-        if botao_salvar and id_eq and nome_eq Image_Generation_API:
+        # CORREÇÃO DA LINHA 114: Sintaxe limpa e sem termos perdidos
+        if botao_salvar and id_eq and nome_eq and supabase:
             payload = {"id": id_eq, "nome": nome_eq, "localizacao": local_eq, "criticidade": crit_eq, "check_semanal": c_sem, "check_mensal": c_mes, "check_anual": c_ano}
             supabase.table("maquinas").insert(payload).execute()
             st.success("🎉 Equipamento salvo diretamente no Supabase!")
@@ -180,4 +180,3 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
             botao_agenda = st.form_submit_button("💾 Gerar OS Pendente")
             
         if botao_agenda and eq_escolhido != "Nenhum cadastrado" and supabase:
-            payload = {"equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": seg_necessaria}
