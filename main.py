@@ -11,7 +11,7 @@ st.set_page_config(page_title="Controle de Manutenção & PT", layout="wide", pa
 ARQUIVO_BANCO = "banco_manutencao.json"
 
 def carregar_dados():
-    """Carrega os dados salvos em arquivo local. Se não existir, cria o padrão de fábrica."""
+    """Carrega os dados do arquivo local. Se chaves estiverem vazias, injeta os dados reais."""
     dados_padrao = {
         "maquinas": [
             {"id": "EQ-001", "nome": "Torno Mecânico Nardini", "localizacao": "Oficina Central", "criticidade": "Alta", "check_semanal": "1. Verificar nível de óleo; 2. Limpar barramento.", "check_mensal": "1. Trocar filtros; 2. Conferir correias.", "check_anual": "1. Revisão do motor."},
@@ -29,8 +29,19 @@ def carregar_dados():
         try:
             with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
                 conteudo = json.load(f)
-                if conteudo and "maquinas" in conteudo:
-                    return conteudo
+                
+                # --- BLINDAGEM DA RECUPERAÇÃO OPERACIONAL ---
+                # Se o arquivo existir, garante que nenhuma lista interna venha nula ou vazia
+                if not conteudo or not isinstance(conteudo, dict):
+                    conteudo = dados_padrao
+                if "maquinas" not in conteudo or not conteudo["maquinas"]:
+                    conteudo["maquinas"] = dados_padrao["maquinas"]
+                if "planejamento" not in conteudo or not conteudo["planejamento"]:
+                    conteudo["planejamento"] = dados_padrao["planejamento"]
+                if "historico" not in conteudo or not conteudo["historico"]:
+                    conteudo["historico"] = dados_padrao["historico"]
+                    
+                return conteudo
         except Exception:
             pass
             
@@ -48,12 +59,11 @@ def salvar_dados_físicos():
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(dados_para_salvar, f, ensure_ascii=False, indent=4)
 
-# Inicialização segura das variáveis de sessão casadas com o banco permanente
-if "maquinas" not in st.session_state or "planejamento" not in st.session_state or "historico" not in st.session_state:
-    db_inicial = carregar_dados()
-    st.session_state.maquinas = db_inicial["maquinas"]
-    st.session_state.planejamento = db_inicial["planejamento"]
-    st.session_state.historico = db_inicial["historico"]
+# Inicialização e sincronização imediata
+db_inicial = carregar_dados()
+st.session_state.maquinas = db_inicial["maquinas"]
+st.session_state.planejamento = db_inicial["planejamento"]
+st.session_state.historico = db_inicial["historico"]
 
 # Estados de controle para edição
 if "editando_maquina_id" not in st.session_state:
@@ -71,13 +81,12 @@ menu = st.sidebar.radio("Navegar para:", [
     "⚠️ Aba 5: Emissão de PT"
 ])
 
-# Sincronização de apelidos de leitura rápida
 equipamentos = st.session_state.maquinas
 todos_agendamentos = st.session_state.planejamento
 historico_lista = st.session_state.historico
 
 # ==========================================
-# ABAS 1 & 2: GERENCIAR MÁQUINAS
+# ABAS 1 & 2: GERENCIAR MÁQUINAS (SUA ABA QUE JÁ FUNCIONA)
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
@@ -179,13 +188,3 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
                 with col_b2:
                     btn_canc_os = st.form_submit_button("❌ Cancelar")
                 
-            if btn_salvar_os:
-                os_editar["equipamento"] = edit_equip
-                os_editar["periodo"] = edit_periodo
-                os_editar["data_prevista"] = edit_data.strftime("%d/%m/%Y")
-                os_editar["pecas"] = edit_pecas
-                os_editar["seguranca"] = edit_seg
-                st.session_state.editando_os_id = None
-                salvar_dados_físicos()
-                st.success("Ordem de Serviço atualizada com sucesso!")
-                st.rerun()
