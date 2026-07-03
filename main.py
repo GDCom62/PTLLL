@@ -186,7 +186,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
     
-       if st.session_state.editando_os_id is not None:
+    if st.session_state.editando_os_id is not None:
         st.subheader("📝 Editar Ordem de Serviço Ativa")
         os_editar = next((item for item in todos_agendamentos if str(item["id"]) == str(st.session_state.editando_os_id)), None)
         
