@@ -36,7 +36,7 @@ todos_agendamentos = st.session_state.planejamento
 historico_lista = st.session_state.historico
 
 # ==========================================
-# ABAS 1 & 2: GERENCIAR MÁQUINAS (SUA ABA PREFERIDA)
+# ABAS 1 & 2: GERENCIAR MÁQUINAS
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
@@ -163,7 +163,8 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.subheader("🔍 Ordens de Serviço Abertas")
     ordens_ativas = [os for os in st.session_state.planejamento if os["status"] == "Pendente"]
     
+    # REMOÇÃO COMPLETA DO ELSE DE INDENTAÇÃO: O código roda de forma linear limpa
     if not ordens_ativas:
         st.info("Nenhuma Ordem de Serviço aberta no momento.")
-    else:
-        # CORREÇÃO CRÍTICA DE INDENTAÇÃO: Alinhamento plano impecável
+    
+    for p in ordens_ativas:
