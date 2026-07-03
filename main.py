@@ -53,7 +53,7 @@ todos_agendamentos = buscar_dados("planejamento")
 historico_lista = buscar_dados("historico")
 
 # ==========================================
-# ABAS 1 & 2: GERENCIAR MÁQUINAS (GRAVAÇÃO NO SUPABASE)
+# ABAS 1 & 2: GERENCIAR MÁQUINAS
 # ==========================================
 if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
     st.header("🔍 Gerenciamento de Equipamentos")
@@ -124,7 +124,7 @@ if menu == "🔍 Abas 1 & 2: Gerenciar Máquinas":
             st.write("---")
 
 # ==========================================
-# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS) (GRAVAÇÃO NO SUPABASE)
+# ABA 3: PLANEJAMENTO E ORDENS DE SERVIÇO (OS)
 # ==========================================
 elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     st.header("📅 Planejamento & Ordens de Serviço (OS)")
@@ -177,3 +177,4 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
     
     if ordens_ativas:
         df_visual = pd.DataFrame(ordens_ativas)[["id", "equipamento", "periodo", "data_prevista", "pecas"]]
+        df_visual.columns = ["ID OS", "Equipamento", "Frequência", "Data Programada", "Descrição do Escopo"]
