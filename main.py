@@ -80,7 +80,12 @@ if "editando_os_id" not in st.session_state:
     st.session_state.editando_os_id = None
 
 # --- MENU LATERAL DE NAVEGAÇÃO ---
-st.sidebar.markdown("**Desenvolvido por GDCOM**")
+# Carrega o logo principal local da árvore do GitHub (pequeno no topo)
+try:
+    st.sidebar.image("logo.png", width=120)
+except Exception:
+    pass
+
 st.sidebar.title("⚙️ Gestão de Manutenção")
 menu = st.sidebar.radio("Navegar para:", [
     "🔍 Abas 1 & 2: Gerenciar Máquinas",
@@ -518,3 +523,47 @@ elif menu == "⚠️ Aba 5: Emissão de PT":
 
 if __name__ == "__main__":
     pass
+# --- RODAPÉ DISCRETO DO DESENVOLVEDOR (Fixo no canto inferior direito) ---
+st.markdown("""
+    <style>
+        .footer-dev {
+            position: fixed;
+            bottom: 10px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: transparent;
+            z-index: 999;
+        }
+        .footer-dev img {
+            width: 22px;
+            height: auto;
+        }
+        .footer-dev span {
+            font-size: 11px;
+            color: #888888;
+            font-family: sans-serif;
+        }
+    </style>
+""", unsafe_html=True)
+
+# Injeta a marca GDCOM com o arquivo logdcom1.png local de forma flutuante e profissional
+try:
+    with open("logdcom1.png", "rb") as f:
+        import base64
+        data_logdcom = base64.b64encode(f.read()).decode("utf-8")
+    
+    st.markdown(f"""
+        <div class="footer-dev">
+            <span>Desenvolvido por GDCOM</span>
+            <img src="data:image/png;base64,{data_logdcom}">
+        </div>
+    """, unsafe_html=True)
+except Exception:
+    # Caso o arquivo mude de nome por acidente, mantém apenas o texto limpo para não travar
+    st.markdown("""
+        <div class="footer-dev">
+            <span>Desenvolvido por GDCOM</span>
+        </div>
+    """, unsafe_html=True)
