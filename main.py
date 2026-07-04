@@ -196,19 +196,7 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
             if st.button("❌ Cancelar Edição da OS"):
                 st.session_state.editando_os_id = None
                 st.rerun()
-                
-            # CORREÇÃO CRÍTICA: Os testes lógicos ficam fora do bloco "with st.form"
-            if btn_salvar_os:
-                payload = {"equipamento": edit_equip, "periodo": edit_periodo, "data_prevista": edit_data.strftime("%d/%m/%Y"), "pecas": edit_pecas, "seguranca": edit_seg}
-                if atualizar_dados("planejamento", payload, "id", os_editar["id"]):
-                    st.success("🎉 Alterações na OS gravadas com sucesso!")
-                    st.session_state.editando_os_id = None
-                    st.rerun()
-            
-            if st.button("❌ Cancelar Edição da OS"):
-                st.session_state.editando_os_id = None
-                st.rerun()
-        else:
+    else:
         st.subheader("📅 Agendar Nova Manutenção / Gerar OS")
         with st.form("form_agenda_direto"):
             lista_nomes = [m["nome"] for m in equipamentos]
@@ -219,7 +207,6 @@ elif menu == "📅 Aba 3: Ordens de Serviço (OS)":
             seg_necessaria = st.text_area("Observações Iniciais de Segurança:", value="Seguir as NRs de segurança aplicadas.")
             botao_agenda = st.form_submit_button("💾 Gerar OS Pendente")
             
-        # O SEGREDINHO DO SUCESSO: A checagem do botão fica FORA do with (alinhada com o with)
         if botao_agenda and eq_escolhido != "Nenhum cadastrado":
             payload = {"equipamento": eq_escolhido, "periodo": periodo_escolhido, "data_prevista": data_planejada.strftime("%d/%m/%Y"), "pecas": pecas_necessarias, "status": "Pendente", "seguranca": seg_necessaria}
             if inserir_dados("planejamento", payload):
